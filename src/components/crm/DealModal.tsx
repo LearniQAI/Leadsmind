@@ -28,7 +28,7 @@ import { Opportunity } from '@/types/crm.types';
 
 const dealSchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  value: z.coerce.number().min(0, 'Value must be positive'),
+  value: z.number().min(0, 'Value must be positive'),
   status: z.enum(['open', 'won', 'lost']),
   contactId: z.string().optional(),
 });
@@ -52,7 +52,7 @@ export function DealModal({ isOpen, onClose, initialData, stageId, contacts }: D
       title: initialData?.title || '',
       value: initialData?.value || 0,
       status: (initialData?.status as 'open' | 'won' | 'lost') || 'open',
-      contactId: initialData?.contact_id || null,
+      contactId: initialData?.contact_id ?? undefined,
     },
   });
 
@@ -120,7 +120,7 @@ export function DealModal({ isOpen, onClose, initialData, stageId, contacts }: D
               <Input
                 id="value"
                 type="number"
-                {...form.register('value')}
+                {...form.register('value', { valueAsNumber: true })}
                 className="bg-white/3 border-white/5 text-white h-11 rounded-xl"
               />
             </div>
@@ -128,8 +128,8 @@ export function DealModal({ isOpen, onClose, initialData, stageId, contacts }: D
               <Label htmlFor="status" className="text-white/60">Status</Label>
               <Select 
                 defaultValue={form.getValues('status')}
-                onValueChange={(v: 'open' | 'won' | 'lost') => {
-                  form.setValue('status', v);
+                onValueChange={(v: 'open' | 'won' | 'lost' | null) => {
+                  if (v) form.setValue('status', v);
                 }}
               >
                 <SelectTrigger className="bg-white/3 border-white/5 text-white h-11 rounded-xl">
