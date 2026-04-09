@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -34,7 +36,7 @@ interface SidebarProps {
   } | null;
 }
 
-const navItems = [
+const navItems: { name: string; href: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean }[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Contacts', href: '/contacts', icon: Contact },
   { name: 'Pipelines', href: '/pipelines', icon: GitGraph },

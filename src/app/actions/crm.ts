@@ -1,3 +1,5 @@
+'use server';
+
 import { createServerClient } from '@/lib/supabase/server';
 import { requireAuth, getCurrentWorkspaceId } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';

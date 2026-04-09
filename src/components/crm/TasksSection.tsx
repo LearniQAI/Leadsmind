@@ -4,11 +4,10 @@ import { useState } from 'react';
 import { ContactTask } from '@/types/crm.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { createTask, toggleTaskStatus, deleteTask } from '@/app/actions/crm';
 import { format } from 'date-fns';
-import { Trash2, Calendar, Plus, CheckCircle2, Circle } from 'lucide-react';
+import { Trash2, Calendar, Plus, CheckCircle2, Circle, CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TasksSectionProps {
@@ -139,4 +138,3 @@ export function TasksSection({ contactId, tasks }: TasksSectionProps) {
     </div>
   );
 }
-import { CheckSquare } from 'lucide-react';

@@ -15,10 +15,14 @@ export default async function EditContactPage({
     getWorkspaceMembers(),
   ]);
 
-  if (!contactResult.success || !contactResult.data) {
+  if (!contactResult.success) {
     if (contactResult.error === 'Contact not found') {
         notFound();
     }
+    redirect('/contacts');
+  }
+
+  if (!contactResult.data) {
     redirect('/contacts');
   }
 

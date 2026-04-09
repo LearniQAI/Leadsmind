@@ -14,8 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   History, 
   MessageSquare, 
-  CheckSquare, 
-  LayoutDashboard 
+  CheckSquare
 } from 'lucide-react';
 
 export default async function ContactDetailPage({
@@ -36,9 +35,17 @@ export default async function ContactDetailPage({
     getContactTasks(params.id),
   ]);
 
-  if (!contactResult.success || !contactResult.data) {
+  if (!contactResult.success) {
     notFound();
   }
+
+  if (!contactResult.data) {
+    notFound();
+  }
+
+  const activities = activitiesResult.success ? (activitiesResult.data ?? []) : [];
+  const notes = notesResult.success ? (notesResult.data ?? []) : [];
+  const tasks = tasksResult.success ? (tasksResult.data ?? []) : [];
 
   return (
     <ContactDetailLayout contact={contactResult.data}>
@@ -59,15 +66,15 @@ export default async function ContactDetailPage({
         </TabsList>
 
         <TabsContent value="activity" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <ActivityTimeline activities={activitiesResult.data || []} />
+          <ActivityTimeline activities={activities} />
         </TabsContent>
 
         <TabsContent value="notes" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <NotesSection contactId={params.id} notes={notesResult.data || []} />
+          <NotesSection contactId={params.id} notes={notes} />
         </TabsContent>
 
         <TabsContent value="tasks" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <TasksSection contactId={params.id} tasks={tasksResult.data || []} />
+          <TasksSection contactId={params.id} tasks={tasks} />
         </TabsContent>
         
       </Tabs>

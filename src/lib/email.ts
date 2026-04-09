@@ -1,7 +1,5 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 interface SendEmailProps {
   to: string | string[]
   subject: string
@@ -10,6 +8,7 @@ interface SendEmailProps {
 }
 
 export async function sendEmail({ to, subject, react, text }: SendEmailProps) {
+  const resend = new Resend(process.env.RESEND_API_KEY)
   try {
     const { data, error } = await resend.emails.send({
       from: 'LeadsMind <onboarding@resend.dev>', // Update with verified domain in production

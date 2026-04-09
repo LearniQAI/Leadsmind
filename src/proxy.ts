@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -63,7 +63,6 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname)
   const isAdminPage = ['/settings/workspace', '/settings/team'].some(path => pathname.startsWith(path))
   const isProtectedPage = pathname.startsWith('/dashboard') || pathname.startsWith('/settings') || isAdminPage
-  const isPublicPage = ['/', '/pricing', '/about', '/contact', '/privacy', '/terms', '/403'].includes(pathname)
 
   // Rule 1: Redirect to /dashboard if already logged in and accessing auth pages
   if (session && isAuthPage) {

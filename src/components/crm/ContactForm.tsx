@@ -143,8 +143,8 @@ export function ContactForm({ initialData, members }: ContactFormProps) {
         <div className="space-y-2">
           <Label htmlFor="source" className="text-white/60">Source (Optional)</Label>
           <Select 
-            onValueChange={(v) => form.setValue('source', v)}
-            defaultValue={form.getValues('source')}
+            onValueChange={(v: string | null) => form.setValue('source', v ?? undefined)}
+            defaultValue={form.getValues('source') ?? undefined}
           >
             <SelectTrigger className="bg-[#0b0b10] border-white/5 text-white h-11 rounded-xl">
               <SelectValue placeholder="Select source" />
@@ -161,8 +161,8 @@ export function ContactForm({ initialData, members }: ContactFormProps) {
         <div className="space-y-2">
           <Label htmlFor="ownerId" className="text-white/60">Assigned Owner</Label>
           <Select 
-            onValueChange={(v) => form.setValue('ownerId', v)}
-            defaultValue={form.getValues('ownerId')}
+            onValueChange={(v: string | null) => form.setValue('ownerId', v ?? undefined)}
+            defaultValue={form.getValues('ownerId') ?? undefined}
           >
             <SelectTrigger className="bg-[#0b0b10] border-white/5 text-white h-11 rounded-xl">
               <SelectValue placeholder="Select owner" />
