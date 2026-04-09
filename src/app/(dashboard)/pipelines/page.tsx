@@ -62,7 +62,7 @@ export default async function PipelinesPage({
         </div>
       </div>
 
-      <KanbanBoard stages={stages} initialOpportunities={opportunities} />
+      <KanbanBoard stages={stages} opportunities={opportunities} />
     </div>
   );
 }
