@@ -39,40 +39,40 @@ export function LoginForm() {
   async function onSubmit(values: LoginValues) {
     setIsLoading(true);
     try {
+      // Step 1: Authenticate
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
       });
 
       if (authError) {
-        toast.error('Email or password is incorrect');
+        toast.error('Incorrect email or password. Please try again.');
         return;
       }
 
       if (!authData.user) {
-        throw new Error('No user data returned from login');
+        toast.error('Login succeeded but no user session returned. Please try again.');
+        return;
       }
 
-      // Check workspaces for this user
-      const { data: userWorkspaces, error: wsError } = await supabase
+      // Step 2: Fetch workspace memberships
+      const { data: memberships, error: wsError } = await supabase
         .from('workspace_members')
         .select(`
           role,
           workspaces (
-            id,
-            name,
-            slug,
-            logo_url,
-            owner_id,
-            plan,
-            created_at
+            id, name, slug, logo_url, owner_id, plan, created_at
           )
         `)
         .eq('user_id', authData.user.id);
 
       if (wsError) {
-        console.error('Error fetching workspaces:', wsError);
-        throw new Error('Failed to load workspaces');
+        console.error('[LoginForm] Error fetching workspaces:', wsError);
+        // Don't block — redirect to dashboard; it handles missing workspace
+        toast.success('Logged in successfully!');
+        router.push(next || '/dashboard');
+        router.refresh();
+        return;
       }
 
       interface RawWorkspace {
@@ -85,40 +85,44 @@ export function LoginForm() {
         created_at: string;
       }
 
-      const formattedWorkspaces = (userWorkspaces || []).map(uw => {
-        const ws = uw.workspaces as unknown as RawWorkspace;
-        return {
-          id: ws.id,
-          name: ws.name,
-          slug: ws.slug,
-          logoUrl: ws.logo_url,
-          ownerId: ws.owner_id,
-          plan: ws.plan,
-          createdAt: ws.created_at,
-          role: uw.role
-        } as Workspace & { role: string };
-      });
+      const formattedWorkspaces = (memberships ?? [])
+        .filter((m) => m.workspaces)
+        .map((m) => {
+          const ws = m.workspaces as unknown as RawWorkspace;
+          return {
+            id: ws.id,
+            name: ws.name,
+            slug: ws.slug,
+            logoUrl: ws.logo_url,
+            ownerId: ws.owner_id,
+            plan: ws.plan,
+            createdAt: ws.created_at,
+            role: m.role,
+          } as Workspace & { role: string };
+        });
 
       if (formattedWorkspaces.length === 0) {
-        // User has no workspace (shouldn't happen with our signup flow)
-        toast.error('No workspace found for this account. Please contact support.');
-        await supabase.auth.signOut();
+        // No workspace — go to dashboard; it will auto-create one
+        console.warn('[LoginForm] No workspaces found — redirecting to dashboard to auto-create');
+        toast.success('Logged in! Setting up your workspace...');
+        router.push(next || '/dashboard');
+        router.refresh();
         return;
       }
 
       if (formattedWorkspaces.length === 1) {
-        // Only one workspace, set it and redirect
         await setActiveWorkspace(formattedWorkspaces[0].id);
-        toast.success('Logged in successfully!');
+        toast.success('Welcome back!');
         router.push(next || '/dashboard');
         router.refresh();
       } else {
-        // Multiple workspaces, show picker
+        // Multiple workspaces — let user pick
         setWorkspaces(formattedWorkspaces);
         setShowPicker(true);
+        setIsLoading(false);
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('[LoginForm] Unexpected error:', error);
       toast.error(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
@@ -135,10 +139,7 @@ export function LoginForm() {
   if (showPicker) {
     return (
       <div className="animate-fade-up">
-        <WorkspacePicker 
-          workspaces={workspaces} 
-          onSelect={handleWorkspaceSelect} 
-        />
+        <WorkspacePicker workspaces={workspaces} onSelect={handleWorkspaceSelect} />
       </div>
     );
   }
@@ -169,9 +170,9 @@ export function LoginForm() {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password" title="Enter your password" className="text-[0.8rem] font-medium text-foreground/60">Password</Label>
-              <Link 
-                href="/forgot-password" 
+              <Label htmlFor="password" className="text-[0.8rem] font-medium text-foreground/60">Password</Label>
+              <Link
+                href="/forgot-password"
                 className="text-[0.7rem] font-medium text-[#6c47ff]/60 hover:text-[#6c47ff] underline-offset-4 hover:underline"
               >
                 Forgot?
@@ -190,21 +191,25 @@ export function LoginForm() {
             )}
           </div>
           <div className="flex items-center space-x-2 py-2">
-            <Checkbox 
-              id="rememberMe" 
+            <Checkbox
+              id="rememberMe"
               checked={form.watch('rememberMe')}
               onCheckedChange={(checked: boolean) => form.setValue('rememberMe', checked === true)}
               disabled={isLoading}
               className="border-white/10 data-[state=checked]:bg-[#6c47ff] data-[state=checked]:border-[#6c47ff]"
             />
-            <Label 
-              htmlFor="rememberMe" 
+            <Label
+              htmlFor="rememberMe"
               className="text-[0.8rem] font-medium leading-none text-foreground/50 peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
               Keep me logged in
             </Label>
           </div>
-          <Button type="submit" className="h-12 w-full rounded-full bg-linear-to-r from-[#6c47ff] to-[#8b5cf6] font-bold text-white shadow-lg shadow-[#6c47ff]/20 transition-all hover:-translate-y-0.5" disabled={isLoading}>
+          <Button
+            type="submit"
+            className="h-12 w-full rounded-full bg-linear-to-r from-[#6c47ff] to-[#8b5cf6] font-bold text-white shadow-lg shadow-[#6c47ff]/20 transition-all hover:-translate-y-0.5"
+            disabled={isLoading}
+          >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

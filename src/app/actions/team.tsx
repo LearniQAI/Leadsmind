@@ -89,7 +89,7 @@ export async function inviteMember(payload: InviteValues) {
       react: (
         <InvitationEmail
           workspaceName={workspace?.name}
-          inviterName={user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Someone'}
+          inviterName={user ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Someone'}
           inviteUrl={inviteUrl}
           role={validatedFields.data.role}
           expiresIn="48 hours"
@@ -149,7 +149,7 @@ export async function resendInvitation(invitationId: string) {
       react: (
         <InvitationEmail
           workspaceName={invite.workspaces?.name}
-          inviterName={user ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Someone'}
+          inviterName={user ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Someone'}
           inviteUrl={inviteUrl}
           role={invite.role}
           expiresIn="48 hours"

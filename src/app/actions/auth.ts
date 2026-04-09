@@ -3,17 +3,23 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 function slugify(text: string) {
   return text
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, '-')     // Replace spaces with -
-    .replace(/[^\w-]+/g, '')   // Remove all non-word chars
-    .replace(/--+/g, '-');    // Replace multiple - with single -
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-');
 }
 
+/**
+ * Called after signup. Creates the user profile + workspace in our DB tables.
+ * NOTE: This is now a fallback — the primary path is the DB trigger handle_new_user().
+ * This function should NEVER block the signup flow even if it partially fails.
+ */
 export async function setupWorkspace(payload: {
   userId: string;
   email: string;
@@ -24,109 +30,141 @@ export async function setupWorkspace(payload: {
   const supabase = await createServerClient();
 
   try {
-    // 1. Create user record in our tracking table (syncing with auth.user)
+    // 1. Upsert user record - use ON CONFLICT behaviour
     const { error: userError } = await supabase
       .from('users')
-      .upsert({
-        id: payload.userId,
-        email: payload.email,
-        first_name: payload.firstName,
-        last_name: payload.lastName,
-      });
+      .upsert(
+        {
+          id: payload.userId,
+          email: payload.email,
+          first_name: payload.firstName,
+          last_name: payload.lastName,
+        },
+        { onConflict: 'id', ignoreDuplicates: true }
+      );
 
+    // Log but DON'T block — the DB trigger may have already created it
     if (userError) {
-      console.error('Error creating user record:', userError);
-      return { success: false, error: 'Failed to create user profile' };
+      console.warn('[setupWorkspace] User upsert warning (may already exist):', userError.message);
     }
 
-    // 2. Create the workspace record
-    const slug = `${slugify(payload.workspaceName)}-${Math.random().toString(36).substring(2, 7)}`;
+    // 2. Check if user already has a workspace (trigger may have created one)
+    const { data: existingMembership } = await supabase
+      .from('workspace_members')
+      .select('workspace_id, workspaces(id, name)')
+      .eq('user_id', payload.userId)
+      .limit(1)
+      .single();
+
+    if (existingMembership) {
+      // Workspace already exists (created by trigger)
+      const ws = existingMembership.workspaces as unknown as { id: string; name: string };
+      return { success: true, workspaceId: ws?.id || existingMembership.workspace_id };
+    }
+
+    // 3. Create workspace only if one doesn't exist yet
+    const baseSlug = slugify(payload.workspaceName);
+    const slug = `${baseSlug}-${Math.random().toString(36).substring(2, 7)}`;
+
     const { data: workspace, error: workspaceError } = await supabase
       .from('workspaces')
       .insert({
         name: payload.workspaceName,
         slug,
         owner_id: payload.userId,
+        plan: 'free',
       })
-      .select()
+      .select('id, name')
       .single();
 
     if (workspaceError) {
-      console.error('Error creating workspace:', workspaceError);
+      console.error('[setupWorkspace] Workspace creation error:', workspaceError);
+      // Try to recover — maybe slug collision; fetch any workspace for this user
+      const { data: fallback } = await supabase
+        .from('workspace_members')
+        .select('workspace_id')
+        .eq('user_id', payload.userId)
+        .limit(1)
+        .single();
+
+      if (fallback) {
+        return { success: true, workspaceId: fallback.workspace_id };
+      }
       return { success: false, error: 'Failed to create workspace' };
     }
 
-    // 3. Create the workspace member record (role: admin)
+    // 4. Add as admin member
     const { error: memberError } = await supabase
       .from('workspace_members')
-      .insert({
-        workspace_id: workspace.id,
-        user_id: payload.userId,
-        role: 'admin',
-      });
+      .insert({ workspace_id: workspace.id, user_id: payload.userId, role: 'admin' });
 
-    if (memberError) {
-      console.error('Error creating workspace member:', memberError);
-      return { success: false, error: 'Failed to add owner to workspace' };
+    if (memberError && !memberError.message.includes('duplicate')) {
+      console.warn('[setupWorkspace] Member insert warning:', memberError.message);
     }
 
     revalidatePath('/', 'layout');
     return { success: true, workspaceId: workspace.id };
   } catch (err) {
-    console.error('Setup workspace exception:', err);
-    return { success: false, error: 'An unexpected error occurred' };
+    console.error('[setupWorkspace] Unexpected error:', err);
+    // Try last-resort recovery
+    try {
+      const supabase2 = await createServerClient();
+      const { data: fallback } = await supabase2
+        .from('workspace_members')
+        .select('workspace_id')
+        .eq('user_id', payload.userId)
+        .limit(1)
+        .single();
+      if (fallback) return { success: true, workspaceId: fallback.workspace_id };
+    } catch {}
+    return { success: false, error: 'An unexpected error occurred during workspace setup' };
   }
 }
 
 export async function setActiveWorkspace(workspaceId: string) {
-  const cookieStore = await cookies()
+  const cookieStore = await cookies();
   cookieStore.set('active_workspace_id', workspaceId, {
     maxAge: 60 * 60 * 24 * 30, // 30 days
     path: '/',
-  })
-  revalidatePath('/', 'layout')
+    httpOnly: true,
+    sameSite: 'lax',
+  });
+  revalidatePath('/', 'layout');
 }
 
 export async function forgotPassword(email: string) {
-  const supabase = await createServerClient()
-  const appUrl = 'http://localhost:3000'
+  const supabase = await createServerClient();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${appUrl}/reset-password`,
-  })
+  });
 
   if (error) {
-    console.error('Forgot password error:', error.message)
-    // We return success true anyway for production to prevent email enumeration (Rule 7.6)
-    // but in local dev we might want to know if it's a real failure
+    console.error('Forgot password error:', error.message);
     if (process.env.NODE_ENV === 'development') {
-       return { success: false, error: error.message }
+      return { success: false, error: error.message };
     }
-    return { success: true }
   }
 
-  return { success: true }
+  // Always return success in production to prevent email enumeration
+  return { success: true };
 }
 
 export async function resetPassword(password: string) {
-  const supabase = await createServerClient()
+  const supabase = await createServerClient();
 
-  const { error } = await supabase.auth.updateUser({
-    password: password,
-  })
+  const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
-    console.error('Reset password error:', error.message)
-    return { success: false, error: error.message }
+    console.error('Reset password error:', error.message);
+    return { success: false, error: error.message };
   }
 
-  // After successful reset, clear any session-related data if needed 
-  // though Supabase usually signs the user in automatically after a reset
-  
-  return { success: true }
+  return { success: true };
 }
 
 export async function handleLogout() {
-  const { logout } = await import('@/lib/auth')
-  await logout()
+  const { logout } = await import('@/lib/auth');
+  await logout();
 }

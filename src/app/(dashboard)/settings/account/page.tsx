@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 }
 
 export default async function AccountSettingsPage() {
-  const user = await requireAuth()
+  await requireAuth()
   const profile = await getCurrentProfile()
   const workspaces = await getUserWorkspaces()
   const activeWorkspaceId = await getCurrentWorkspaceId()
@@ -25,13 +25,13 @@ export default async function AccountSettingsPage() {
     return <div>Error loading profile</div>
   }
 
-  // Map DB profile to component props
+  // Profile is already camelCase from getCurrentProfile()
   const profileData = {
     id: profile.id,
     email: profile.email,
-    firstName: profile.first_name,
-    lastName: profile.last_name || '',
-    avatarUrl: profile.avatar_url || '',
+    firstName: profile.firstName,
+    lastName: profile.lastName,
+    avatarUrl: profile.avatarUrl ?? '',
   }
 
   return (

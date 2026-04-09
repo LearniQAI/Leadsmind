@@ -33,20 +33,18 @@ export function SignupForm() {
   async function onSubmit(values: SignupValues) {
     setIsLoading(true);
     try {
-      // 1. Sign up user via Supabase Auth
+      // Step 1: Sign up via Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
-          data: {
-            full_name: values.fullName,
-          },
+          data: { full_name: values.fullName },
         },
       });
 
       if (authError) {
-        if (authError.message.includes('already registered')) {
-          toast.error('An account with this email already exists');
+        if (authError.message.toLowerCase().includes('already registered')) {
+          toast.error('An account with this email already exists. Try logging in.');
         } else {
           toast.error(authError.message);
         }
@@ -54,36 +52,43 @@ export function SignupForm() {
       }
 
       if (!authData.user) {
-        throw new Error('No user data returned from signup');
+        toast.error('Signup succeeded but no user was returned. Please try logging in.');
+        router.push('/login');
+        return;
       }
 
-      // 2. Create records in our application tables
-      // For Phase 1, we do this in a multi-step process. 
-      // In a real production app, you might use a Supabase Function or a Trigger to handle this atomically.
-      
       const userId = authData.user.id;
-      const [firstName, ...lastNameParts] = values.fullName.split(' ');
-      const lastName = lastNameParts.join(' ');
+      const nameParts = values.fullName.trim().split(' ');
+      const firstName = nameParts[0] ?? values.email.split('@')[0];
+      const lastName = nameParts.slice(1).join(' ');
 
-      const result = await setupWorkspace({
-        userId,
-        email: values.email,
-        firstName,
-        lastName,
-        workspaceName: `${values.fullName}'s Workspace`,
-      });
 
-      if (result.success) {
-        await setActiveWorkspace(result.workspaceId!);
-        toast.success('Account created successfully!');
-        router.push('/welcome');
-        router.refresh();
-      } else {
-        throw new Error(result.error || 'Failed to set up workspace');
+      try {
+        const result = await setupWorkspace({
+          userId,
+          email: values.email,
+          firstName,
+          lastName,
+          workspaceName: `${values.fullName}'s Workspace`,
+        });
+
+        if (result.success && result.workspaceId) {
+          await setActiveWorkspace(result.workspaceId);
+        } else {
+          console.warn('[SignupForm] setupWorkspace non-success:', result.error);
+          // Don't block — dashboard handles missing workspace gracefully
+        }
+      } catch (setupErr) {
+        console.warn('[SignupForm] setupWorkspace threw (non-blocking):', setupErr);
+        // Still proceed — dashboard & auth.ts will auto-create workspace
       }
+
+      toast.success('Account created! Welcome to LeadsMind.');
+      router.push('/welcome');
+      router.refresh();
     } catch (error) {
-      console.error('Signup error:', error);
-      toast.error(error instanceof Error ? error.message : 'Something went wrong during signup');
+      console.error('[SignupForm] Unexpected error:', error);
+      toast.error(error instanceof Error ? error.message : 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +132,7 @@ export function SignupForm() {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password" title="At least 8 characters" className="text-[0.8rem] font-medium text-foreground/60">Password</Label>
+            <Label htmlFor="password" className="text-[0.8rem] font-medium text-foreground/60">Password</Label>
             <Input
               id="password"
               type="password"
@@ -141,7 +146,7 @@ export function SignupForm() {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword" title="Must match password" className="text-[0.8rem] font-medium text-foreground/60">Confirm Password</Label>
+            <Label htmlFor="confirmPassword" className="text-[0.8rem] font-medium text-foreground/60">Confirm Password</Label>
             <Input
               id="confirmPassword"
               type="password"
@@ -157,15 +162,15 @@ export function SignupForm() {
           <div className="pt-2">
             <p className="mb-6 text-[0.75rem] font-light leading-relaxed text-foreground/30">
               By joining, you agree to our{' '}
-              <Link href="/terms" className="text-foreground/50 underline underline-offset-4 hover:text-[#6c47ff]">
-                Terms
-              </Link>{' '}
+              <Link href="/terms" className="text-foreground/50 underline underline-offset-4 hover:text-[#6c47ff]">Terms</Link>{' '}
               and{' '}
-              <Link href="/privacy" className="text-foreground/50 underline underline-offset-4 hover:text-[#6c47ff]">
-                Privacy Policy
-              </Link>.
+              <Link href="/privacy" className="text-foreground/50 underline underline-offset-4 hover:text-[#6c47ff]">Privacy Policy</Link>.
             </p>
-            <Button type="submit" className="h-12 w-full rounded-full bg-linear-to-r from-[#6c47ff] to-[#8b5cf6] font-bold text-white shadow-lg shadow-[#6c47ff]/20 transition-all hover:-translate-y-0.5" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="h-12 w-full rounded-full bg-linear-to-r from-[#6c47ff] to-[#8b5cf6] font-bold text-white shadow-lg shadow-[#6c47ff]/20 transition-all hover:-translate-y-0.5"
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -4,11 +4,26 @@ import { createServerClient } from '@/lib/supabase/server';
 import { requireAuth, getCurrentWorkspaceId } from '@/lib/auth';
 
 export async function getDashboardMetrics() {
-    await requireAuth();
-    const workspaceId = await getCurrentWorkspaceId();
-    if (!workspaceId) return null;
-
+    const user = await requireAuth();
+    let workspaceId = await getCurrentWorkspaceId();
+    
     const supabase = await createServerClient();
+
+    if (!workspaceId) {
+        // Fallback: get first available workspace for user
+        const { data: membership } = await supabase
+            .from('workspace_members')
+            .select('workspace_id')
+            .eq('user_id', user.id)
+            .limit(1)
+            .single();
+        
+        if (membership) {
+            workspaceId = membership.workspace_id;
+        }
+    }
+
+    if (!workspaceId) return null;
 
     const [contactsCount, dealsCount, wonDealsSum, recentActivities] = await Promise.all([
         supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('workspace_id', workspaceId),

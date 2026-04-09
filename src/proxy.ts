@@ -62,7 +62,12 @@ export async function proxy(request: NextRequest) {
   // Protection Level Map
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname)
   const isAdminPage = ['/settings/workspace', '/settings/team'].some(path => pathname.startsWith(path))
-  const isProtectedPage = pathname.startsWith('/dashboard') || pathname.startsWith('/settings') || isAdminPage
+  const isProtectedPage =
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/settings') ||
+    pathname.startsWith('/contacts') ||
+    pathname.startsWith('/pipelines') ||
+    isAdminPage
 
   // Rule 1: Redirect to /dashboard if already logged in and accessing auth pages
   if (session && isAuthPage) {
