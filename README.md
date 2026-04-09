@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LeadsMind - SaaS CRM + LMS Platform
 
-## Getting Started
+Phase 1: Auth & Multi-Tenant Foundation
 
-First, run the development server:
+## 🚀 Setup Instructions
+
+### 1. Prerequisites
+- Node.js 18+ 
+- Supabase Project
+- Resend Account (for emails)
+
+### 2. Environment Variables
+Create a `.env.local` file in the root directory with the following variables:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Email Configuration (Resend)
+RESEND_API_KEY=your_resend_api_key
+
+# App Configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Supabase Storage Setup
+To enable avatar uploads, you must create a public bucket named `avatars`. Run the following SQL in the Supabase SQL Editor:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```sql
+-- 1. Create the bucket
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true);
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+-- 2. Allow public access to read avatars
+create policy "Public Access"
+on storage.objects for select
+using ( bucket_id = 'avatars' );
 
-## Learn More
+-- 3. Allow authenticated users to upload avatars
+create policy "Authenticated users can upload avatars"
+on storage.objects for insert
+with check (
+  bucket_id = 'avatars' 
+  AND auth.role() = 'authenticated'
+);
 
-To learn more about Next.js, take a look at the following resources:
+-- 4. Allow users to update/delete their own avatars
+create policy "Users can update their own avatars"
+on storage.objects for update
+using ( bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1] );
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+create policy "Users can delete their own avatars"
+on storage.objects for delete
+using ( bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1] );
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 4. Installation & Development
+```bash
+npm install
+npm run dev
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🛠 Tech Stack
+- **Framework**: Next.js 14 (App Router)
+- **Styling**: Tailwind CSS v4 + custom design tokens
+- **Auth**: Supabase Auth
+- **Database**: Supabase (Postgres) + RLS
+- **Components**: shadcn/ui + Base UI
+- **Email**: Resend
