@@ -85,10 +85,12 @@ export function Sidebar({ className, user, workspace }: SidebarProps) {
 
       {/* Primary Action */}
       <div className="px-4 py-6">
-        <Button className="w-full h-11 rounded-xl bg-white/5 border border-white/10 text-white font-semibold gap-2 transition-all hover:bg-white/10 hover:border-white/20 shadow-sm">
-          <Plus className="h-4 w-4 text-[#6c47ff]" />
-          <span>Quick Access</span>
-        </Button>
+        <Link href="/contacts/new">
+          <Button className="w-full h-11 rounded-xl bg-white/5 border border-white/10 text-white font-semibold gap-2 transition-all hover:bg-white/10 hover:border-white/20 shadow-sm cursor-pointer">
+            <Plus className="h-4 w-4 text-[#6c47ff]" />
+            <span>New Contact</span>
+          </Button>
+        </Link>
       </div>
 
       {/* Navigation */}

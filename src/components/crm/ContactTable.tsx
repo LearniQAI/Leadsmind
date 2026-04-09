@@ -24,13 +24,33 @@ import type { Contact } from '@/types/crm.types';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
+import { deleteContact } from '@/app/actions/contacts';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+
 interface ContactTableProps {
   contacts: Contact[];
-  onDelete: (id: string) => void;
 }
 
-export function ContactTable({ contacts, onDelete }: ContactTableProps) {
+export function ContactTable({ contacts }: ContactTableProps) {
+  const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this contact?')) return;
+    
+    try {
+      const result = await deleteContact(id);
+      if (result.success) {
+        toast.success('Contact deleted');
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    } catch {
+      toast.error('Failed to delete contact');
+    }
+  };
 
   const toggleSelectAll = () => {
     if (selectedIds.length === contacts.length) {
@@ -124,7 +144,10 @@ export function ContactTable({ contacts, onDelete }: ContactTableProps) {
                             <span>Edit Profile</span>
                         </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-red-400 focus:text-red-400 cursor-pointer gap-2" onClick={() => onDelete(contact.id)}>
+                    <DropdownMenuItem 
+                      className="text-red-400 focus:text-red-400 cursor-pointer gap-2" 
+                      onClick={() => handleDelete(contact.id)}
+                    >
                       <Trash2 className="h-4 w-4" />
                       <span>Delete Contact</span>
                     </DropdownMenuItem>

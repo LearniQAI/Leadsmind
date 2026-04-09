@@ -70,7 +70,7 @@ export default async function ContactsPage({
         </form>
       </div>
 
-      <ContactTable contacts={contacts || []} onDelete={() => {}} />
+      <ContactTable contacts={contacts || []} />
     </div>
   );
 }
