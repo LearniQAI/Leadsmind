@@ -20,19 +20,20 @@ import {
 export default async function ContactDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   await requireAuth();
+  const { id } = await params;
   const [
     contactResult, 
     activitiesResult, 
     notesResult, 
     tasksResult
   ] = await Promise.all([
-    getContact(params.id),
-    getContactActivities(params.id),
-    getContactNotes(params.id),
-    getContactTasks(params.id),
+    getContact(id),
+    getContactActivities(id),
+    getContactNotes(id),
+    getContactTasks(id),
   ]);
 
   if (!contactResult.success) {
@@ -70,11 +71,11 @@ export default async function ContactDetailPage({
         </TabsContent>
 
         <TabsContent value="notes" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <NotesSection contactId={params.id} notes={notes} />
+          <NotesSection contactId={id} notes={notes} />
         </TabsContent>
 
         <TabsContent value="tasks" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <TasksSection contactId={params.id} tasks={tasks} />
+          <TasksSection contactId={id} tasks={tasks} />
         </TabsContent>
         
       </Tabs>

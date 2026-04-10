@@ -7,11 +7,12 @@ import { notFound, redirect } from 'next/navigation';
 export default async function EditContactPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   await requireAuth();
+  const { id } = await params;
   const [contactResult, members] = await Promise.all([
-    getContact(params.id),
+    getContact(id),
     getWorkspaceMembers(),
   ]);
 

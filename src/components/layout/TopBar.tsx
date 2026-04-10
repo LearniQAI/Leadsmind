@@ -22,6 +22,8 @@ interface TopBarProps {
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
+  '/contacts': 'Contacts',
+  '/pipelines': 'Pipelines',
   '/settings/workspace': 'Workspace Settings',
   '/settings/team': 'Team Members',
   '/settings/account': 'Account Settings',

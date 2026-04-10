@@ -105,7 +105,12 @@ export interface Workspace {
 
 export async function getCurrentWorkspaceId(): Promise<string | null> {
   const cookieStore = await cookies();
-  return cookieStore.get('active_workspace_id')?.value ?? null;
+  const cookieId = cookieStore.get('active_workspace_id')?.value;
+  if (cookieId) return cookieId;
+
+  // Fallback to database lookup if cookie is missing
+  const workspace = await getCurrentWorkspace();
+  return workspace?.id ?? null;
 }
 
 export async function getCurrentWorkspace(): Promise<Workspace | null> {
