@@ -20,7 +20,7 @@ export default async function DashboardLayout({
   const user = {
     id: authUser.id,
     email: authUser.email,
-    firstName: profile?.firstName || authUser.user_metadata?.full_name?.split(' ')[0] || authUser.email?.split('@')[0],
+    firstName: profile?.firstName || authUser.user_metadata?.full_name?.split(' ')[0] || authUser.email?.split('@')[0] || 'User',
     avatarUrl: profile?.avatarUrl ?? null,
   };
 

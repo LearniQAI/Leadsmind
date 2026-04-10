@@ -6,6 +6,8 @@ import { TeamMembersTable } from '@/components/dashboard/TeamMembersTable';
 import { Separator } from '@/components/ui/separator';
 import { redirect } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 export default async function TeamSettingsPage() {
   await requireAdmin();
   

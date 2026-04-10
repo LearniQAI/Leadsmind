@@ -2,6 +2,8 @@ import { requireAdmin, getCurrentWorkspace } from '@/lib/auth';
 import { WorkspaceSettingsForm } from '@/components/dashboard/WorkspaceSettingsForm';
 import { redirect } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 export default async function WorkspaceSettingsPage() {
   // Ensure user is admin of the current workspace
   await requireAdmin();

@@ -15,6 +15,8 @@ export const metadata: Metadata = {
   description: 'Manage your profile, security, and workspaces.',
 }
 
+export const dynamic = 'force-dynamic';
+
 export default async function AccountSettingsPage() {
   await requireAuth()
   const profile = await getCurrentProfile()
