@@ -191,9 +191,17 @@ export async function getCurrentWorkspace(): Promise<Workspace | null> {
 
 export async function getUserRole(): Promise<string | null> {
   const user = await getUser();
-  const workspaceId = await getCurrentWorkspaceId();
+  if (!user) return null;
 
-  if (!user || !workspaceId) return null;
+  // Prefer cookie for performance; fall back to DB via getCurrentWorkspace
+  // because cookies cannot be set in Server Components (Next.js 15/16),
+  // so active_workspace_id may not be present in the browser cookie jar.
+  let workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) {
+    const workspace = await getCurrentWorkspace();
+    workspaceId = workspace?.id ?? null;
+  }
+  if (!workspaceId) return null;
 
   const supabase = await createServerClient();
   const { data, error } = await supabase

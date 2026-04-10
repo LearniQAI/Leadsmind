@@ -1,4 +1,4 @@
-import { requireAuth, getCurrentWorkspaceId } from '@/lib/auth';
+import { requireAuth, getCurrentWorkspace } from '@/lib/auth';
 import { createServerClient } from '@/lib/supabase/server';
 import { ContactTable } from '@/components/crm/ContactTable';
 import { Button } from '@/components/ui/button';
@@ -10,19 +10,20 @@ import { redirect } from 'next/navigation';
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: { q?: string };
+  searchParams: Promise<{ q?: string }>;
 }) {
   await requireAuth();
-  const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) redirect('/login');
+  const workspace = await getCurrentWorkspace();
+  if (!workspace) redirect('/login');
 
   const supabase = await createServerClient();
-  const query = searchParams.q || '';
+  const { q } = await searchParams;
+  const query = q || '';
 
   let dbQuery = supabase
     .from('contacts')
     .select('*')
-    .eq('workspace_id', workspaceId)
+    .eq('workspace_id', workspace!.id)
     .order('created_at', { ascending: false });
 
   if (query) {

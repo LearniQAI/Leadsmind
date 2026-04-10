@@ -1,4 +1,4 @@
-import { requireAdmin, getCurrentWorkspaceId, getUser } from '@/lib/auth';
+import { requireAdmin, getCurrentWorkspace, getUser } from '@/lib/auth';
 import { createServerClient } from '@/lib/supabase/server';
 import { InviteMemberForm } from '@/components/dashboard/InviteMemberForm';
 import { PendingInvitationsList } from '@/components/dashboard/PendingInvitationsList';
@@ -9,8 +9,8 @@ import { redirect } from 'next/navigation';
 export default async function TeamSettingsPage() {
   await requireAdmin();
   
-  const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) redirect('/dashboard');
+  const workspace = await getCurrentWorkspace();
+  if (!workspace) redirect('/login');
 
   const user = await getUser();
   if (!user) redirect('/login');
@@ -21,7 +21,7 @@ export default async function TeamSettingsPage() {
   const { data: members, error: membersError } = await supabase
     .from('workspace_members')
     .select('*, users(*)')
-    .eq('workspace_id', workspaceId)
+    .eq('workspace_id', workspace!.id)
     .order('joined_at', { ascending: true });
 
   if (membersError) {
@@ -32,7 +32,7 @@ export default async function TeamSettingsPage() {
   const { data: invitations, error: invitesError } = await supabase
     .from('invitations')
     .select('*')
-    .eq('workspace_id', workspaceId)
+    .eq('workspace_id', workspace!.id)
     .is('accepted_at', null)
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false });

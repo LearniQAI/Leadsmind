@@ -1,4 +1,4 @@
-import { requireAuth, getCurrentWorkspaceId } from '@/lib/auth';
+import { requireAuth, getCurrentWorkspace } from '@/lib/auth';
 import { 
   getPipelines, 
   getPipelineStages, 
@@ -13,11 +13,11 @@ import { redirect } from 'next/navigation';
 export default async function PipelinesPage({
   searchParams,
 }: {
-  searchParams: { pipelineId?: string };
+  searchParams: Promise<{ pipelineId?: string }>;
 }) {
   await requireAuth();
-  const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) redirect('/login');
+  const workspace = await getCurrentWorkspace();
+  if (!workspace) redirect('/login');
 
   const pipelinesResult = await getPipelines();
   const pipelines = pipelinesResult.success ? pipelinesResult.data || [] : [];
@@ -27,7 +27,8 @@ export default async function PipelinesPage({
       return <div>Setting up your first pipeline...</div>;
   }
 
-  const activePipelineId = searchParams.pipelineId || pipelines[0].id;
+  const { pipelineId } = await searchParams;
+  const activePipelineId = pipelineId || pipelines[0].id;
 
   const [stagesResult, opportunitiesResult] = await Promise.all([
     getPipelineStages(activePipelineId),
