@@ -1,4 +1,4 @@
-import { requireAdmin, getCurrentWorkspace, getUser } from '@/lib/auth';
+import { requireAuth, getCurrentWorkspace, getUser } from '@/lib/auth';
 import { createServerClient } from '@/lib/supabase/server';
 import { InviteMemberForm } from '@/components/dashboard/InviteMemberForm';
 import { PendingInvitationsList } from '@/components/dashboard/PendingInvitationsList';

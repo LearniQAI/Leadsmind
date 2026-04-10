@@ -9,6 +9,7 @@ import { PipelineSelector } from '@/components/crm/PipelineSelector';
 import { Button } from '@/components/ui/button';
 import { Plus, Settings } from 'lucide-react';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
