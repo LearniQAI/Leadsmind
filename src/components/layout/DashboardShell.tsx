@@ -37,12 +37,12 @@ export function DashboardShell({ children, user, workspace }: DashboardShellProp
         {/* Top Bar with Mobile Menu Trigger */}
         <header className="sticky top-0 z-40 flex h-20 items-center bg-[#030303]/80 backdrop-blur-xl border-b border-white/5 px-4 md:px-0">
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild>
+            <SheetTrigger render={
               <Button variant="ghost" size="icon" className="md:hidden ml-4 text-white/50 hover:text-white">
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
-            </SheetTrigger>
+            } />
             <SheetContent side="left" className="p-0 w-[280px] bg-[#0b0b10] border-r border-white/5">
               <Sidebar user={user} workspace={workspace} className="h-full" />
             </SheetContent>
