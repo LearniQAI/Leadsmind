@@ -1,5 +1,6 @@
 import { requireAuth, getCurrentProfile, getCurrentWorkspace } from '@/lib/auth';
 import { DashboardShell } from '@/components/layout/DashboardShell';
+import { WorkspaceSync } from '@/components/auth/WorkspaceSync';
 import React from 'react';
 
 export default async function DashboardLayout({
@@ -34,8 +35,11 @@ export default async function DashboardLayout({
     : null;
 
   return (
-    <DashboardShell user={user} workspace={workspaceData}>
-      {children}
-    </DashboardShell>
+    <>
+      <WorkspaceSync workspaceId={workspaceData?.id ?? null} />
+      <DashboardShell user={user} workspace={workspaceData}>
+        {children}
+      </DashboardShell>
+    </>
   );
 }

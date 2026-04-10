@@ -40,8 +40,8 @@ const navItems: { name: string; href: string; icon: React.ComponentType<{ classN
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Contacts', href: '/contacts', icon: Contact },
   { name: 'Pipelines', href: '/pipelines', icon: GitGraph },
-  { name: 'Team Members', href: '/settings/team', icon: Users },
-  { name: 'Settings', href: '/settings/workspace', icon: Building2 },
+  { name: 'Team Members', href: '/team-members', icon: Users },
+  { name: 'Settings', href: '/settings/account', icon: Building2 },
 ];
 
 
