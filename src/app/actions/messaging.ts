@@ -302,13 +302,19 @@ async function syncTwitter(workspaceId: string, credentials: any, supabase: any)
 
     // Fetch last 10 DM events using v2 API
     const dms = await client.v2.listDmEvents({ 
-      "event.fields": ['id', 'text', 'sender_id', 'created_at', 'dm_conversation_id'],
+      "dm_event.fields": ['id', 'text', 'sender_id', 'created_at', 'dm_conversation_id', 'event_type'],
       max_results: 10 
     });
     
     let synced = 0;
 
-    for (const event of dms.data || []) {
+    // In Twitter API v2, the result has a 'data' array inside the 'data' property of the paginator
+    const events = dms.data?.data || [];
+
+    for (const event of events) {
+      // Only sync actual messages (ignore participants joining/leaving)
+      if (event.event_type !== 'MessageCreate') continue;
+
       const from = event.sender_id!;
       const externalId = event.id;
       
