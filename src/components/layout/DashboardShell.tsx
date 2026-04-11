@@ -29,7 +29,7 @@ export function DashboardShell({ children, user, workspace }: DashboardShellProp
   return (
     <div className="flex min-h-screen bg-[#030303]">
       {/* Desktop Sidebar */}
-      <div className="hidden border-r border-white/5 bg-[#0b0b10] md:block md:w-[280px] fixed top-0 left-0 bottom-0 overflow-y-auto z-50">
+      <div className="hidden border-r border-white/5 bg-[#0b0b10] md:block md:w-[280px] fixed top-0 left-0 bottom-0 overflow-hidden z-50">
         <Sidebar user={user} workspace={workspace} className="h-full" />
       </div>
 

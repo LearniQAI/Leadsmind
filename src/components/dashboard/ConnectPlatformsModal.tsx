@@ -326,52 +326,70 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-[#0b0b10] border-white/5 p-0 overflow-hidden rounded-[28px] shadow-2xl transition-all duration-300">
+      <DialogContent className="max-w-[95vw] md:max-w-xl bg-[#0b0b10] border-white/5 p-0 overflow-hidden rounded-[28px] shadow-2xl transition-all duration-300">
         {!selectedPlatform ? (
           <>
-            <div className="p-8 border-b border-white/5">
-              <DialogTitle className="text-2xl font-extrabold text-white tracking-tight">Connect Platforms</DialogTitle>
+            <div className="p-6 md:p-8 border-b border-white/5 bg-white/[0.01]">
+              <DialogTitle className="text-xl md:text-2xl font-extrabold text-white tracking-tight">Connect Platforms</DialogTitle>
               <DialogDescription className="text-sm font-light text-white/40 mt-1">
-                Connect your external messaging platforms to view and reply to messages inside LeadsMind.
+                Sync your messaging platforms to view and reply to leads in real-time.
               </DialogDescription>
             </div>
-            <div className="p-6 space-y-3">
-              {platforms.map((platform) => (
-                <div key={platform.id} className="group flex items-center justify-between p-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04]">
-                  <div className="flex items-center gap-4">
-                    <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center shrink-0 border border-white/5", platform.bgColor)}>
-                      <platform.icon className={cn("h-6 w-6", platform.iconColor)} />
+            <div className="p-4 md:p-6 max-h-[70vh] overflow-y-auto overflow-x-hidden scrollbar-thin">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {platforms.map((platform) => (
+                  <div 
+                    key={platform.id} 
+                    className="group relative flex flex-col items-center text-center p-5 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-[#6c47ff]/30 transition-all cursor-default"
+                  >
+                    <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 border border-white/5 mb-3 transition-transform group-hover:scale-110", platform.bgColor)}>
+                      <platform.icon className={cn("h-7 w-7", platform.iconColor)} />
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-base font-bold text-white">{platform.name}</span>
-                      <span className="text-xs text-white/40 uppercase tracking-wider mt-0.5">{platform.description}</span>
+                    <div className="flex flex-col mb-4">
+                      <span className="text-base font-bold text-white tracking-tight">{platform.name}</span>
+                      <span className="text-[10px] text-white/30 uppercase tracking-widest mt-0.5 font-bold line-clamp-1">{platform.description}</span>
                     </div>
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className={cn(
+                        "w-full h-10 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all", 
+                        platform.status === 'connected' 
+                        ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" 
+                        : "bg-[#6c47ff]/10 text-[#6c47ff] hover:bg-[#6c47ff] hover:text-white"
+                      )} 
+                      onClick={() => handleConnectClick(platform)}
+                    >
+                      {platform.status === 'connected' ? <span className="flex items-center gap-1.5 justify-center"><CheckCircle2 className="h-3 w-3" /> Connected</span> : "Connect"}
+                    </Button>
                   </div>
-                  <Button variant="secondary" size="sm" className={cn("h-9 px-5 rounded-xl text-[11px] font-bold uppercase transition-all", platform.status === 'connected' ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" : "bg-white/5 hover:bg-white/10 text-white")} onClick={() => handleConnectClick(platform)}>
-                    {platform.status === 'connected' ? <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3" /> Connected</span> : "Connect"}
-                  </Button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </>
         ) : (
-          <div className="animate-in slide-in-from-right duration-300">
-            <div className="p-8 border-b border-white/5 bg-white/[0.01]">
-              <button onClick={() => setSelectedPlatform(null)} className="flex items-center gap-2 text-white/40 hover:text-white mb-4 group">
+          <div className="animate-in slide-in-from-right duration-500 ease-out">
+            <div className="p-6 md:p-8 border-b border-white/5 bg-white/[0.01]">
+              <button 
+                onClick={() => setSelectedPlatform(null)} 
+                className="flex items-center gap-2 text-white/30 hover:text-[#6c47ff] mb-6 group transition-colors"
+              >
                 <ChevronLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                <span className="text-xs font-bold uppercase tracking-widest">Back to platforms</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Back to platforms</span>
               </button>
-              <div className="flex items-center gap-4">
-                <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center border border-white/5 shadow-2xl", selectedPlatform.bgColor)}>
-                  <selectedPlatform.icon className={cn("h-7 w-7", selectedPlatform.iconColor)} />
+              <div className="flex items-center gap-5">
+                <div className={cn("h-16 w-16 rounded-[22px] flex items-center justify-center border border-white/5 shadow-2xl transition-transform", selectedPlatform.bgColor)}>
+                  <selectedPlatform.icon className={cn("h-8 w-8", selectedPlatform.iconColor)} />
                 </div>
                 <div>
-                  <DialogTitle className="text-2xl font-black text-white">{selectedPlatform.name} Settings</DialogTitle>
-                  <p className="text-xs font-medium text-white/30 uppercase tracking-widest mt-1">Enter your API credentials</p>
+                  <DialogTitle className="text-2xl md:text-3xl font-black text-white tracking-tighter leading-none italic">{selectedPlatform.name.split(' ')[0]}</DialogTitle>
+                  <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mt-2">API CREDENTIALS REQUIRED</p>
                 </div>
               </div>
             </div>
-            {renderForm()}
+            <div className="max-h-[60vh] overflow-y-auto px-1">
+              {renderForm()}
+            </div>
           </div>
         )}
       </DialogContent>
