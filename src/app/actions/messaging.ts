@@ -24,7 +24,7 @@ export async function getTwitterAuthUrl() {
 
     const { url, codeVerifier, state } = client.generateOAuth2AuthLink(
       `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/twitter/callback`,
-      { scope: ['tweet.read', 'users.read', 'dm.read', 'dm.write', 'offline.access'] }
+      { scope: ['tweet.read', 'users.read', 'offline.access'] }
     );
 
     const cookieStore = await cookies();
