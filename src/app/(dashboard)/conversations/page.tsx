@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useTransition } from 'react';
-import { 
-  MessageSquare, 
-  Search, 
-  Send, 
-  Paperclip, 
-  MoreVertical, 
-  Phone, 
+import {
+  MessageSquare,
+  Search,
+  Send,
+  Paperclip,
+  MoreVertical,
+  Phone,
   Video,
   ChevronLeft,
   Loader2,
@@ -62,7 +62,7 @@ export default function ConversationsPage() {
   // 2. Load Messages when Active Conversation changes
   useEffect(() => {
     if (!activeConv) return;
-    
+
     async function load() {
       setIsLoadingMsgs(true);
       try {
@@ -81,9 +81,9 @@ export default function ConversationsPage() {
       .channel(`chat_${activeConv.id}`)
       .on(
         'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
+        {
+          event: 'INSERT',
+          schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${activeConv.id}`
         },
@@ -125,10 +125,11 @@ export default function ConversationsPage() {
     try {
       const result = await syncRecentMessages();
       if (result.success) {
-        if (result.count > 0) {
-          toast.success(`Synced ${result.count} messages!`);
+        const count = result.count || 0;
+        if (count > 0) {
+          toast.success(`Synced ${count} messages!`);
         }
-        
+
         // Handle platform-specific errors
         if (result.platformErrors && result.platformErrors.length > 0) {
           result.platformErrors.forEach((err: any) => {
@@ -136,7 +137,7 @@ export default function ConversationsPage() {
               duration: 5000,
             });
           });
-        } else if (result.count === 0) {
+        } else if (count === 0) {
           toast.info('Sync complete. No new messages found.');
         }
 
@@ -162,7 +163,7 @@ export default function ConversationsPage() {
     }
   };
 
-  const filteredConvs = conversations.filter(c => 
+  const filteredConvs = conversations.filter(c =>
     (c.contacts?.first_name + ' ' + (c.contacts?.last_name || '')).toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -178,9 +179,9 @@ export default function ConversationsPage() {
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-white tracking-tight">Messages</h2>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleSync}
                 disabled={isLoadingConvs}
                 className="h-8 w-8 text-[#6c47ff] hover:text-[#6c47ff]/80 hover:bg-[#6c47ff]/10 rounded-lg group"
@@ -193,8 +194,8 @@ export default function ConversationsPage() {
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
-            <Input 
-              placeholder="Search conversations..." 
+            <Input
+              placeholder="Search conversations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="h-10 pl-10 bg-white/5 border-white/5 rounded-xl text-sm placeholder:text-white/20 focus:border-[#6c47ff]/50 transition-all"
@@ -219,10 +220,10 @@ export default function ConversationsPage() {
                   Click the sync button above to fetch latest messages from your connected platforms.
                 </p>
               </div>
-              <Button 
+              <Button
                 onClick={handleSync}
-                variant="outline" 
-                size="sm" 
+                variant="outline"
+                size="sm"
                 className="mt-2 h-9 px-6 rounded-xl border-white/10 bg-white/5 text-white/60 hover:text-white transition-all text-xs font-bold uppercase tracking-wider"
               >
                 Sync Now
@@ -232,19 +233,19 @@ export default function ConversationsPage() {
             <div className="space-y-1 px-3 pb-6">
               {filteredConvs.map((conv) => {
                 const isActive = activeConv?.id === conv.id;
-                const contactName = conv.contacts 
-                  ? `${conv.contacts.first_name} ${conv.contacts.last_name || ''}` 
+                const contactName = conv.contacts
+                  ? `${conv.contacts.first_name} ${conv.contacts.last_name || ''}`
                   : (conv.title || 'Unknown');
                 const initials = (conv.contacts?.first_name?.[0] || conv.title?.[0] || '?').toUpperCase();
-                
+
                 return (
                   <button
                     key={conv.id}
                     onClick={() => setActiveConv(conv)}
                     className={cn(
                       "w-full flex items-start gap-3 p-3.5 rounded-2xl transition-all group relative",
-                      isActive 
-                        ? "bg-[#6c47ff]/10 border border-[#6c47ff]/20 shadow-lg shadow-[#6c47ff]/5" 
+                      isActive
+                        ? "bg-[#6c47ff]/10 border border-[#6c47ff]/20 shadow-lg shadow-[#6c47ff]/5"
                         : "hover:bg-white/[0.03] border border-transparent"
                     )}
                   >
@@ -258,15 +259,15 @@ export default function ConversationsPage() {
                       <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-lg bg-[#030303] flex items-center justify-center p-1 border border-white/5 shadow-lg">
                         <div className={cn(
                           "flex items-center justify-center rounded-xs w-full h-full",
-                          conv.platform === 'whatsapp' ? "text-emerald-500" : 
-                          conv.platform === 'instagram' ? "text-pink-500" :
-                          conv.platform === 'twitter' ? "text-sky-400" : "text-[#6c47ff]"
+                          conv.platform === 'whatsapp' ? "text-emerald-500" :
+                            conv.platform === 'instagram' ? "text-pink-500" :
+                              conv.platform === 'twitter' ? "text-sky-400" : "text-[#6c47ff]"
                         )}>
                           {getPlatformIcon(conv.platform)}
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex-1 min-w-0 text-left">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <span className={cn(
@@ -317,9 +318,9 @@ export default function ConversationsPage() {
             {/* Chat Header */}
             <div className="h-20 px-6 flex items-center justify-between border-b border-white/5 backdrop-blur-md sticky top-0 z-10">
               <div className="flex items-center gap-4">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="md:hidden text-white/40"
                   onClick={() => setActiveConv(null)}
                 >
@@ -334,8 +335,8 @@ export default function ConversationsPage() {
                   </Avatar>
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-white">
-                      {activeConv.contacts 
-                        ? `${activeConv.contacts.first_name} ${activeConv.contacts.last_name || ''}` 
+                      {activeConv.contacts
+                        ? `${activeConv.contacts.first_name} ${activeConv.contacts.last_name || ''}`
                         : (activeConv.title || 'Unknown')}
                     </span>
                     <div className="flex items-center gap-1.5">
@@ -375,11 +376,11 @@ export default function ConversationsPage() {
 
                     {messages.map((msg, i) => {
                       const isOutbound = msg.direction === 'outbound';
-                      const showAvatar = !isOutbound && (i === 0 || messages[i-1].direction === 'outbound');
-                      
+                      const showAvatar = !isOutbound && (i === 0 || messages[i - 1].direction === 'outbound');
+
                       return (
-                        <div 
-                          key={msg.id} 
+                        <div
+                          key={msg.id}
                           className={cn(
                             "flex items-end gap-3 max-w-[85%] animate-fade-up",
                             isOutbound ? "ml-auto flex-row-reverse" : "mr-auto"
@@ -397,15 +398,15 @@ export default function ConversationsPage() {
                               )}
                             </div>
                           )}
-                          
+
                           <div className={cn(
                             "flex flex-col gap-1.5",
                             isOutbound ? "items-end" : "items-start"
                           )}>
                             <div className={cn(
                               "p-4 rounded-2xl text-sm leading-relaxed",
-                              isOutbound 
-                                ? "bg-[#6c47ff] text-white rounded-br-xs font-medium shadow-lg shadow-[#6c47ff]/10" 
+                              isOutbound
+                                ? "bg-[#6c47ff] text-white rounded-br-xs font-medium shadow-lg shadow-[#6c47ff]/10"
                                 : "bg-white/5 text-white/80 rounded-bl-xs border border-white/5"
                             )}>
                               {msg.content}
@@ -425,11 +426,11 @@ export default function ConversationsPage() {
 
             {/* Chat Footer / Input */}
             <div className="p-6 pt-2 bg-linear-to-t from-[#030303] to-transparent">
-              <form 
+              <form
                 onSubmit={handleSendMessage}
                 className="relative bg-white/5 border border-white/10 rounded-2xl p-1 focus-within:border-[#6c47ff]/50 transition-all shadow-2xl"
               >
-                <textarea 
+                <textarea
                   rows={1}
                   placeholder="Type a message..."
                   value={messageText}
@@ -446,8 +447,8 @@ export default function ConversationsPage() {
                   <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-white/20 hover:text-white rounded-xl">
                     <Paperclip className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={isPending || !messageText.trim()}
                     className="h-10 px-5 rounded-xl bg-[#6c47ff] hover:bg-[#5b3ce0] text-white font-bold shadow-lg shadow-[#6c47ff]/20 gap-2 transition-all hover:scale-105"
                   >
