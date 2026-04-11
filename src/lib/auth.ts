@@ -1,3 +1,5 @@
+"use server";
+
 import { redirect } from 'next/navigation';
 import { createServerClient } from './supabase/server';
 import { cookies } from 'next/headers';

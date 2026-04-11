@@ -7,6 +7,7 @@ import { Settings, BookOpen, Users, BarChart3, ChevronLeft } from 'lucide-react'
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { getCurrentWorkspace } from '@/lib/auth';
 export default async function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -21,6 +22,9 @@ export default async function EditCoursePage({ params }: { params: Promise<{ id:
     .single();
 
   if (!course) notFound();
+
+  const workspace = await getCurrentWorkspace();
+  if (!workspace) redirect('/login');
 
   const modules = await getCourseModules(id);
 
@@ -61,7 +65,7 @@ export default async function EditCoursePage({ params }: { params: Promise<{ id:
         </TabsList>
 
         <TabsContent value="curriculum" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <CourseBuilder courseId={id} initialModules={modules} />
+          <CourseBuilder courseId={id} initialModules={modules} workspaceId={workspace.id} />
         </TabsContent>
 
         <TabsContent value="students" className="animate-in fade-in slide-in-from-bottom-2 duration-300">

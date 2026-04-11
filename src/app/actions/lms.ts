@@ -71,8 +71,73 @@ export async function createLesson(moduleId: string, title: string, orderIndex: 
   return data;
 }
 
-export async function updateLesson(lessonId: string, updates: any) {
+export async function saveLesson(formData: FormData) {
   const supabase = await createClient();
+  
+  const lessonId = formData.get('lessonId') as string;
+  const workspaceId = formData.get('workspaceId') as string;
+  const title = formData.get('title') as string;
+  const contentType = formData.get('contentType') as string;
+  const youtubeUrl = formData.get('youtubeUrl') as string;
+  const contentHtml = formData.get('contentHtml') as string;
+  const isPreview = formData.get('isPreview') === 'true';
+  const duration = parseInt(formData.get('duration') as string || '0');
+
+  const updates: any = {
+    title: title || undefined,
+    content_type: contentType || undefined,
+    youtube_url: youtubeUrl || null,
+    content_html: contentHtml || null,
+    is_preview: isPreview,
+    duration_minutes: duration || 0
+  };
+
+  // Handle Video Upload
+  const videoFile = formData.get('videoFile') as File | null;
+  if (videoFile && videoFile.size > 0) {
+    const fileExt = videoFile.name.split('.').pop();
+    const cleanWorkspaceId = workspaceId.trim();
+    const filePath = `${cleanWorkspaceId}/videos/${lessonId}-${Date.now()}.${fileExt}`;
+    
+    console.log('Uploading video to:', filePath);
+    
+    const { error: uploadError } = await supabase.storage
+      .from('lms_content')
+      .upload(filePath, videoFile, {
+        cacheControl: '3600',
+        upsert: true
+      });
+      
+    if (uploadError) {
+      console.error('LMS Video Upload Error:', uploadError);
+      throw uploadError;
+    }
+    updates.video_path = filePath;
+  }
+
+  // Handle PDF Upload
+  const pdfFile = formData.get('pdfFile') as File | null;
+  if (pdfFile && pdfFile.size > 0) {
+    const fileExt = pdfFile.name.split('.').pop();
+    const cleanWorkspaceId = workspaceId.trim();
+    const filePath = `${cleanWorkspaceId}/documents/${lessonId}-${Date.now()}.${fileExt}`;
+    
+    console.log('Uploading PDF to:', filePath);
+
+    const { error: uploadError } = await supabase.storage
+      .from('lms_content')
+      .upload(filePath, pdfFile, {
+        cacheControl: '3600',
+        upsert: true
+      });
+      
+    if (uploadError) {
+      console.error('LMS PDF Upload Error:', uploadError);
+      throw uploadError;
+    }
+    updates.pdf_path = filePath;
+  }
+
   const { data, error } = await supabase
     .from('lessons')
     .update(updates)
@@ -80,8 +145,17 @@ export async function updateLesson(lessonId: string, updates: any) {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('DATABASE UPDATE ERROR:', error);
+    throw new Error(`Database error: ${error.message}`);
+  }
   return data;
+}
+
+export async function deleteLesson(lessonId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from('lessons').delete().eq('id', lessonId);
+  if (error) throw error;
 }
 
 // --- Enrollment & Progress ---

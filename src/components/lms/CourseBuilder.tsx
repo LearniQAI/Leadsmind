@@ -6,6 +6,7 @@ import {
   GripVertical, 
   Video, 
   FileText, 
+  Youtube,
   Settings, 
   Eye, 
   Save,
@@ -16,18 +17,22 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { createModule, createLesson } from '@/app/actions/lms';
+import { createModule, createLesson, deleteLesson } from '@/app/actions/lms';
 import { toast } from 'sonner';
+import { LessonSettingsModal } from './LessonSettingsModal';
+import Link from 'next/link';
 
 interface CourseBuilderProps {
   courseId: string;
   initialModules: any[];
+  workspaceId?: string; // Add workspaceId to props
 }
 
-export function CourseBuilder({ courseId, initialModules }: CourseBuilderProps) {
+export function CourseBuilder({ courseId, initialModules, workspaceId = '' }: CourseBuilderProps) {
   const [modules, setModules] = useState(initialModules);
   const [isAddingModule, setIsAddingModule] = useState(false);
   const [newModuleName, setNewModuleName] = useState('');
+  const [editingLesson, setEditingLesson] = useState<any>(null);
 
   const handleAddModule = async () => {
     if (!newModuleName.trim()) return;
@@ -52,20 +57,56 @@ export function CourseBuilder({ courseId, initialModules }: CourseBuilderProps) 
       updatedModules[moduleIndex].lessons.push(newLesson);
       setModules(updatedModules);
       toast.success('Lesson added');
+      setEditingLesson(newLesson); // Open newly created lesson
     } catch (error) {
       toast.error('Failed to add lesson');
     }
   };
 
+  const handleDeleteLesson = async (moduleId: string, lessonId: string) => {
+    try {
+      await deleteLesson(lessonId);
+      const updatedModules = modules.map(m => {
+        if (m.id === moduleId) {
+          return { ...m, lessons: m.lessons.filter((l: any) => l.id !== lessonId) };
+        }
+        return m;
+      });
+      setModules(updatedModules);
+      toast.success('Lesson deleted');
+    } catch (error) {
+      toast.error('Failed to delete lesson');
+    }
+  };
+
+  const handleLessonUpdate = (updatedLesson: any) => {
+    const updatedModules = modules.map(m => ({
+      ...m,
+      lessons: m.lessons.map((l: any) => l.id === updatedLesson.id ? updatedLesson : l)
+    }));
+    setModules(updatedModules);
+  };
+
   return (
     <div className="space-y-6">
+      {editingLesson && (
+        <LessonSettingsModal 
+          open={!!editingLesson}
+          onOpenChange={(open) => !open && setEditingLesson(null)}
+          lesson={editingLesson}
+          workspaceId={workspaceId}
+          onSave={handleLessonUpdate}
+        />
+      )}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 className="text-xl font-bold text-white">Course Curriculum</h2>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button variant="outline" className="flex-1 sm:flex-none bg-white/5 border-white/10 text-white rounded-xl">
-            <Eye className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Preview</span>
-          </Button>
+          <Link href={`/courses/${courseId}`} className="flex-1 sm:flex-none">
+            <Button variant="outline" className="w-full bg-white/5 border-white/10 text-white rounded-xl">
+              <Eye className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Preview</span>
+            </Button>
+          </Link>
           <Button className="flex-1 sm:flex-none bg-[#6c47ff] hover:bg-[#5b3ce0] rounded-xl">
             <Save className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Save Changes</span>
@@ -97,13 +138,17 @@ export function CourseBuilder({ courseId, initialModules }: CourseBuilderProps) 
             <CardContent className="p-0">
               <div className="divide-y divide-white/5">
                 {module.lessons.map((lesson: any, lIndex: number) => (
-                  <div key={lesson.id} className="flex items-center justify-between p-3 sm:p-4 pl-10 sm:pl-12 hover:bg-white/2 transition-colors group">
+                  <div key={lesson.id} className="flex items-center justify-between p-3 sm:p-4 pl-10 sm:pl-12 hover:bg-white/2 transition-colors group cursor-pointer" onClick={() => setEditingLesson(lesson)}>
                     <div className="flex items-center gap-3">
-                      {lesson.video_url ? <Video className="h-3 w-3 sm:h-4 sm:w-4 text-[#6c47ff]" /> : <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-white/40" />}
+                      {lesson.content_type === 'video' ? <Video className="h-3 w-3 sm:h-4 sm:w-4 text-[#6c47ff]" /> : 
+                       lesson.content_type === 'pdf' ? <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500" /> :
+                       lesson.content_type === 'youtube' ? <Youtube className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" /> :
+                       <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-white/40" />}
                       <span className="text-xs sm:text-sm font-medium text-white/80 group-hover:text-white transition-colors">{lesson.title}</span>
+                      {lesson.is_preview && <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-black uppercase tracking-widest border border-blue-500/20">Preview</span>}
                     </div>
                     <div className="flex items-center gap-2 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-red-400 rounded-lg">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-red-400 rounded-lg" onClick={(e) => { e.stopPropagation(); handleDeleteLesson(module.id, lesson.id); }}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
