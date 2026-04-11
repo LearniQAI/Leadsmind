@@ -64,6 +64,8 @@ export async function middleware(request: NextRequest) {
   // Protected pages are anything under dashboard, settings, contacts, pipelines, etc.
   const isProtectedPage = 
     pathname.startsWith('/dashboard') || 
+    pathname.startsWith('/conversations') || 
+    pathname.startsWith('/inbox') || 
     pathname.startsWith('/contacts') || 
     pathname.startsWith('/pipelines') || 
     pathname.startsWith('/team-members') || 

@@ -129,7 +129,8 @@ export async function setActiveWorkspace(workspaceId: string) {
     httpOnly: true,
     sameSite: 'lax',
   });
-  revalidatePath('/', 'layout');
+  
+  return { success: true };
 }
 
 export async function forgotPassword(email: string) {

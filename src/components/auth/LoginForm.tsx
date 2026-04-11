@@ -68,10 +68,10 @@ export function LoginForm() {
 
       if (wsError) {
         console.error('[LoginForm] Error fetching workspaces:', wsError);
-        // Don't block — redirect to dashboard; it handles missing workspace
         toast.success('Logged in successfully!');
-        router.push(next || '/dashboard');
-        router.refresh();
+        setTimeout(() => {
+          window.location.href = next || '/dashboard';
+        }, 100);
         return;
       }
 
@@ -102,21 +102,24 @@ export function LoginForm() {
         });
 
       if (formattedWorkspaces.length === 0) {
-        // No workspace — go to dashboard; it will auto-create one
         console.warn('[LoginForm] No workspaces found — redirecting to dashboard to auto-create');
         toast.success('Logged in! Setting up your workspace...');
-        router.push(next || '/dashboard');
-        router.refresh();
+        setTimeout(() => {
+          window.location.href = next || '/dashboard';
+        }, 100);
         return;
       }
 
       if (formattedWorkspaces.length === 1) {
-        await setActiveWorkspace(formattedWorkspaces[0].id);
+        await fetch('/api/workspace/active', {
+          method: 'POST',
+          body: JSON.stringify({ workspaceId: formattedWorkspaces[0].id }),
+        });
         toast.success('Welcome back!');
-        router.push(next || '/dashboard');
-        router.refresh();
+        setTimeout(() => {
+          window.location.href = next || '/dashboard';
+        }, 100);
       } else {
-        // Multiple workspaces — let user pick
         setWorkspaces(formattedWorkspaces);
         setShowPicker(true);
         setIsLoading(false);
@@ -132,8 +135,9 @@ export function LoginForm() {
   async function handleWorkspaceSelect(workspace: Workspace) {
     await setActiveWorkspace(workspace.id);
     toast.success(`Switched to ${workspace.name}`);
-    router.push(next || '/dashboard');
-    router.refresh();
+    setTimeout(() => {
+      window.location.href = next || '/dashboard';
+    }, 100);
   }
 
   if (showPicker) {
