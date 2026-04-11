@@ -92,14 +92,9 @@ export async function sendChatMessage(conversationId: string, content: string) {
       externalId = msg.sid;
     } else if (conv.platform === 'twitter') {
       const { TwitterApi } = require('twitter-api-v2');
-      const client = new TwitterApi({
-        appKey: conn.credentials.apiKey,
-        appSecret: conn.credentials.apiSecret,
-        accessToken: conn.credentials.accessToken,
-        accessSecret: conn.credentials.accessSecret,
-      });
-      const res = await client.v1.sendDm({ recipient_id: conv.external_thread_id, text: content });
-      externalId = res.event?.id || externalId;
+      const client = new TwitterApi(conn.credentials.accessToken);
+      const res = await client.v2.sendDm(conv.external_thread_id, { text: content });
+      externalId = res.data.id || externalId;
     } else if (conv.platform === 'facebook' || conv.platform === 'instagram') {
       const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${conn.credentials.accessToken}`;
       const res = await fetch(url, {

@@ -1,5 +1,4 @@
 'use server';
-
 import { createServerClient } from '@/lib/supabase/server';
 import { requireAdmin, getCurrentWorkspaceId } from '@/lib/auth';
 import { 
@@ -9,12 +8,41 @@ import {
   twitterSchema, TwitterValues
 } from '@/lib/validations/messaging.schema';
 import { revalidatePath } from 'next/cache';
+import { TwitterApi } from 'twitter-api-v2';
+
+import { cookies } from 'next/headers';
+
+/**
+ * Generates a Twitter OAuth 2.0 authorization URL.
+ */
+export async function getTwitterAuthUrl() {
+  try {
+    const client = new TwitterApi({
+      clientId: process.env.TWITTER_CLIENT_ID!,
+      clientSecret: process.env.TWITTER_CLIENT_SECRET!,
+    });
+
+    const { url, codeVerifier, state } = client.generateOAuth2AuthLink(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/twitter/callback`,
+      { scope: ['tweet.read', 'users.read', 'dm.read', 'dm.write', 'offline.access'] }
+    );
+
+    const cookieStore = await cookies();
+    cookieStore.set('twitter_code_verifier', codeVerifier, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600 });
+    cookieStore.set('twitter_auth_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600 });
+
+    return { success: true, url };
+  } catch (error: any) {
+    console.error('[twitter-auth] Error generating URL:', error);
+    return { success: false, error: error.message };
+  }
+}
 
 /**
  * Connects a Twilio account to the current workspace.
  * Stores the Account SID, Auth Token, and Phone Number.
  */
-export async function connectTwilio(values: TwilioValues) {
+export async function connectTwilio(values: TwilioValues, platform: 'sms' | 'whatsapp' = 'sms') {
   try {
     // 1. Ensure user is admin
     await requireAdmin();
@@ -34,12 +62,11 @@ export async function connectTwilio(values: TwilioValues) {
     const supabase = await createServerClient();
     
     // 4. Update or Insert connection
-    // Note: platform is 'sms' for Twilio in our schema, though it could also be 'whatsapp'
     const { data: existing } = await supabase
       .from('platform_connections')
       .select('id')
       .eq('workspace_id', workspaceId)
-      .eq('platform', 'sms')
+      .eq('platform', platform)
       .single();
 
     if (existing) {
@@ -58,7 +85,7 @@ export async function connectTwilio(values: TwilioValues) {
         .from('platform_connections')
         .insert({
           workspace_id: workspaceId,
-          platform: 'sms',
+          platform: platform,
           credentials: values,
           status: 'connected'
         });
@@ -170,4 +197,217 @@ export async function connectMeta(platform: 'facebook' | 'instagram', values: Me
 
 export async function connectTwitter(values: TwitterValues) {
   return await baseConnect('twitter', values, twitterSchema);
+}
+
+/**
+ * Synchronizes recent messages from all connected platforms for the current workspace.
+ */
+export async function syncRecentMessages() {
+  try {
+    const workspaceId = await getCurrentWorkspaceId();
+    if (!workspaceId) return { success: false, error: 'No active workspace' };
+
+    const supabase = await createServerClient();
+    
+    // 1. Get all connected platforms
+    const { data: connections, error: connErr } = await supabase
+      .from('platform_connections')
+      .select('platform, credentials')
+      .eq('workspace_id', workspaceId);
+
+    if (connErr) throw connErr;
+    if (!connections || connections.length === 0) return { success: true, count: 0, platformErrors: [] };
+
+    let totalSynced = 0;
+    const platformErrors: { platform: string, error: string }[] = [];
+
+    for (const conn of connections) {
+      try {
+        let synced = 0;
+        if (conn.platform === 'sms' || conn.platform === 'whatsapp') {
+          synced = await syncTwilio(workspaceId, conn.platform, conn.credentials, supabase);
+        } else if (conn.platform === 'twitter') {
+          synced = await syncTwitter(workspaceId, conn.credentials, supabase);
+        } else if (conn.platform === 'facebook' || conn.platform === 'instagram') {
+          synced = await syncMeta(workspaceId, conn.platform, conn.credentials, supabase);
+        }
+        totalSynced += synced;
+      } catch (err: any) {
+        console.error(`Error syncing ${conn.platform}:`, err);
+        platformErrors.push({ platform: conn.platform, error: err.message || 'Unknown error' });
+      }
+    }
+
+    revalidatePath('/conversations');
+    return { success: true, count: totalSynced, platformErrors };
+  } catch (error: any) {
+    console.error('[messaging] syncRecentMessages error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function syncTwilio(workspaceId: string, platform: 'sms' | 'whatsapp', credentials: any, supabase: any) {
+  const twilio = require('twilio');
+  const client = twilio(credentials.accountSid, credentials.authToken);
+  
+  // Fetch last 10 messages for simplicity
+  const messages = await client.messages.list({ limit: 10, to: platform === 'whatsapp' ? `whatsapp:${credentials.phoneNumber}` : credentials.phoneNumber });
+  
+  let synced = 0;
+  for (const msg of messages) {
+    const externalId = msg.sid;
+    const from = msg.from.replace('whatsapp:', '');
+    const direction = msg.direction.includes('inbound') ? 'inbound' : 'outbound';
+    
+    const { data: conv } = await supabase
+      .from('conversations')
+      .upsert({
+        workspace_id: workspaceId,
+        platform: platform,
+        external_thread_id: from,
+        title: from,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'workspace_id, platform, external_thread_id' })
+      .select('id')
+      .single();
+
+    if (conv) {
+      const { error: msgErr } = await supabase
+        .from('messages')
+        .insert({
+          workspace_id: workspaceId,
+          conversation_id: conv.id,
+          direction: direction,
+          content: msg.body,
+          sender_handle: from,
+          external_id: externalId,
+          status: 'delivered',
+          sent_at: new Date(msg.dateCreated).toISOString()
+        });
+      
+      if (!msgErr) synced++;
+    }
+  }
+  return synced;
+}
+
+async function syncTwitter(workspaceId: string, credentials: any, supabase: any) {
+  try {
+    const { accessToken } = credentials;
+    if (!accessToken) {
+      throw new Error('Twitter credentials missing OAuth 2.0 Access Token.');
+    }
+
+    const client = new TwitterApi(accessToken);
+
+    // Fetch last 10 DM events using v2 API
+    const dms = await client.v2.listDmEvents({ 
+      "event.fields": ['id', 'text', 'sender_id', 'created_at', 'dm_conversation_id'],
+      max_results: 10 
+    });
+    
+    let synced = 0;
+
+    for (const event of dms.data || []) {
+      const from = event.sender_id!;
+      const externalId = event.id;
+      
+      const { data: conv } = await supabase
+        .from('conversations')
+        .upsert({
+          workspace_id: workspaceId,
+          platform: 'twitter',
+          external_thread_id: from,
+          title: `Twitter User ${from}`,
+          updated_at: event.created_at || new Date().toISOString()
+        }, { onConflict: 'workspace_id, platform, external_thread_id' })
+        .select('id')
+        .single();
+
+      if (conv) {
+        const { error: msgErr } = await supabase
+          .from('messages')
+          .insert({
+            workspace_id: workspaceId,
+            conversation_id: conv.id,
+            direction: 'inbound', // Simplified for sync
+            content: event.text || '',
+            sender_handle: from,
+            external_id: externalId,
+            status: 'delivered',
+            sent_at: event.created_at || new Date().toISOString()
+          });
+        if (!msgErr) synced++;
+      }
+    }
+    return synced;
+  } catch (err: any) {
+    console.error('[sync-twitter] v2 error:', err);
+    throw err;
+  }
+}
+
+async function syncMeta(workspaceId: string, platform: 'facebook' | 'instagram', credentials: any, supabase: any) {
+  try {
+    const { accessToken, pageId } = credentials;
+    if (!accessToken || !pageId) return 0;
+
+    // 1. Fetch conversations from Meta Graph API
+    const convUrl = `https://graph.facebook.com/v19.0/${pageId}/conversations?fields=participants,updated_time,messages.limit(1){message,from,created_time}&access_token=${accessToken}`;
+    const response = await fetch(convUrl);
+    const data = await response.json();
+
+    if (data.error) {
+      console.error(`Meta API Error (${platform}):`, data.error.message);
+      return 0;
+    }
+
+    let synced = 0;
+    for (const metaConv of data.data || []) {
+      // Find the external participant (the user, not the page)
+      const participant = metaConv.participants?.data?.find((p: any) => p.id !== pageId);
+      if (!participant) continue;
+
+      const externalThreadId = participant.id;
+      const title = participant.name || `Meta User ${externalThreadId}`;
+
+      // 2. Upsert Conversation
+      const { data: conv } = await supabase
+        .from('conversations')
+        .upsert({
+          workspace_id: workspaceId,
+          platform: platform,
+          external_thread_id: externalThreadId,
+          title: title,
+          updated_at: new Date(metaConv.updated_time).toISOString()
+        }, { onConflict: 'workspace_id, platform, external_thread_id' })
+        .select('id')
+        .single();
+
+      if (conv) {
+        // 3. Sync the last message if available
+        const lastMsg = metaConv.messages?.data?.[0];
+        if (lastMsg) {
+          const { error: msgErr } = await supabase
+            .from('messages')
+            .insert({
+              workspace_id: workspaceId,
+              conversation_id: conv.id,
+              direction: lastMsg.from.id === pageId ? 'outbound' : 'inbound',
+              content: lastMsg.message,
+              sender_handle: lastMsg.from.name,
+              external_id: lastMsg.id,
+              status: 'delivered',
+              sent_at: new Date(lastMsg.created_time).toISOString()
+            });
+          
+          if (!msgErr) synced++;
+        }
+      }
+    }
+    return synced;
+  } catch (err) {
+    console.error(`Failed to sync Meta (${platform}):`, err);
+    return 0;
+  }
 }

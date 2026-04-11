@@ -38,7 +38,9 @@ import {
   getConnectedPlatforms,
   connectEmail,
   connectMeta,
-  connectTwitter
+  connectTwitter,
+  syncRecentMessages,
+  getTwitterAuthUrl
 } from '@/app/actions/messaging';
 
 interface Platform {
@@ -156,11 +158,13 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
 
   const onTwilioSubmit = async (values: TwilioValues) => {
     setIsSubmitting(true);
+    const platformId = (selectedPlatform?.id === 'whatsapp' ? 'whatsapp' : 'sms') as 'sms' | 'whatsapp';
     try {
-      const result = await connectTwilio(values);
+      const result = await connectTwilio(values, platformId);
       if (result.success) {
-        toast.success('Twilio connected successfully!');
-        setConnectedPlatforms(prev => [...prev, 'sms']);
+        toast.success(`${selectedPlatform?.name || 'Platform'} connected successfully!`);
+        setConnectedPlatforms(prev => [...prev, platformId]);
+        syncRecentMessages();
         setSelectedPlatform(null);
       } else toast.error(result.error);
     } catch {
@@ -175,6 +179,7 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
       if (result.success) {
         toast.success('Email connected successfully!');
         setConnectedPlatforms(prev => [...prev, 'email']);
+        syncRecentMessages();
         setSelectedPlatform(null);
       } else toast.error(result.error);
     } catch { toast.error('An error occurred'); } finally { setIsSubmitting(false); }
@@ -187,6 +192,7 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
       if (result.success) {
         toast.success(`${selectedPlatform?.name || platformId} connected successfully!`);
         setConnectedPlatforms(prev => [...prev, platformId]);
+        syncRecentMessages();
         setSelectedPlatform(null);
       } else toast.error(result.error);
     } catch { toast.error('An error occurred'); } finally { setIsSubmitting(false); }
@@ -199,6 +205,7 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
       if (result.success) {
         toast.success('Twitter connected successfully!');
         setConnectedPlatforms(prev => [...prev, 'twitter']);
+        syncRecentMessages();
         setSelectedPlatform(null);
       } else toast.error(result.error);
     } catch { toast.error('An error occurred'); } finally { setIsSubmitting(false); }
@@ -273,32 +280,46 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
     }
 
     if (selectedPlatform.id === 'twitter') {
+      const handleTwitterAuth = async () => {
+        setIsSubmitting(true);
+        try {
+          const result = await getTwitterAuthUrl();
+          if (result.success && result.url) {
+            window.location.href = result.url;
+          } else {
+            toast.error(result.error || 'Failed to initialize Twitter login');
+          }
+        } catch {
+          toast.error('An unexpected error occurred');
+        } finally {
+          setIsSubmitting(false);
+        }
+      };
+
       return (
-        <form onSubmit={twitterForm.handleSubmit(onTwitterSubmit)} className="p-8 space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-white/70">API Key</Label>
-              <Input type="password" {...twitterForm.register('apiKey')} className="h-12 bg-white/5 border-white/10 rounded-xl text-white" />
-              {twitterForm.formState.errors.apiKey && <p className="text-[11px] font-medium text-destructive mt-1">{twitterForm.formState.errors.apiKey.message}</p>}
+        <div className="p-8 space-y-6 text-center">
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="h-20 w-20 rounded-3xl bg-sky-400/10 border border-sky-400/20 flex items-center justify-center">
+              <Twitter className="h-10 w-10 text-sky-400" />
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-white/70">API Secret</Label>
-              <Input type="password" {...twitterForm.register('apiSecret')} className="h-12 bg-white/5 border-white/10 rounded-xl text-white" />
-              {twitterForm.formState.errors.apiSecret && <p className="text-[11px] font-medium text-destructive mt-1">{twitterForm.formState.errors.apiSecret.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-white/70">Access Token</Label>
-              <Input type="password" {...twitterForm.register('accessToken')} className="h-12 bg-white/5 border-white/10 rounded-xl text-white" />
-              {twitterForm.formState.errors.accessToken && <p className="text-[11px] font-medium text-destructive mt-1">{twitterForm.formState.errors.accessToken.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-white/70">Access Secret</Label>
-              <Input type="password" {...twitterForm.register('accessSecret')} className="h-12 bg-white/5 border-white/10 rounded-xl text-white" />
-              {twitterForm.formState.errors.accessSecret && <p className="text-[11px] font-medium text-destructive mt-1">{twitterForm.formState.errors.accessSecret.message}</p>}
+            <div className="space-y-1">
+              <h4 className="text-white font-bold text-lg">Official Twitter Connect</h4>
+              <p className="text-white/40 text-sm max-w-xs mx-auto">
+                We use Twitter's official OAuth 2.0 to securely access your Direct Messages.
+              </p>
             </div>
           </div>
-          <SubmitButton isSubmitting={isSubmitting} />
-        </form>
+          <Button 
+            onClick={handleTwitterAuth} 
+            disabled={isSubmitting}
+            className="w-full h-12 rounded-xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest transition-all"
+          >
+            {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing...</> : 'Sign in with Twitter'}
+          </Button>
+          <p className="text-[10px] text-white/20 leading-relaxed italic">
+            Note: You'll be redirected to Twitter to authorize this application.
+          </p>
+        </div>
       );
     }
   };

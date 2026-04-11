@@ -6,7 +6,7 @@
 CREATE TABLE IF NOT EXISTS platform_connections (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     workspace_id UUID NOT NULL,
-    platform TEXT NOT NULL CHECK (platform IN ('email', 'sms', 'whatsapp', 'instagram', 'twitter')),
+    platform TEXT NOT NULL CHECK (platform IN ('email', 'sms', 'whatsapp', 'instagram', 'twitter', 'facebook')),
     credentials JSONB NOT NULL DEFAULT '{}', -- SID, Auth Token, API Keys, etc.
     status TEXT NOT NULL DEFAULT 'disconnected' CHECK (status IN ('connected', 'disconnected', 'error', 'pending')),
     last_sync_at TIMESTAMPTZ,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS conversations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     workspace_id UUID NOT NULL,
     contact_id UUID REFERENCES contacts(id) ON DELETE CASCADE,
-    platform TEXT NOT NULL CHECK (platform IN ('email', 'sms', 'whatsapp', 'instagram', 'twitter')),
+    platform TEXT NOT NULL CHECK (platform IN ('email', 'sms', 'whatsapp', 'instagram', 'twitter', 'facebook')),
     external_thread_id TEXT, -- The thread ID from the provider (e.g. Twilio Sid, Meta Thread Id)
     title TEXT,
     last_message_at TIMESTAMPTZ DEFAULT now(),

@@ -20,6 +20,7 @@ import {
   Circle
 } from 'lucide-react';
 import { getConversations, getMessages, sendChatMessage } from '@/app/actions/conversations';
+import { syncRecentMessages } from '@/app/actions/messaging';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -119,6 +120,38 @@ export default function ConversationsPage() {
     });
   };
 
+  const handleSync = async () => {
+    setIsLoadingConvs(true);
+    try {
+      const result = await syncRecentMessages();
+      if (result.success) {
+        if (result.count > 0) {
+          toast.success(`Synced ${result.count} messages!`);
+        }
+        
+        // Handle platform-specific errors
+        if (result.platformErrors && result.platformErrors.length > 0) {
+          result.platformErrors.forEach((err: any) => {
+            toast.error(`${err.platform.toUpperCase()}: ${err.error}`, {
+              duration: 5000,
+            });
+          });
+        } else if (result.count === 0) {
+          toast.info('Sync complete. No new messages found.');
+        }
+
+        const data = await getConversations();
+        setConversations(data);
+      } else {
+        toast.error(result.error);
+      }
+    } catch (err) {
+      console.error('Sync error:', err);
+    } finally {
+      setIsLoadingConvs(false);
+    }
+  };
+
   const getPlatformIcon = (platform: string) => {
     switch (platform) {
       case 'email': return <Mail className="h-3 w-3" />;
@@ -144,9 +177,19 @@ export default function ConversationsPage() {
         <div className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-white tracking-tight">Messages</h2>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-white/40 hover:text-white rounded-lg">
-              <Filter className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleSync}
+                disabled={isLoadingConvs}
+                className="h-8 w-8 text-[#6c47ff] hover:text-[#6c47ff]/80 hover:bg-[#6c47ff]/10 rounded-lg group"
+              >
+                <div className={cn("transition-transform duration-500", isLoadingConvs && "animate-spin")}>
+                  <Filter className="h-4 w-4" />
+                </div>
+              </Button>
+            </div>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
@@ -163,12 +206,27 @@ export default function ConversationsPage() {
           {isLoadingConvs ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Loader2 className="h-6 w-6 animate-spin text-[#6c47ff]/40" />
-              <p className="text-[10px] uppercase tracking-widest text-white/20 font-bold">Syncing...</p>
+              <p className="text-[10px] uppercase tracking-widest text-white/20 font-bold">Syncing platforms...</p>
             </div>
           ) : filteredConvs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 px-10 text-center gap-2">
-              <MessageSquare className="h-10 w-10 text-white/5" />
-              <p className="text-sm font-semibold text-white/20">No chats found</p>
+            <div className="flex flex-col items-center justify-center py-20 px-10 text-center gap-4">
+              <div className="h-16 w-16 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center">
+                <MessageSquare className="h-8 w-8 text-white/5" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-white/40">No conversations yet</p>
+                <p className="text-xs text-white/20 leading-relaxed font-light">
+                  Click the sync button above to fetch latest messages from your connected platforms.
+                </p>
+              </div>
+              <Button 
+                onClick={handleSync}
+                variant="outline" 
+                size="sm" 
+                className="mt-2 h-9 px-6 rounded-xl border-white/10 bg-white/5 text-white/60 hover:text-white transition-all text-xs font-bold uppercase tracking-wider"
+              >
+                Sync Now
+              </Button>
             </div>
           ) : (
             <div className="space-y-1 px-3 pb-6">
