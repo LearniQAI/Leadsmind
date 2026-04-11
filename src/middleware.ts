@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -61,13 +61,14 @@ export async function proxy(request: NextRequest) {
 
   // Protection Level Map
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname)
-  const isAdminPage = ['/settings/workspace', '/settings/team'].some(path => pathname.startsWith(path))
-  const isProtectedPage =
-    pathname.startsWith('/dashboard') ||
+  // Protected pages are anything under dashboard, settings, contacts, pipelines, etc.
+  const isProtectedPage = 
+    pathname.startsWith('/dashboard') || 
+    pathname.startsWith('/contacts') || 
+    pathname.startsWith('/pipelines') || 
+    pathname.startsWith('/team-members') || 
     pathname.startsWith('/settings') ||
-    pathname.startsWith('/contacts') ||
-    pathname.startsWith('/pipelines') ||
-    isAdminPage
+    pathname.startsWith('/invite')
 
   // Rule 1: Redirect to /dashboard if already logged in and accessing auth pages
   if (session && isAuthPage) {
@@ -75,34 +76,15 @@ export async function proxy(request: NextRequest) {
   }
 
   // Rule 2: Redirect to /login if not logged in and accessing protected pages
-  if (!session && isProtectedPage) {
+  if (!session && isProtectedPage && !pathname.startsWith('/invite/accept')) {
     const redirectUrl = new URL('/login', request.url)
     redirectUrl.searchParams.set('next', pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Rule 3: Admin only protection
-  if (session && isAdminPage) {
-    const workspaceId = request.cookies.get('active_workspace_id')?.value
-
-    if (!workspaceId) {
-      // If no workspace selected, send to dashboard to select one
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-
-    // Check role in DB
-    const { data: membership, error } = await supabase
-      .from('workspace_members')
-      .select('role')
-      .eq('workspace_id', workspaceId)
-      .eq('user_id', session.user.id)
-      .single()
-
-    if (error || !membership || membership.role !== 'admin') {
-      // Redirect to 403 Access Denied
-      return NextResponse.redirect(new URL('/403', request.url))
-    }
-  }
+  // NOTE: Rule 3 (Admin check) removed from middleware to prevent blind redirects to /dashboard.
+  // Role-based protection should be handled within the Server Components (layouts/pages)
+  // using utility functions like requireAdmin().
 
   return response
 }

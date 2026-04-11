@@ -11,7 +11,9 @@ import {
   Building2,
   Contact,
   Plus,
-  GitGraph
+  GitGraph,
+  MessageSquare,
+  Inbox
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -38,6 +40,8 @@ interface SidebarProps {
 
 const navItems: { name: string; href: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean }[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Conversations', href: '/conversations', icon: MessageSquare },
+  { name: 'Inbox', href: '/inbox', icon: Inbox },
   { name: 'Contacts', href: '/contacts', icon: Contact },
   { name: 'Pipelines', href: '/pipelines', icon: GitGraph },
   { name: 'Team Members', href: '/team-members', icon: Users },

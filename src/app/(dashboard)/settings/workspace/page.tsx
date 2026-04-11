@@ -11,7 +11,11 @@ export default async function WorkspaceSettingsPage() {
   const workspace = await getCurrentWorkspace();
   
   if (!workspace) {
-    redirect('/dashboard');
+    return (
+      <div className="p-8 text-center text-white/50 bg-white/5 rounded-2xl border border-white/10">
+        Workspace not found or access denied.
+      </div>
+    );
   }
 
   return (

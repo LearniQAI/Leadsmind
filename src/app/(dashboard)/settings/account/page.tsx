@@ -8,6 +8,7 @@ import {
 import { ProfileForm } from '@/components/settings/ProfileForm'
 import { PasswordForm } from '@/components/settings/PasswordForm'
 import { WorkspaceList } from '@/components/settings/WorkspaceList'
+import { IntegrationsList } from '@/components/settings/IntegrationsList'
 import { Separator } from '@/components/ui/separator'
 
 export const metadata: Metadata = {
@@ -63,6 +64,12 @@ export default async function AccountSettingsPage() {
             workspaces={workspaces} 
             activeWorkspaceId={activeWorkspaceId} 
           />
+        </section>
+
+        <Separator />
+
+        <section id="integrations">
+          <IntegrationsList />
         </section>
       </div>
     </div>
