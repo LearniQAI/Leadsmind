@@ -14,8 +14,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   History, 
   MessageSquare, 
-  CheckSquare
+  CheckSquare,
+  FileText
 } from 'lucide-react';
+import { getContactDocuments } from '@/app/actions/media';
+import { DocumentsSection } from '@/components/crm/DocumentsSection';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,12 +33,14 @@ export default async function ContactDetailPage({
     contactResult, 
     activitiesResult, 
     notesResult, 
-    tasksResult
+    tasksResult,
+    docsResult
   ] = await Promise.all([
     getContact(id),
     getContactActivities(id),
     getContactNotes(id),
     getContactTasks(id),
+    getContactDocuments(id)
   ]);
 
   if (!contactResult.success) {
@@ -49,6 +54,7 @@ export default async function ContactDetailPage({
   const activities = activitiesResult.success ? (activitiesResult.data ?? []) : [];
   const notes = notesResult.success ? (notesResult.data ?? []) : [];
   const tasks = tasksResult.success ? (tasksResult.data ?? []) : [];
+  const documents = docsResult || [];
 
   return (
     <ContactDetailLayout contact={contactResult.data}>
@@ -66,6 +72,10 @@ export default async function ContactDetailPage({
             <CheckSquare className="h-4 w-4" />
             <span>Tasks</span>
           </TabsTrigger>
+          <TabsTrigger value="documents" className="rounded-xl px-6 data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] gap-2 font-bold transition-all">
+            <FileText className="h-4 w-4" />
+            <span>Documents</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="activity" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -78,6 +88,10 @@ export default async function ContactDetailPage({
 
         <TabsContent value="tasks" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           <TasksSection contactId={id} tasks={tasks} />
+        </TabsContent>
+
+        <TabsContent value="documents" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <DocumentsSection contactId={id} documents={documents} />
         </TabsContent>
         
       </Tabs>

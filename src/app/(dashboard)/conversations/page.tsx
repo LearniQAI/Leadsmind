@@ -17,10 +17,12 @@ import {
   MessageCircle,
   Hash,
   Filter,
-  Circle
+  Circle,
+  Sparkles
 } from 'lucide-react';
 import { getConversations, getMessages, sendChatMessage } from '@/app/actions/conversations';
 import { syncRecentMessages } from '@/app/actions/messaging';
+import { getSmartReplySuggestions } from '@/app/actions/automation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +43,8 @@ export default function ConversationsPage() {
   const [messageText, setMessageText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isPending, startTransition] = useTransition();
+  const [smartReplies, setSmartReplies] = useState<string[]>([]);
+  const [isLoadingReplies, setIsLoadingReplies] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
@@ -75,6 +79,19 @@ export default function ConversationsPage() {
       }
     }
     load();
+
+    async function loadSuggestions() {
+      setIsLoadingReplies(true);
+      try {
+        const suggestions = await getSmartReplySuggestions(activeConv.id);
+        setSmartReplies(suggestions);
+      } catch (err) {
+        console.error('Error loading suggestions:', err);
+      } finally {
+        setIsLoadingReplies(false);
+      }
+    }
+    loadSuggestions();
 
     // Setup realtime subscription for messages in this conversation
     const channel = supabase
@@ -404,16 +421,16 @@ export default function ConversationsPage() {
                             isOutbound ? "items-end" : "items-start"
                           )}>
                             <div className={cn(
-                              "p-4 rounded-2xl text-sm leading-relaxed",
-                              isOutbound
-                                ? "bg-[#6c47ff] text-white rounded-br-xs font-medium shadow-lg shadow-[#6c47ff]/10"
-                                : "bg-white/5 text-white/80 rounded-bl-xs border border-white/5"
+                              "p-3 sm:p-4 rounded-2xl text-[13px] sm:text-sm leading-relaxed shadow-sm transition-all",
+                              isOutbound 
+                                ? "bg-[#6c47ff] text-white rounded-br-xs font-semibold shadow-lg shadow-[#6c47ff]/20" 
+                                : "bg-white/5 text-white/90 rounded-bl-xs border border-white/10"
                             )}>
                               {msg.content}
                             </div>
-                            <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest px-1">
-                              {format(new Date(msg.sent_at), 'HH:mm')}
-                              {isOutbound && (msg.status === 'delivered' ? ' · Read' : ' · Sent')}
+                            <span className="text-[9px] font-black text-white/10 uppercase tracking-[0.2em] px-1">
+                              {format(new Date(msg.sent_at), 'HH:m')}
+                              {isOutbound && (msg.status === 'delivered' ? ' · √√' : ' · √')}
                             </span>
                           </div>
                         </div>
@@ -424,9 +441,27 @@ export default function ConversationsPage() {
               </ScrollArea>
             </div>
 
-            {/* Chat Footer / Input */}
-            <div className="p-6 pt-2 bg-linear-to-t from-[#030303] to-transparent">
-              <form
+            <div className="p-4 sm:p-6 pt-2 bg-linear-to-t from-[#030303] via-[#030303]/90 to-transparent">
+              {/* Smart Replies */}
+              {smartReplies.length > 0 && (
+                <div className="flex items-center gap-2 sm:gap-3 mb-4 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#6c47ff]/10 border border-[#6c47ff]/20 text-[9px] font-black text-[#6c47ff] uppercase tracking-[0.15em] shrink-0 shadow-[0_0_15px_rgba(108,71,255,0.1)]">
+                    <Sparkles className="h-3 w-3" />
+                    <span className="hidden xs:inline">AI Suggests</span>
+                  </div>
+                  {smartReplies.map((reply, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setMessageText(reply)}
+                      className="whitespace-nowrap px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/40 hover:text-white hover:bg-white/10 hover:border-[#6c47ff]/50 transition-all font-medium active:scale-95"
+                    >
+                      {reply}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <form 
                 onSubmit={handleSendMessage}
                 className="relative bg-white/5 border border-white/10 rounded-2xl p-1 focus-within:border-[#6c47ff]/50 transition-all shadow-2xl"
               >

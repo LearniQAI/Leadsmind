@@ -14,6 +14,8 @@ export type Contact = {
   source: string | null;
   owner_id: string | null;
   tags: string[];
+  lead_score: number | null;
+  lead_score_explanation: string | null;
   last_activity_at: string;
   created_at: string;
   updated_at: string;

@@ -13,7 +13,11 @@ import {
   Plus,
   GitGraph,
   MessageSquare,
-  Inbox
+  Inbox,
+  FolderOpen,
+  GraduationCap,
+  CreditCard,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -55,6 +59,10 @@ const navItems: { name: string; href: string; icon: React.ComponentType<{ classN
   { name: 'Inbox', href: '/inbox', icon: Inbox },
   { name: 'Contacts', href: '/contacts', icon: Contact },
   { name: 'Pipelines', href: '/pipelines', icon: GitGraph },
+  { name: 'Media Center', href: '/media', icon: FolderOpen },
+  { name: 'Learning', href: '/courses', icon: GraduationCap },
+  { name: 'Automations', href: '/automations', icon: Zap },
+  { name: 'Billing', href: '/settings/billing', icon: CreditCard },
   { name: 'Team Members', href: '/team-members', icon: Users },
   { name: 'Settings', href: '/settings/account', icon: Building2 },
 ];
