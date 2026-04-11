@@ -2,12 +2,12 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { getInvoices, getProducts, getSaaSTiers } from '@/app/actions/finance';
 import { Button } from '@/components/ui/button';
-import { 
-  CreditCard, 
-  ExternalLink, 
-  Plus, 
-  Receipt, 
-  Package, 
+import {
+  CreditCard,
+  ExternalLink,
+  Plus,
+  Receipt,
+  Package,
   CheckCircle2,
   TrendingUp,
   DollarSign
@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatBytes } from '@/lib/utils'; // Reusing for numbers or adding formatCurrency
+import { getCurrentWorkspace } from '@/lib/auth';
 
 export default async function BillingPage() {
   const supabase = await createClient();
@@ -23,22 +24,17 @@ export default async function BillingPage() {
 
   if (!user) redirect('/login');
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('workspace_id')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.workspace_id) redirect('/onboarding');
+  const workspace = await getCurrentWorkspace();
+  if (!workspace) redirect('/login');
 
   const [invoices, products, tiers, workspaceResult] = await Promise.all([
-    getInvoices(profile.workspace_id),
-    getProducts(profile.workspace_id),
+    getInvoices(workspace.id),
+    getProducts(workspace.id),
     getSaaSTiers(),
-    supabase.from('workspaces').select('*').eq('id', profile.workspace_id).single()
+    supabase.from('workspaces').select('*').eq('id', workspace.id).single()
   ]);
 
-  const workspace = workspaceResult.data;
+  const workspaceData = workspaceResult.data;
 
   return (
     <div className="space-y-10">
@@ -95,10 +91,10 @@ export default async function BillingPage() {
               <DollarSign className="h-10 w-10 text-[#6c47ff]/40" />
             </CardHeader>
             <CardContent>
-              {workspace?.stripe_connect_id ? (
+              {workspaceData?.stripe_connect_id ? (
                 <div className="flex items-center gap-3 text-green-400 font-bold bg-green-400/10 p-4 rounded-2xl border border-green-400/20">
                   <CheckCircle2 className="h-5 w-5" />
-                  Stripe connected (Account: {workspace.stripe_connect_id})
+                  Stripe connected (Account: {workspaceData.stripe_connect_id})
                 </div>
               ) : (
                 <Button className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white gap-2 font-bold px-8 h-12 rounded-xl">
@@ -117,8 +113,8 @@ export default async function BillingPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {tiers.map((tier) => (
-                <Card key={tier.id} className={`bg-white/3 border-white/5 relative overflow-hidden flex flex-col ${workspace?.plan_tier === tier.id ? 'ring-2 ring-[#6c47ff] border-transparent' : ''}`}>
-                  {workspace?.plan_tier === tier.id && (
+                <Card key={tier.id} className={`bg-white/3 border-white/5 relative overflow-hidden flex flex-col ${workspaceData?.plan_tier === tier.id ? 'ring-2 ring-[#6c47ff] border-transparent' : ''}`}>
+                  {workspaceData?.plan_tier === tier.id && (
                     <div className="absolute top-0 right-0 bg-[#6c47ff] text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-widest">
                       Current Plan
                     </div>
@@ -141,12 +137,12 @@ export default async function BillingPage() {
                     </ul>
                   </CardContent>
                   <CardContent className="pt-0">
-                    <Button 
-                      variant={workspace?.plan_tier === tier.id ? 'outline' : 'default'} 
-                      className={`w-full ${workspace?.plan_tier === tier.id ? 'border-white/10 text-white/40' : 'bg-[#6c47ff] hover:bg-[#5b3ce0]'}`}
-                      disabled={workspace?.plan_tier === tier.id}
+                    <Button
+                      variant={workspaceData?.plan_tier === tier.id ? 'outline' : 'default'}
+                      className={`w-full ${workspaceData?.plan_tier === tier.id ? 'border-white/10 text-white/40' : 'bg-[#6c47ff] hover:bg-[#5b3ce0]'}`}
+                      disabled={workspaceData?.plan_tier === tier.id}
                     >
-                      {workspace?.plan_tier === tier.id ? 'Active' : 'Upgrade'}
+                      {workspaceData?.plan_tier === tier.id ? 'Active' : 'Upgrade'}
                     </Button>
                   </CardContent>
                 </Card>
@@ -224,7 +220,7 @@ export default async function BillingPage() {
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
-            
+
             <div className="space-y-4">
               {products.length === 0 ? (
                 <div className="py-10 text-center bg-white/3 border border-dashed border-white/10 rounded-2xl">

@@ -2,24 +2,25 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { getWorkflows } from '@/app/actions/automation';
 import { Button } from '@/components/ui/button';
-import { 
-  Plus, 
-  Zap, 
-  Play, 
-  Settings, 
-  Clock, 
+import {
+  Plus,
+  Zap,
+  Play,
+  Settings,
+  Clock,
   ArrowRight,
   MoreVertical
 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { getCurrentWorkspace } from '@/lib/auth';
 
 export default async function AutomationsPage() {
   const supabase = await createClient();
@@ -27,15 +28,10 @@ export default async function AutomationsPage() {
 
   if (!user) redirect('/login');
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('workspace_id')
-    .eq('id', user.id)
-    .single();
+  const workspace = await getCurrentWorkspace();
+  if (!workspace) redirect('/login');
 
-  if (!profile?.workspace_id) redirect('/onboarding');
-
-  const workflows = await getWorkflows(profile.workspace_id);
+  const workflows = await getWorkflows(workspace.id);
 
   return (
     <div className="space-y-8">
@@ -111,7 +107,7 @@ export default async function AutomationsPage() {
                       Draft
                     </Badge>
                   )}
-                  
+
                   <Link href={`/automations/${wf.id}/edit`}>
                     <Button variant="ghost" className="text-xs text-[#6c47ff] hover:text-[#5b3ce0] hover:bg-transparent p-0">
                       Customize Workflow

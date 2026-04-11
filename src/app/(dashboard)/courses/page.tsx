@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getCurrentWorkspace } from '@/lib/auth';
 
 export default async function CoursesPage() {
   const supabase = await createClient();
@@ -15,15 +16,10 @@ export default async function CoursesPage() {
 
   if (!user) redirect('/login');
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('workspace_id')
-    .eq('id', user.id)
-    .single();
+  const workspace = await getCurrentWorkspace();
+  if (!workspace) redirect('/login');
 
-  if (!profile?.workspace_id) redirect('/onboarding');
-
-  const courses = await getCourses(profile.workspace_id);
+  const courses = await getCourses(workspace.id);
 
   return (
     <div className="space-y-8">

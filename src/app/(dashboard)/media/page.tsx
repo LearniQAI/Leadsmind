@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { MediaBrowser } from '@/components/media/MediaBrowser';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getCurrentWorkspace } from '@/lib/auth';
 
 export default async function MediaPage() {
   const supabase = await createClient();
@@ -12,16 +13,8 @@ export default async function MediaPage() {
     redirect('/login');
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('workspace_id')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.workspace_id) {
-    redirect('/onboarding');
-  }
-
+  const workspace = await getCurrentWorkspace();
+  if (!workspace) redirect('/login');
   return (
     <div className="space-y-8">
       <div>
@@ -30,7 +23,7 @@ export default async function MediaPage() {
       </div>
 
       <Suspense fallback={<MediaSkeleton />}>
-        <MediaBrowser workspaceId={profile.workspace_id} />
+        <MediaBrowser workspaceId={workspace.id} />
       </Suspense>
     </div>
   );
