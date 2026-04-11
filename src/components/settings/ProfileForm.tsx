@@ -70,7 +70,12 @@ export function ProfileForm({ user }: ProfileFormProps) {
         })
 
       if (uploadError) {
-        throw uploadError
+        if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('bucket')) {
+          toast.error('Storage not configured. Ask your admin to create an "avatars" bucket in Supabase Storage.')
+        } else {
+          toast.error(`Upload failed: ${uploadError.message}`)
+        }
+        return
       }
 
       // 3. Get public URL
@@ -82,9 +87,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
       setAvatarPreview(publicUrl)
       form.setValue('avatarUrl', publicUrl)
       toast.success('Avatar uploaded successfully')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading avatar:', error)
-      toast.error('Failed to upload image. Please try again.')
+      toast.error(error?.message || 'Failed to upload image. Please try again.')
     } finally {
       setIsUploading(false)
     }

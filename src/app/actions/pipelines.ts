@@ -5,6 +5,38 @@ import { requireAuth, getCurrentWorkspaceId } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { ActionResult, Opportunity, Pipeline, PipelineStage } from '@/types/crm.types';
 
+export async function createPipeline(payload: { name: string; stages: string[] }): Promise<ActionResult<Pipeline>> {
+  await requireAuth();
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, error: 'No active workspace' };
+
+  const supabase = await createServerClient();
+  try {
+    const { data: pipeline, error: pError } = await supabase
+      .from('pipelines')
+      .insert({ workspace_id: workspaceId, name: payload.name, is_default: false })
+      .select()
+      .single();
+    if (pError) throw pError;
+
+    if (payload.stages.length > 0) {
+      const stageRows = payload.stages.map((name, i) => ({
+        workspace_id: workspaceId,
+        pipeline_id: pipeline.id,
+        name,
+        position: i,
+      }));
+      const { error: sError } = await supabase.from('pipeline_stages').insert(stageRows);
+      if (sError) throw sError;
+    }
+
+    revalidatePath('/pipelines');
+    return { success: true, data: pipeline };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Server error' };
+  }
+}
+
 // --- PIPELINES & STAGES ---
 
 export async function getPipelines(): Promise<ActionResult<Pipeline[]>> {

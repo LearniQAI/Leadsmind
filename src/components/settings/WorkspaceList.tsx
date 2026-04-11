@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { Check, Loader2, Plus, ArrowRightLeft, Building2 } from 'lucide-react'
 import { switchWorkspace, createNewWorkspace } from '@/app/actions/workspace'
@@ -34,6 +34,7 @@ interface WorkspaceListProps {
 }
 
 export function WorkspaceList({ workspaces, activeWorkspaceId }: WorkspaceListProps) {
+  const [isPending, startTransition] = useTransition()
   const [isSwitching, setIsSwitching] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [newWorkspaceName, setNewWorkspaceName] = useState('')
@@ -42,14 +43,33 @@ export function WorkspaceList({ workspaces, activeWorkspaceId }: WorkspaceListPr
   async function handleSwitch(workspaceId: string) {
     if (workspaceId === activeWorkspaceId) return
     
-    try {
-      setIsSwitching(workspaceId)
-      await switchWorkspace(workspaceId)
-      toast.success('Switched workspace')
-    } catch {
-      toast.error('Failed to switch workspace')
-      setIsSwitching(null)
-    }
+    setIsSwitching(workspaceId)
+    
+    startTransition(async () => {
+      try {
+        const result = await switchWorkspace(workspaceId)
+        
+        // If the function returns (meaning it didn't redirect), check for errors
+        if (result && 'success' in result && !result.success) {
+          toast.error(result.error || 'Failed to switch workspace')
+          setIsSwitching(null)
+        }
+      } catch (error: any) {
+        // Next.js redirect() throws an error that startTransition handles.
+        // We only reset isSwitching if it's NOT a redirect error.
+        const isRedirectError = error?.digest?.startsWith('NEXT_REDIRECT') || 
+                               error?.message === 'NEXT_REDIRECT';
+        
+        if (isRedirectError) {
+          return
+        }
+        
+        // Fail-safe for other errors
+        console.error('Switch workspace error:', error)
+        toast.error('An unexpected error occurred')
+        setIsSwitching(null)
+      }
+    })
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -147,13 +167,11 @@ export function WorkspaceList({ workspaces, activeWorkspaceId }: WorkspaceListPr
 
         <div className="flex justify-start">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger 
-              render={
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary transition-colors pl-0" />
-              }
-            >
-              <Plus className="h-4 w-4 mr-1 text-primary" />
-              Create a new workspace
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary transition-colors pl-0">
+                <Plus className="h-4 w-4 mr-1 text-primary" />
+                Create a new workspace
+              </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>

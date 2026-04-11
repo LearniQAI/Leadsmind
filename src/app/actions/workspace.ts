@@ -4,6 +4,8 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspaceId, getUser } from '@/lib/auth';
 import { WorkspaceValues } from '@/lib/validations/workspace.schema';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 
 export async function getWorkspaceMembers() {
   const workspaceId = await getCurrentWorkspaceId();
@@ -143,7 +145,6 @@ export async function switchWorkspace(workspaceId: string) {
     return { success: false, error: 'You are not a member of this workspace' };
   }
 
-  const { cookies } = await import('next/headers');
   const cookieStore = await cookies();
   cookieStore.set('active_workspace_id', workspaceId, {
     path: '/',
@@ -152,7 +153,7 @@ export async function switchWorkspace(workspaceId: string) {
     maxAge: 60 * 60 * 24 * 30, // 30 days
   });
 
-  const { redirect } = await import('next/navigation');
+  revalidatePath('/', 'layout');
   redirect('/dashboard');
 }
 
@@ -188,7 +189,6 @@ export async function createNewWorkspace(name: string) {
     return { success: false, error: memberError.message } as const;
   }
 
-  const { cookies } = await import('next/headers');
   const cookieStore = await cookies();
   cookieStore.set('active_workspace_id', workspace.id, {
     path: '/',

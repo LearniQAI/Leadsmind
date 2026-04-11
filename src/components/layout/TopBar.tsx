@@ -3,7 +3,8 @@
 import { usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { NotificationsDropdown } from './NotificationsDropdown';
 import { Input } from '@/components/ui/input';
 
 interface TopBarProps {
@@ -54,11 +55,8 @@ export function TopBar({ user, workspace }: TopBarProps) {
 
       <div className="flex items-center gap-10">
         <div className="flex items-center gap-4">
-          {/* Notifications Placeholder */}
-          <button className="relative p-2 text-foreground/40 hover:text-foreground/80 transition-colors">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#6c47ff] ring-2 ring-background" />
-          </button>
+          {/* Notifications Dropdown */}
+          <NotificationsDropdown />
           
           <div className="h-6 w-px bg-white/5 mx-2" />
           

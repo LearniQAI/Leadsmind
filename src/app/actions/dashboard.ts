@@ -10,7 +10,6 @@ export async function getDashboardMetrics() {
     const supabase = await createServerClient();
 
     if (!workspaceId) {
-        // Fallback: get first available workspace for user
         const { data: membership } = await supabase
             .from('workspace_members')
             .select('workspace_id')
@@ -25,11 +24,13 @@ export async function getDashboardMetrics() {
 
     if (!workspaceId) return null;
 
-    const [contactsCount, dealsCount, wonDealsSum, recentActivities] = await Promise.all([
+    const [contactsCount, dealsCount, wonDealsSum, recentActivities, conversationsCount, platformsCount] = await Promise.all([
         supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
         supabase.from('opportunities').select('*', { count: 'exact', head: true }).eq('workspace_id', workspaceId).eq('status', 'open'),
         supabase.from('opportunities').select('value').eq('workspace_id', workspaceId).eq('status', 'won'),
-        supabase.from('contact_activities').select('*, contacts(first_name, last_name)').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(10)
+        supabase.from('contact_activities').select('*, contacts(first_name, last_name)').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(10),
+        supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
+        supabase.from('platform_connections').select('*', { count: 'exact', head: true }).eq('workspace_id', workspaceId).eq('status', 'connected'),
     ]);
 
     const totalWon = wonDealsSum.data?.reduce((acc, curr) => acc + (curr.value || 0), 0) || 0;
@@ -38,6 +39,8 @@ export async function getDashboardMetrics() {
         totalContacts: contactsCount.count || 0,
         openDeals: dealsCount.count || 0,
         wonValue: totalWon,
-        recentActivities: recentActivities.data || []
+        recentActivities: recentActivities.data || [],
+        activeConversations: conversationsCount.count || 0,
+        connectedPlatforms: platformsCount.count || 0,
     };
 }
