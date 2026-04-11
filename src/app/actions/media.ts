@@ -43,12 +43,14 @@ export async function createFolder(workspaceId: string, name: string, parentId: 
   return data;
 }
 
-export async function uploadFile(
-  workspaceId: string, 
-  file: File, 
-  parentId: string | null = null
-) {
+export async function uploadFile(formData: FormData) {
   const supabase = await createClient();
+  
+  const workspaceId = formData.get('workspaceId') as string;
+  const parentId = formData.get('parentId') as string | null;
+  const file = formData.get('file') as File;
+
+  if (!file || !workspaceId) throw new Error('Missing file or workspace ID');
   
   const fileExt = file.name.split('.').pop();
   const filePath = `${workspaceId}/${Date.now()}.${fileExt}`;
@@ -68,7 +70,7 @@ export async function uploadFile(
       mime_type: file.type,
       size: file.size,
       path: filePath,
-      parent_id: parentId,
+      parent_id: parentId || null,
     })
     .select()
     .single();

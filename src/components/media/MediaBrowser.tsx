@@ -94,10 +94,18 @@ export function MediaBrowser({ workspaceId }: MediaBrowserProps) {
 
     const toastId = toast.loading(`Uploading ${file.name}...`);
     try {
-      await uploadFile(workspaceId, file, currentFolderId);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('workspaceId', workspaceId);
+      if (currentFolderId) {
+        formData.append('parentId', currentFolderId);
+      }
+
+      await uploadFile(formData);
       toast.success('File uploaded', { id: toastId });
       loadFiles(currentFolderId);
     } catch (error) {
+      console.error('Upload Error:', error);
       toast.error('Upload failed', { id: toastId });
     }
   }
