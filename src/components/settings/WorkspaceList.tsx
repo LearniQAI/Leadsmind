@@ -167,12 +167,12 @@ export function WorkspaceList({ workspaces, activeWorkspaceId }: WorkspaceListPr
 
         <div className="flex justify-start">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
+            <DialogTrigger render={
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary transition-colors pl-0">
                 <Plus className="h-4 w-4 mr-1 text-primary" />
                 Create a new workspace
               </Button>
-            </DialogTrigger>
+            } />
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Create New Workspace</DialogTitle>
