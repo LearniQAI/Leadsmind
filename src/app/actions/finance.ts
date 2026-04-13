@@ -76,21 +76,21 @@ export async function createCheckoutSession(tierId: string, interval: 'month' | 
 
   if (selectedTier.price === 0) {
     // If it's the free tier, just update immediately without Stripe
-    await supabase.from('workspaces').update({ plan_tier: 'free' }).eq('id', workspaceId);
+    await supabase.from('workspaces').update({ plan_tier: 'starter' }).eq('id', workspaceId);
     revalidatePath('/settings/billing');
     return;
   }
 
   let priceId = '';
-  if (tierId === 'pro') {
+  if (tierId === 'growth') {
     priceId = interval === 'year' 
-      ? process.env.STRIPE_PRO_ANNUAL_PRICE_ID || '' 
-      : process.env.STRIPE_PRO_PRICE_ID || '';
+      ? process.env.STRIPE_GROWTH_ANNUAL_PRICE_ID || process.env.STRIPE_PRO_ANNUAL_PRICE_ID || '' 
+      : process.env.STRIPE_GROWTH_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID || '';
   }
-  if (tierId === 'enterprise') {
+  if (tierId === 'agency') {
     priceId = interval === 'year' 
-      ? process.env.STRIPE_ENTERPRISE_ANNUAL_PRICE_ID || '' 
-      : process.env.STRIPE_ENTERPRISE_PRICE_ID || '';
+      ? process.env.STRIPE_AGENCY_ANNUAL_PRICE_ID || process.env.STRIPE_ENTERPRISE_ANNUAL_PRICE_ID || '' 
+      : process.env.STRIPE_AGENCY_PRICE_ID || process.env.STRIPE_ENTERPRISE_PRICE_ID || '';
   }
 
   let redirectUrl = '';
@@ -175,8 +175,8 @@ export async function getStripeConnectUrl(workspaceId: string) {
 
 export async function getSaaSTiers() {
   return [
-    { id: 'free', name: 'Free', price: 0, features: ['Up to 100 contacts', 'Basic CRM', 'Email support'] },
-    { id: 'pro', name: 'Pro', price: 49, features: ['Unlimited contacts', 'LMS Engine', 'Stripe Connect', 'AI Insights'] },
-    { id: 'enterprise', name: 'Enterprise', price: 199, features: ['Custom branding', 'Advanced Automations', 'Dedicated support', 'Unlimited users'] },
+    { id: 'starter', name: 'Starter', price: 0, features: ['Up to 500 contacts', '5 Funnels', '1 Pipeline', '2 Team members'] },
+    { id: 'growth', name: 'Growth', price: 97, features: ['Unlimited contacts', 'Unlimited funnels', 'WhatsApp & Social Inbox', 'Email Campaigns'] },
+    { id: 'agency', name: 'Agency', price: 297, features: ['Everything in Growth', 'Custom domains & White-label', 'SaaS reseller mode', 'Unlimited sub-accounts'] },
   ];
 }

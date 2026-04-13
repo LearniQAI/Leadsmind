@@ -118,9 +118,11 @@ export default async function BillingPage({ searchParams }: { searchParams: { er
               Platform Subscription
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {tiers.map((tier) => (
-                <Card key={tier.id} className={`bg-white/3 border-white/5 relative overflow-hidden flex flex-col ${workspaceData?.plan_tier === tier.id ? 'ring-2 ring-[#6c47ff] border-transparent' : ''}`}>
-                  {workspaceData?.plan_tier === tier.id && (
+              {tiers.map((tier) => {
+                const isCurrentPlan = workspaceData?.plan_tier === tier.id || (workspaceData?.plan_tier === 'free' && tier.id === 'starter');
+                return (
+                <Card key={tier.id} className={`bg-white/3 border-white/5 relative overflow-hidden flex flex-col ${isCurrentPlan ? 'ring-2 ring-[#6c47ff] border-transparent' : ''}`}>
+                  {isCurrentPlan && (
                     <div className="absolute top-0 right-0 bg-[#6c47ff] text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-widest">
                       Current Plan
                     </div>
@@ -152,15 +154,15 @@ export default async function BillingPage({ searchParams }: { searchParams: { er
                       }}>
                         <Button 
                           type="submit"
-                          variant={workspaceData?.plan_tier === tier.id ? 'outline' : 'default'} 
-                          className={`w-full py-6 text-sm font-bold ${workspaceData?.plan_tier === tier.id ? 'border-white/10 text-white/40' : 'bg-[#6c47ff] hover:bg-[#5b3ce0]'}`}
-                          disabled={workspaceData?.plan_tier === tier.id}
+                          variant={isCurrentPlan ? 'outline' : 'default'} 
+                          className={`w-full py-6 text-sm font-bold ${isCurrentPlan ? 'border-white/10 text-white/40' : 'bg-[#6c47ff] hover:bg-[#5b3ce0]'}`}
+                          disabled={isCurrentPlan}
                         >
-                          {workspaceData?.plan_tier === tier.id ? 'Active (Monthly)' : (tier.price === 0 ? 'Current Plan' : 'Upgrade Monthly')}
+                          {isCurrentPlan ? 'Active (Monthly)' : (tier.price === 0 ? 'Current Plan' : 'Upgrade Monthly')}
                         </Button>
                       </form>
                       
-                      {tier.price > 0 && workspaceData?.plan_tier !== tier.id && (
+                      {tier.price > 0 && !isCurrentPlan && (
                         <form action={async () => {
                           "use server";
                           if (workspaceData?.id) {
@@ -179,7 +181,8 @@ export default async function BillingPage({ searchParams }: { searchParams: { er
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           </div>
 
