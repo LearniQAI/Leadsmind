@@ -223,6 +223,8 @@ export async function syncRecentMessages() {
           synced = await syncTwilio(workspaceId, conn.platform, conn.credentials, supabase);
         } else if (conn.platform === 'linkedin') {
           synced = await syncLinkedIn(workspaceId, conn.credentials, supabase);
+        } else if (conn.platform === 'email') {
+          synced = await syncGmail(workspaceId, supabase);
         } else if (conn.platform === 'facebook' || conn.platform === 'instagram') {
           synced = await syncMeta(workspaceId, conn.platform, conn.credentials, supabase);
         }
@@ -365,6 +367,65 @@ async function syncMeta(workspaceId: string, platform: 'facebook' | 'instagram',
     return synced;
   } catch (err) {
     console.error(`Failed to sync Meta (${platform}):`, err);
+    return 0;
+  }
+}
+async function syncGmail(workspaceId: string, supabase: any) {
+  try {
+    const { getGmailService } = require('@/lib/google/gmail');
+    const gmailService = await getGmailService(workspaceId);
+    
+    // Fetch recent threads
+    const { threads } = await gmailService.getThreads(5);
+    if (!threads) return 0;
+
+    let synced = 0;
+    for (const thread of threads) {
+      const detail = await gmailService.getMessage(thread.id);
+      const headers = detail.payload.headers;
+      const from = headers.find((h: any) => h.name === 'From')?.value || 'Unknown';
+      const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'No Subject';
+      const date = headers.find((h: any) => h.name === 'Date')?.value || new Date().toISOString();
+      const snippet = detail.snippet;
+
+      // Extract raw email from "Name <email@domain.com>"
+      const emailMatch = from.match(/<(.+)>$/);
+      const email = emailMatch ? emailMatch[1] : from;
+
+      // 1. Upsert Conversation
+      const { data: conv } = await supabase
+        .from('conversations')
+        .upsert({
+          workspace_id: workspaceId,
+          platform: 'email',
+          external_thread_id: email,
+          title: subject,
+          updated_at: new Date(date).toISOString()
+        }, { onConflict: 'workspace_id, platform, external_thread_id' })
+        .select('id')
+        .single();
+
+      if (conv) {
+        // 2. Insert Message (if not already exists)
+        const { error: msgErr } = await supabase
+          .from('messages')
+          .insert({
+            workspace_id: workspaceId,
+            conversation_id: conv.id,
+            direction: 'inbound', // Simplified for sync
+            content: snippet,
+            sender_handle: from,
+            external_id: thread.id,
+            status: 'delivered',
+            sent_at: new Date(date).toISOString()
+          });
+        
+        if (!msgErr) synced++;
+      }
+    }
+    return synced;
+  } catch (err) {
+    console.error('[sync-gmail] Error:', err);
     return 0;
   }
 }

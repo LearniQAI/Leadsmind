@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const codeVerifier = cookieStore.get('twitter_code_verifier')?.value;
 
     if (!code || !state || !storedState || !codeVerifier || state !== storedState) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/account?error=invalid_twitter_auth`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/account?error=invalid_twitter_auth`);
     }
 
     const client = new TwitterApi({
@@ -64,9 +64,9 @@ export async function GET(req: NextRequest) {
         .insert({ workspace_id: workspaceId, platform: 'twitter', credentials, status: 'connected' });
     }
 
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/account?success=twitter_connected`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/account?success=twitter_connected`);
   } catch (error) {
     console.error('[twitter-callback] Error:', error);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/account?error=twitter_callback_failed`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/account?error=twitter_callback_failed`);
   }
 }

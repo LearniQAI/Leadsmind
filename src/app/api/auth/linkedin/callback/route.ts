@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     const storedState = cookieStore.get('linkedin_auth_state')?.value;
 
     if (!code || !state || !storedState || state !== storedState) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/account?error=invalid_linkedin_auth`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/account?error=invalid_linkedin_auth`);
     }
 
     // Exchange code for access token
@@ -76,9 +76,9 @@ export async function GET(req: NextRequest) {
         .insert({ workspace_id: workspaceId, platform: 'linkedin', credentials, status: 'connected' });
     }
 
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/account?success=linkedin_connected`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/account?success=linkedin_connected`);
   } catch (error: any) {
     console.error('[linkedin-callback] Error:', error);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/account?error=linkedin_callback_failed&message=${encodeURIComponent(error.message)}`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/account?error=linkedin_callback_failed&message=${encodeURIComponent(error.message)}`);
   }
 }

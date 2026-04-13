@@ -45,6 +45,7 @@ export default function ConversationsPage() {
   const [isPending, startTransition] = useTransition();
   const [smartReplies, setSmartReplies] = useState<string[]>([]);
   const [isLoadingReplies, setIsLoadingReplies] = useState(false);
+  const [activePlatform, setActivePlatform] = useState<string>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
@@ -180,10 +181,15 @@ export default function ConversationsPage() {
     }
   };
 
-  const filteredConvs = conversations.filter(c =>
-    (c.contacts?.first_name + ' ' + (c.contacts?.last_name || '')).toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.title?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredConvs = conversations.filter(c => {
+    const matchesSearch = 
+      (c.contacts?.first_name + ' ' + (c.contacts?.last_name || '')).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.title?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesPlatform = activePlatform === 'all' || c.platform === activePlatform;
+    
+    return matchesSearch && matchesPlatform;
+  });
 
   return (
     <div className="flex bg-[#030303] border border-white/5 rounded-3xl overflow-hidden h-[calc(100vh-140px)] shadow-2xl animate-fade-up">
@@ -218,6 +224,32 @@ export default function ConversationsPage() {
               className="h-10 pl-10 bg-white/5 border-white/5 rounded-xl text-sm placeholder:text-white/20 focus:border-[#6c47ff]/50 transition-all"
             />
           </div>
+
+          {/* Platform Filter */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 px-1">
+            {[
+              { id: 'all', name: 'All', icon: MessageSquare },
+              { id: 'email', name: 'Email', icon: Mail },
+              { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle },
+              { id: 'sms', name: 'SMS', icon: MessageSquare },
+              { id: 'instagram', name: 'Insta', icon: Instagram },
+              { id: 'linkedin', name: 'LinkedIn', icon: Linkedin }
+            ].map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setActivePlatform(p.id)}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 border whitespace-nowrap",
+                  activePlatform === p.id 
+                    ? "bg-[#6c47ff] border-[#6c47ff] text-white shadow-lg shadow-[#6c47ff]/20" 
+                    : "bg-white/[0.02] border-white/5 text-white/40 hover:text-white/70 hover:bg-white/[0.05]"
+                )}
+              >
+                <p.icon className="h-3 w-3" />
+                {p.name}
+              </button>
+            ))}
+          </div>
         </div>
 
         <ScrollArea className="flex-1">
@@ -250,10 +282,13 @@ export default function ConversationsPage() {
             <div className="space-y-1 px-3 pb-6">
               {filteredConvs.map((conv) => {
                 const isActive = activeConv?.id === conv.id;
-                const contactName = conv.contacts
-                  ? `${conv.contacts.first_name} ${conv.contacts.last_name || ''}`
-                  : (conv.title || 'Unknown');
+                const platformLabel = conv.platform === 'email' ? 'Gmail' : conv.platform;
+                const contactName = conv.platform === 'email' 
+                  ? conv.title // Subject for emails
+                  : (conv.contacts ? `${conv.contacts.first_name} ${conv.contacts.last_name || ''}` : conv.title || 'Unknown');
+                
                 const initials = (conv.contacts?.first_name?.[0] || conv.title?.[0] || '?').toUpperCase();
+                const subtitle = conv.platform === 'email' ? conv.external_thread_id : 'Click to view messages history...';
 
                 return (
                   <button
@@ -278,7 +313,8 @@ export default function ConversationsPage() {
                           "flex items-center justify-center rounded-xs w-full h-full",
                           conv.platform === 'whatsapp' ? "text-emerald-500" :
                             conv.platform === 'instagram' ? "text-pink-500" :
-                              conv.platform === 'linkedin' ? "text-blue-500" : "text-[#6c47ff]"
+                              conv.platform === 'linkedin' ? "text-blue-500" : 
+                                conv.platform === 'email' ? "text-orange-500" : "text-[#6c47ff]"
                         )}>
                           {getPlatformIcon(conv.platform)}
                         </div>
@@ -298,7 +334,7 @@ export default function ConversationsPage() {
                         </span>
                       </div>
                       <p className="text-xs text-white/30 truncate leading-relaxed">
-                        Click to view messages history...
+                        {subtitle}
                       </p>
                     </div>
 

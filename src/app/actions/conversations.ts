@@ -90,11 +90,15 @@ export async function sendChatMessage(conversationId: string, content: string) {
       
       const msg = await client.messages.create({ body: content, from, to });
       externalId = msg.sid;
-    } else if (conv.platform === 'twitter') {
-      const { TwitterApi } = require('twitter-api-v2');
-      const client = new TwitterApi(conn.credentials.accessToken);
-      const res = await client.v2.sendDm(conv.external_thread_id, { text: content });
-      externalId = res.data.id || externalId;
+    } else if (conv.platform === 'linkedin') {
+      // Mock LinkedIn send
+      console.log('Sending LinkedIn DM to:', conv.external_thread_id);
+    } else if (conv.platform === 'email') {
+      const { getGmailService } = require('@/lib/google/gmail');
+      const gmail = await getGmailService(workspaceId);
+      // For email, external_thread_id should be the recipient email
+      const res = await gmail.sendEmail(conv.external_thread_id, 'RE: CRM Inquiry', content);
+      externalId = res.id || externalId;
     } else if (conv.platform === 'facebook' || conv.platform === 'instagram') {
       const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${conn.credentials.accessToken}`;
       const res = await fetch(url, {

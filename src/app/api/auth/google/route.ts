@@ -23,6 +23,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(googleAuthUrl.toString());
   } catch (error: any) {
     console.error('[google-auth] Error starting OAuth:', error);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/account?error=google_auth_failed`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/account?error=google_auth_failed`);
   }
 }

@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     const code = searchParams.get('code');
 
     if (!code) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/account?error=no_code_provided`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/account?error=no_code_provided`);
     }
 
     const clientId = process.env.GOOGLE_CLIENT_ID!;
@@ -95,9 +95,9 @@ export async function GET(req: NextRequest) {
         });
     }
 
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/account?success=gmail_connected`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/account?success=gmail_connected`);
   } catch (error: any) {
     console.error('[google-callback] Error:', error);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/account?error=google_callback_failed&message=${encodeURIComponent(error.message)}`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/account?error=google_callback_failed&message=${encodeURIComponent(error.message)}`);
   }
 }
