@@ -2,6 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { stripe } from '@/lib/stripe';
 
 // --- Products ---
 export async function getProducts(workspaceId: string) {
@@ -45,25 +47,120 @@ export async function getInvoices(workspaceId: string) {
   return data;
 }
 
+// --- Stripe SaaS Checkout ---
+export async function createCheckoutSession(tierId: string, interval: 'month' | 'year' = 'month') {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Not authenticated');
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('workspace_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile?.workspace_id) {
+    throw new Error('Workspace not found');
+  }
+
+  const workspaceId = profile.workspace_id;
+
+  // Verify the tier
+  const tiers = await getSaaSTiers();
+  const selectedTier = tiers.find(t => t.id === tierId);
+  if (!selectedTier) {
+    throw new Error('Invalid tier');
+  }
+
+  if (selectedTier.price === 0) {
+    // If it's the free tier, just update immediately without Stripe
+    await supabase.from('workspaces').update({ plan_tier: 'free' }).eq('id', workspaceId);
+    revalidatePath('/settings/billing');
+    return;
+  }
+
+  let priceId = '';
+  if (tierId === 'pro') {
+    priceId = interval === 'year' 
+      ? process.env.STRIPE_PRO_ANNUAL_PRICE_ID || '' 
+      : process.env.STRIPE_PRO_PRICE_ID || '';
+  }
+  if (tierId === 'enterprise') {
+    priceId = interval === 'year' 
+      ? process.env.STRIPE_ENTERPRISE_ANNUAL_PRICE_ID || '' 
+      : process.env.STRIPE_ENTERPRISE_PRICE_ID || '';
+  }
+
+  if (!priceId) {
+    throw new Error(`Missing Stripe Price ID for tier: ${tierId} (${interval}). Please configure Stripe variables in .env.local.`);
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    mode: 'subscription',
+    line_items: [
+      {
+        price: priceId,
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      workspaceId,
+      tierId,
+    },
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings/billing?success=true`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings/billing?canceled=true`,
+    customer_email: user.email,
+  });
+
+  if (session.url) {
+    redirect(session.url);
+  }
+}
+
 // --- Stripe Connect ---
 export async function getStripeConnectUrl(workspaceId: string) {
-  // In a real app, this would call the Stripe API to create an account link
-  // For now, we'll simulate it by returning a placeholder URL or updating the DB
   const supabase = await createClient();
   
-  // Simulate checking Stripe Connect ID
+  // 1. Check existing Stripe Connect ID
   const { data: workspace } = await supabase
     .from('workspaces')
     .select('stripe_connect_id')
     .eq('id', workspaceId)
     .single();
 
-  if (workspace?.stripe_connect_id) {
-    return { connected: true };
+  let accountId = workspace?.stripe_connect_id;
+
+  // 2. If no account exists, create one via Stripe API
+  if (!accountId) {
+    const account = await stripe.accounts.create({
+      type: 'standard', // or 'express' depending on integration requirements
+    });
+    accountId = account.id;
+
+    await supabase
+      .from('workspaces')
+      .update({ stripe_connect_id: accountId })
+      .eq('id', workspaceId);
+  } else {
+    // Check if account onboarding is already complete
+    const account = await stripe.accounts.retrieve(accountId);
+    if (account.details_submitted) {
+      return { connected: true };
+    }
   }
 
-  // Placeholder URL
-  return { connected: false, url: 'https://connect.stripe.com/oauth/authorize' };
+  // 3. Create Connect Onboarding Link
+  const accountLink = await stripe.accountLinks.create({
+    account: accountId,
+    refresh_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings/billing`,
+    return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings/billing`,
+    type: 'account_onboarding',
+  });
+
+  return { connected: false, url: accountLink.url };
 }
 
 export async function getSaaSTiers() {

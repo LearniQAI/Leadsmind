@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { getInvoices, getProducts, getSaaSTiers } from '@/app/actions/finance';
+import { getInvoices, getProducts, getSaaSTiers, createCheckoutSession, getStripeConnectUrl } from '@/app/actions/finance';
 import { Button } from '@/components/ui/button';
 import {
   CreditCard,
@@ -97,10 +97,18 @@ export default async function BillingPage() {
                   Stripe connected (Account: {workspaceData.stripe_connect_id})
                 </div>
               ) : (
-                <Button className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white gap-2 font-bold px-8 h-12 rounded-xl">
-                  Connect Stripe Account
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
+                <form action={async () => {
+                  "use server";
+                  if (workspace?.id) {
+                    const res = await getStripeConnectUrl(workspace.id);
+                    if (res.url) redirect(res.url);
+                  }
+                }}>
+                  <Button type="submit" className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white gap-2 font-bold px-8 h-12 rounded-xl">
+                    Connect Stripe Account
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </form>
               )}
             </CardContent>
           </Card>
@@ -137,13 +145,40 @@ export default async function BillingPage() {
                     </ul>
                   </CardContent>
                   <CardContent className="pt-0">
-                    <Button
-                      variant={workspaceData?.plan_tier === tier.id ? 'outline' : 'default'}
-                      className={`w-full ${workspaceData?.plan_tier === tier.id ? 'border-white/10 text-white/40' : 'bg-[#6c47ff] hover:bg-[#5b3ce0]'}`}
-                      disabled={workspaceData?.plan_tier === tier.id}
-                    >
-                      {workspaceData?.plan_tier === tier.id ? 'Active' : 'Upgrade'}
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <form action={async () => {
+                        "use server";
+                        if (workspaceData?.id) {
+                          await createCheckoutSession(tier.id, 'month');
+                        }
+                      }}>
+                        <Button 
+                          type="submit"
+                          variant={workspaceData?.plan_tier === tier.id ? 'outline' : 'default'} 
+                          className={`w-full ${workspaceData?.plan_tier === tier.id ? 'border-white/10 text-white/40' : 'bg-[#6c47ff] hover:bg-[#5b3ce0]'}`}
+                          disabled={workspaceData?.plan_tier === tier.id}
+                        >
+                          {workspaceData?.plan_tier === tier.id ? 'Active (Monthly)' : (tier.price === 0 ? 'Current Plan' : 'Upgrade Monthly')}
+                        </Button>
+                      </form>
+                      
+                      {tier.price > 0 && (
+                        <form action={async () => {
+                          "use server";
+                          if (workspaceData?.id) {
+                            await createCheckoutSession(tier.id, 'year');
+                          }
+                        }}>
+                          <Button 
+                            type="submit"
+                            variant="secondary"
+                            className="w-full bg-white/10 hover:bg-white/20 text-white"
+                          >
+                            Upgrade Annually (Save 20%)
+                          </Button>
+                        </form>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               ))}
