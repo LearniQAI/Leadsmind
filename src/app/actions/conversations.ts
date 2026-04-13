@@ -5,7 +5,11 @@ import { getCurrentWorkspaceId } from '@/lib/auth';
 
 export async function getConversations() {
   const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) return [];
+  console.log('[getConversations] workspaceId from session:', workspaceId);
+  if (!workspaceId) {
+    console.warn('[getConversations] No workspaceId found in session!');
+    return [];
+  }
 
   const supabase = await createServerClient();
   const { data, error } = await supabase

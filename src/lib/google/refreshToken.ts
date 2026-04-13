@@ -9,10 +9,13 @@ export async function refreshGoogleToken(connectionId: string, credentials: any)
 
   // If token is still valid (with 5 minute buffer), return current credentials
   if (expiresAt && Date.now() < (expiresAt - 300000)) {
+    console.log('[google-refresh] Token still valid.');
     return accessToken;
   }
 
+  console.log('[google-refresh] Token expired or expiring soon. Refreshing...');
   if (!refreshToken) {
+    console.error('[google-refresh] Missing refresh token!');
     throw new Error('No refresh token available. User must re-connect Gmail.');
   }
 
@@ -29,6 +32,7 @@ export async function refreshGoogleToken(connectionId: string, credentials: any)
     });
 
     const data = await response.json();
+    console.log('[google-refresh] Google refresh response:', JSON.stringify(data));
 
     if (!response.ok) {
       throw new Error(data.error_description || 'Failed to refresh Google token');

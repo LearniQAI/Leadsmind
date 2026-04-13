@@ -200,6 +200,7 @@ export async function connectLinkedIn(values: LinkedinValues) {
 export async function syncRecentMessages() {
   try {
     const workspaceId = await getCurrentWorkspaceId();
+    console.log('[syncRecentMessages] workspaceId used for sync:', workspaceId);
     if (!workspaceId) return { success: false, error: 'No active workspace' };
 
     const supabase = await createServerClient();
@@ -372,13 +373,24 @@ async function syncMeta(workspaceId: string, platform: 'facebook' | 'instagram',
 }
 async function syncGmail(workspaceId: string, supabase: any) {
   try {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      throw new Error('Google OAuth credentials (CLIENT_ID/SECRET) are missing in environment variables.');
+    }
+    console.log(`[sync-gmail] Starting sync for workspace: ${workspaceId}`);
     const { getGmailService } = require('@/lib/google/gmail');
     const gmailService = await getGmailService(workspaceId);
     
-    // Fetch recent threads
-    const { threads } = await gmailService.getThreads(5);
-    if (!threads) return 0;
+    console.log('[sync-gmail] Fetching recent threads...');
+    const gmailData = await gmailService.getThreads(5);
+    console.log('[sync-gmail] Google API response:', JSON.stringify(gmailData));
+    
+    const threads = gmailData.threads;
+    if (!threads || !Array.isArray(threads)) {
+      console.log('[sync-gmail] No threads found or invalid response structure');
+      return 0;
+    }
 
+    console.log(`[sync-gmail] Found ${threads.length} threads. Processing details...`);
     let synced = 0;
     for (const thread of threads) {
       const detail = await gmailService.getMessage(thread.id);
@@ -398,7 +410,7 @@ async function syncGmail(workspaceId: string, supabase: any) {
         .upsert({
           workspace_id: workspaceId,
           platform: 'email',
-          external_thread_id: email,
+          external_thread_id: thread.id, // Group by actual Google Thread ID
           title: subject,
           last_message_at: new Date(date).toISOString(),
           updated_at: new Date(date).toISOString()
@@ -407,6 +419,7 @@ async function syncGmail(workspaceId: string, supabase: any) {
         .single();
 
       if (conv) {
+        console.log(`[sync-gmail] Conversation upserted: ${conv.id}. Upserting message...`);
         // 2. Insert Message (if not already exists)
         const { error: msgErr } = await supabase
           .from('messages')
@@ -421,12 +434,19 @@ async function syncGmail(workspaceId: string, supabase: any) {
             sent_at: new Date(date).toISOString()
           }, { onConflict: 'external_id' });
         
-        if (!msgErr) synced++;
+        if (!msgErr) {
+          synced++;
+        } else {
+          console.error('[sync-gmail] Message upsert error:', msgErr);
+        }
+      } else {
+        console.error('[sync-gmail] Failed to upsert conversation for email:', email);
       }
     }
+    console.log(`[sync-gmail] Sync complete. Total synced: ${synced}`);
     return synced;
-  } catch (err) {
-    console.error('[sync-gmail] Error:', err);
-    return 0;
+  } catch (err: any) {
+    console.error('[sync-gmail] Critical error during sync:', err.message);
+    throw err; // Re-throw to be caught by syncRecentMessages
   }
 }

@@ -18,7 +18,13 @@ import {
   Hash,
   Filter,
   Circle,
-  Sparkles
+  Sparkles,
+  Maximize2,
+  Minimize2,
+  X,
+  Sidebar as SidebarIcon,
+  ChevronRight,
+  RefreshCw
 } from 'lucide-react';
 import { getConversations, getMessages, sendChatMessage } from '@/app/actions/conversations';
 import { syncRecentMessages } from '@/app/actions/messaging';
@@ -43,9 +49,9 @@ export default function ConversationsPage() {
   const [messageText, setMessageText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isPending, startTransition] = useTransition();
-  const [smartReplies, setSmartReplies] = useState<string[]>([]);
-  const [isLoadingReplies, setIsLoadingReplies] = useState(false);
   const [activePlatform, setActivePlatform] = useState<string>('all');
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
@@ -54,7 +60,7 @@ export default function ConversationsPage() {
     async function load() {
       try {
         const data = await getConversations();
-        setConversations(data);
+        setConversations(data || []);
       } catch (err) {
         console.error('Error loading conversations:', err);
       } finally {
@@ -80,19 +86,6 @@ export default function ConversationsPage() {
       }
     }
     load();
-
-    async function loadSuggestions() {
-      setIsLoadingReplies(true);
-      try {
-        const suggestions = await getSmartReplySuggestions(activeConv.id);
-        setSmartReplies(suggestions);
-      } catch (err) {
-        console.error('Error loading suggestions:', err);
-      } finally {
-        setIsLoadingReplies(false);
-      }
-    }
-    loadSuggestions();
 
     // Setup realtime subscription for messages in this conversation
     const channel = supabase
@@ -159,8 +152,15 @@ export default function ConversationsPage() {
           toast.info('Sync complete. No new messages found.');
         }
 
+        // Force a re-fetch and log results for debugging
         const data = await getConversations();
+        console.log(`[Conversations] Sync complete. Resulting conversations in DB:`, data.map(d => ({ id: d.id, platform: d.platform, title: d.title })));
         setConversations(data);
+
+        // If we found messages but local state is still empty, something is wrong with RLS or Workspace ID
+        if (count > 0 && data.length === 0) {
+          toast.error("Messages synced but could not be retrieved. Please check your workspace active session.");
+        }
       } else {
         toast.error(result.error);
       }
@@ -182,35 +182,57 @@ export default function ConversationsPage() {
   };
 
   const filteredConvs = conversations.filter(c => {
-    const matchesSearch = 
-      (c.contacts?.first_name + ' ' + (c.contacts?.last_name || '')).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.title?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+    const search = searchTerm.toLowerCase().trim();
     const matchesPlatform = activePlatform === 'all' || c.platform === activePlatform;
-    
+
+    if (!search) return matchesPlatform;
+
+    const contactName = c.contacts
+      ? (`${c.contacts.first_name || ''} ${c.contacts.last_name || ''}`).toLowerCase()
+      : (c.title || 'unknown').toLowerCase();
+
+    const matchesSearch = contactName.includes(search) || (c.external_thread_id || '').toLowerCase().includes(search);
+
     return matchesSearch && matchesPlatform;
   });
 
   return (
-    <div className="flex bg-[#030303] border border-white/5 rounded-3xl overflow-hidden h-[calc(100vh-140px)] shadow-2xl animate-fade-up">
+    <div className={cn(
+      "flex bg-[#050508] border border-white/5 shadow-2xl overflow-hidden transition-all duration-500 ease-in-out",
+      isFocusMode
+        ? "fixed inset-4 z-[100] rounded-[40px] h-[calc(100vh-32px)]"
+        : "relative rounded-[40px] h-[calc(100vh-160px)] w-full min-w-0"
+    )}>
+      {/* Background Glow */}
+      <div className="absolute top-0 left-0 w-full h-full bg-linear-to-br from-[#6c47ff]/5 via-transparent to-transparent pointer-events-none" />
+
       {/* --- Sidebar: Conversation List --- */}
       <div className={cn(
-        "flex flex-col w-full md:w-80 lg:w-96 border-r border-white/5 bg-white/[0.01]",
+        "flex flex-col border-r border-white/5 bg-white/[0.01] transition-all duration-300 ease-in-out shrink-0 overflow-hidden",
+        sidebarCollapsed ? "w-0 border-none opacity-0" : "w-full md:w-80 lg:w-96",
         activeConv && "hidden md:flex"
       )}>
         <div className="p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-white tracking-tight">Messages</h2>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between shrink-0">
+            <h2 className="text-xl font-black text-white tracking-tighter uppercase">Messages</h2>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsFocusMode(!isFocusMode)}
+                className="h-9 w-9 text-white/20 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+              >
+                {isFocusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleSync}
                 disabled={isLoadingConvs}
-                className="h-8 w-8 text-[#6c47ff] hover:text-[#6c47ff]/80 hover:bg-[#6c47ff]/10 rounded-lg group"
+                className="h-9 w-9 text-[#6c47ff] hover:text-[#6c47ff]/80 hover:bg-[#6c47ff]/10 rounded-xl group"
               >
                 <div className={cn("transition-transform duration-500", isLoadingConvs && "animate-spin")}>
-                  <Filter className="h-4 w-4" />
+                  <RefreshCw className="h-4 w-4" />
                 </div>
               </Button>
             </div>
@@ -225,30 +247,33 @@ export default function ConversationsPage() {
             />
           </div>
 
-          {/* Platform Filter */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 px-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 px-1 scroll-smooth">
             {[
-              { id: 'all', name: 'All', icon: MessageSquare },
-              { id: 'email', name: 'Email', icon: Mail },
-              { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle },
-              { id: 'sms', name: 'SMS', icon: MessageSquare },
-              { id: 'instagram', name: 'Insta', icon: Instagram },
-              { id: 'linkedin', name: 'LinkedIn', icon: Linkedin }
-            ].map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setActivePlatform(p.id)}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 border whitespace-nowrap",
-                  activePlatform === p.id 
-                    ? "bg-[#6c47ff] border-[#6c47ff] text-white shadow-lg shadow-[#6c47ff]/20" 
-                    : "bg-white/[0.02] border-white/5 text-white/40 hover:text-white/70 hover:bg-white/[0.05]"
-                )}
-              >
-                <p.icon className="h-3 w-3" />
-                {p.name}
-              </button>
-            ))}
+              { id: 'all', name: 'All', icon: MessageSquare, color: 'text-white' },
+              { id: 'email', name: 'Gmail', icon: Mail, color: 'text-orange-500' },
+              { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, color: 'text-emerald-500' },
+              { id: 'sms', name: 'SMS', icon: MessageSquare, color: 'text-blue-400' },
+              { id: 'instagram', name: 'Insta', icon: Instagram, color: 'text-pink-500' },
+              { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: 'text-blue-600' }
+            ].map((p) => {
+              const isActive = activePlatform === p.id;
+              const Icon = p.icon;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setActivePlatform(p.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 border duration-300",
+                    isActive
+                      ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.15)] scale-105"
+                      : "bg-white/[0.03] border-white/5 text-white/40 hover:text-white/70 hover:bg-white/[0.06] hover:border-white/10"
+                  )}
+                >
+                  <Icon className={cn("h-3.5 w-3.5", !isActive && p.color)} />
+                  {p.name}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -283,10 +308,10 @@ export default function ConversationsPage() {
               {filteredConvs.map((conv) => {
                 const isActive = activeConv?.id === conv.id;
                 const platformLabel = conv.platform === 'email' ? 'Gmail' : conv.platform;
-                const contactName = conv.platform === 'email' 
+                const contactName = conv.platform === 'email'
                   ? conv.title // Subject for emails
                   : (conv.contacts ? `${conv.contacts.first_name} ${conv.contacts.last_name || ''}` : conv.title || 'Unknown');
-                
+
                 const initials = (conv.contacts?.first_name?.[0] || conv.title?.[0] || '?').toUpperCase();
                 const subtitle = conv.platform === 'email' ? conv.external_thread_id : 'Click to view messages history...';
 
@@ -313,7 +338,7 @@ export default function ConversationsPage() {
                           "flex items-center justify-center rounded-xs w-full h-full",
                           conv.platform === 'whatsapp' ? "text-emerald-500" :
                             conv.platform === 'instagram' ? "text-pink-500" :
-                              conv.platform === 'linkedin' ? "text-blue-500" : 
+                              conv.platform === 'linkedin' ? "text-blue-500" :
                                 conv.platform === 'email' ? "text-orange-500" : "text-[#6c47ff]"
                         )}>
                           {getPlatformIcon(conv.platform)}
@@ -349,11 +374,22 @@ export default function ConversationsPage() {
         </ScrollArea>
       </div>
 
+
       {/* --- Main Area: Active Chat --- */}
       <div className={cn(
-        "flex-1 flex flex-col bg-white/[0.01]",
+        "flex-1 flex flex-col bg-white/[0.01] min-w-0 relative overflow-hidden h-full",
         !activeConv && "hidden md:flex items-center justify-center"
       )}>
+        {activeConv && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="absolute top-5 left-1 z-20 hidden md:flex h-10 w-6 bg-white/5 border border-white/10 hover:bg-white/10 rounded-r-lg text-white/20 hover:text-white"
+          >
+            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+        )}
         {!activeConv ? (
           <div className="flex flex-col items-center justify-center gap-6 p-10 text-center animate-fade-in">
             <div className="h-24 w-24 rounded-[32px] bg-linear-to-br from-[#6c47ff]/20 to-transparent border border-[#6c47ff]/10 flex items-center justify-center shadow-2xl">
@@ -367,177 +403,206 @@ export default function ConversationsPage() {
             </div>
           </div>
         ) : (
-          <>
-            {/* Chat Header */}
-            <div className="h-20 px-6 flex items-center justify-between border-b border-white/5 backdrop-blur-md sticky top-0 z-10">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="md:hidden text-white/40"
-                  onClick={() => setActiveConv(null)}
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 rounded-xl border border-white/5">
-                    <AvatarImage src={activeConv.contacts?.avatar_url} />
-                    <AvatarFallback className="bg-white/5 text-white/40 text-xs font-bold">
-                      {(activeConv.contacts?.first_name?.[0] || activeConv.title?.[0] || '?').toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-white">
-                      {activeConv.contacts
-                        ? `${activeConv.contacts.first_name} ${activeConv.contacts.last_name || ''}`
-                        : (activeConv.title || 'Unknown')}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <Circle className="h-1.5 w-1.5 fill-emerald-500 text-emerald-500" />
-                      <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Online</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-white/20 hover:text-white rounded-xl">
-                  <Phone className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-white/20 hover:text-white rounded-xl">
-                  <Video className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-white/20 hover:text-white rounded-xl">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Chat Body */}
-            <div className="flex-1 min-h-0 relative">
-              <ScrollArea className="h-full p-6" ref={scrollRef}>
-                {isLoadingMsgs ? (
-                  <div className="flex items-center justify-center h-full py-20">
-                    <Loader2 className="h-6 w-6 animate-spin text-[#6c47ff]/40" />
-                  </div>
-                ) : (
-                  <div className="space-y-6 pb-4">
-                    <div className="flex items-center justify-center py-4">
-                      <Badge variant="outline" className="text-[10px] font-bold text-white/20 border-white/5 px-3 py-1 bg-white/[0.02] rounded-full">
-                        {messages.length > 0 ? format(new Date(messages[0].sent_at), 'MMMM d, yyyy') : 'No messages yet'}
-                      </Badge>
-                    </div>
-
-                    {messages.map((msg, i) => {
-                      const isOutbound = msg.direction === 'outbound';
-                      const showAvatar = !isOutbound && (i === 0 || messages[i - 1].direction === 'outbound');
-
-                      return (
-                        <div
-                          key={msg.id}
-                          className={cn(
-                            "flex items-end gap-3 max-w-[85%] animate-fade-up",
-                            isOutbound ? "ml-auto flex-row-reverse" : "mr-auto"
-                          )}
-                        >
-                          {!isOutbound && (
-                            <div className="w-8 shrink-0">
-                              {showAvatar && (
-                                <Avatar className="h-8 w-8 rounded-lg border border-white/5 opacity-40 hover:opacity-100 transition-opacity">
-                                  <AvatarImage src={activeConv.contacts?.avatar_url} />
-                                  <AvatarFallback className="text-[10px] bg-white/5">
-                                    {(activeConv.contacts?.first_name?.[0] || '?').toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                              )}
-                            </div>
-                          )}
-
-                          <div className={cn(
-                            "flex flex-col gap-1.5",
-                            isOutbound ? "items-end" : "items-start"
-                          )}>
-                            <div className={cn(
-                              "p-3 sm:p-4 rounded-2xl text-[13px] sm:text-sm leading-relaxed shadow-sm transition-all",
-                              isOutbound 
-                                ? "bg-[#6c47ff] text-white rounded-br-xs font-semibold shadow-lg shadow-[#6c47ff]/20" 
-                                : "bg-white/5 text-white/90 rounded-bl-xs border border-white/10"
-                            )}>
-                              {msg.content}
-                            </div>
-                            <span className="text-[9px] font-black text-white/10 uppercase tracking-[0.2em] px-1">
-                              {format(new Date(msg.sent_at), 'HH:m')}
-                              {isOutbound && (msg.status === 'delivered' ? ' · √√' : ' · √')}
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </ScrollArea>
-            </div>
-
-            <div className="p-4 sm:p-6 pt-2 bg-linear-to-t from-[#030303] via-[#030303]/90 to-transparent">
-              {/* Smart Replies */}
-              {smartReplies.length > 0 && (
-                <div className="flex items-center gap-2 sm:gap-3 mb-4 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#6c47ff]/10 border border-[#6c47ff]/20 text-[9px] font-black text-[#6c47ff] uppercase tracking-[0.15em] shrink-0 shadow-[0_0_15px_rgba(108,71,255,0.1)]">
-                    <Sparkles className="h-3 w-3" />
-                    <span className="hidden xs:inline">AI Suggests</span>
-                  </div>
-                  {smartReplies.map((reply, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setMessageText(reply)}
-                      className="whitespace-nowrap px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/40 hover:text-white hover:bg-white/10 hover:border-[#6c47ff]/50 transition-all font-medium active:scale-95"
-                    >
-                      {reply}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              <form 
-                onSubmit={handleSendMessage}
-                className="relative bg-white/5 border border-white/10 rounded-2xl p-1 focus-within:border-[#6c47ff]/50 transition-all shadow-2xl"
-              >
-                <textarea
-                  rows={1}
-                  placeholder="Type a message..."
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  className="w-full bg-transparent border-none text-white text-sm p-4 pr-32 outline-none resize-none placeholder:text-white/20 min-h-[56px] flex items-center"
-                />
-                <div className="absolute right-3 bottom-2 flex items-center gap-2">
-                  <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-white/20 hover:text-white rounded-xl">
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isPending || !messageText.trim()}
-                    className="h-10 px-5 rounded-xl bg-[#6c47ff] hover:bg-[#5b3ce0] text-white font-bold shadow-lg shadow-[#6c47ff]/20 gap-2 transition-all hover:scale-105"
-                  >
-                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    <span>Send</span>
-                  </Button>
-                </div>
-              </form>
-              <div className="mt-3 flex items-center justify-center gap-4">
-                <p className="text-[9px] font-bold text-white/10 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <Hash className="h-3 w-3" />
-                  Messaging via {activeConv.platform}
-                </p>
-              </div>
-            </div>
-          </>
+          <ChatArea
+            activeConv={activeConv}
+            messages={messages}
+            isLoadingMsgs={isLoadingMsgs}
+            messageText={messageText}
+            setMessageText={setMessageText}
+            handleSendMessage={handleSendMessage}
+            isPending={isPending}
+            scrollRef={scrollRef}
+            onClose={() => setActiveConv(null)}
+            isFocusMode={isFocusMode}
+            toggleFocus={() => setIsFocusMode(!isFocusMode)}
+          />
         )}
       </div>
     </div>
+  );
+}
+
+// Sub-component for Chat Area to reuse in focus mode
+function ChatArea({
+  activeConv,
+  messages,
+  isLoadingMsgs,
+  messageText,
+  setMessageText,
+  handleSendMessage,
+  isPending,
+  scrollRef,
+  onClose,
+  isFocusMode,
+  toggleFocus
+}: any) {
+  const getPlatformIcon = (platform: string) => {
+    switch (platform) {
+      case 'email': return <Mail className="h-4 w-4" />;
+      case 'instagram': return <Instagram className="h-4 w-4" />;
+      case 'linkedin': return <Linkedin className="h-4 w-4" />;
+      case 'whatsapp': return <MessageCircle className="h-4 w-4" />;
+      default: return <Hash className="h-4 w-4" />;
+    }
+  };
+
+  return (
+    <>
+      {/* Chat Header */}
+      <div className="h-20 px-6 flex items-center justify-between border-b border-white/5 backdrop-blur-md sticky top-0 z-10">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden text-white/40"
+            onClick={onClose}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10 rounded-xl border border-white/5 bg-white/5">
+              <AvatarImage src={activeConv.contacts?.avatar_url} />
+              <AvatarFallback className="text-white/40 text-xs font-bold uppercase">
+                {(activeConv.contacts?.first_name?.[0] || activeConv.title?.[0] || '?').toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-white leading-tight">
+                {activeConv.contacts
+                  ? `${activeConv.contacts.first_name} ${activeConv.contacts.last_name || ''}`
+                  : (activeConv.title || 'Unknown')}
+              </span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <Circle className="h-1.5 w-1.5 fill-emerald-500 text-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.1em]">Verified via {activeConv.platform}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleFocus}
+            className="h-10 w-10 text-white/20 hover:text-white rounded-xl transition-colors"
+          >
+            {isFocusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+          <div className="w-px h-6 bg-white/5 mx-1" />
+          <Button variant="ghost" size="icon" className="h-10 w-10 text-white/20 hover:text-white rounded-xl">
+            <Phone className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-10 w-10 text-white/20 hover:text-white rounded-xl">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Chat Body */}
+      <div className="flex-1 min-h-0 relative overflow-hidden">
+        <ScrollArea className="h-full px-6" ref={scrollRef}>
+          {isLoadingMsgs ? (
+            <div className="flex items-center justify-center h-full py-20">
+              <Loader2 className="h-6 w-6 animate-spin text-[#6c47ff]/40" />
+            </div>
+          ) : (
+            <div className="space-y-6 py-6 pb-12 max-w-4xl mx-auto">
+              <div className="flex items-center justify-center py-4">
+                <Badge variant="outline" className="text-[10px] font-black tracking-widest text-white/10 border-white/5 px-4 py-1.5 bg-white/[0.01] rounded-full uppercase">
+                  {messages.length > 0 ? format(new Date(messages[0].sent_at), 'MMMM d, yyyy') : 'No messages yet'}
+                </Badge>
+              </div>
+
+              {messages.map((msg: any, i: number) => {
+                const isOutbound = msg.direction === 'outbound';
+                const showAvatar = !isOutbound && (i === 0 || messages[i - 1].direction === 'outbound');
+
+                return (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      "flex items-end gap-3 max-w-[90%] md:max-w-[75%] animate-in fade-in slide-in-from-bottom-2 duration-500",
+                      isOutbound ? "ml-auto flex-row-reverse" : "mr-auto"
+                    )}
+                  >
+                    <div className={cn(
+                      "flex flex-col gap-1.5",
+                      isOutbound ? "items-end" : "items-start"
+                    )}>
+                      <div className={cn(
+                        "p-4 px-5 rounded-[24px] text-sm leading-relaxed shadow-2xl transition-all relative overflow-hidden group",
+                        isOutbound
+                          ? "bg-[#6c47ff] text-white rounded-br-none font-medium border border-white/10"
+                          : "bg-white/[0.03] text-white/90 rounded-bl-none border border-white/5"
+                      )}>
+                        {/* Message content glow on hover */}
+                        <div className="absolute inset-0 bg-linear-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                        <span className="relative z-10">{msg.content}</span>
+                      </div>
+                      <div className="flex items-center gap-2 px-1">
+                        <span className="text-[9px] font-black text-white/10 uppercase tracking-[0.2em]">
+                          {format(new Date(msg.sent_at), 'HH:mm')}
+                        </span>
+                        {isOutbound && (
+                          <div className={cn(
+                            "h-1 w-1 rounded-full",
+                            msg.status === 'delivered' ? "bg-emerald-400" : "bg-white/10"
+                          )} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+      <div className={cn(
+        "p-6 pt-2 bg-linear-to-t from-[#050508] via-[#050508]/90 to-transparent",
+        isFocusMode && "max-w-4xl mx-auto w-full"
+      )}>
+        <form
+          onSubmit={handleSendMessage}
+
+          className="relative bg-white/[0.03] border border-white/10 rounded-[28px] p-1.5 focus-within:border-[#6c47ff]/50 transition-all shadow-2xl overflow-hidden group"
+        >
+          <div className="absolute inset-0 bg-linear-to-br from-white/[0.02] to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" />
+          <textarea
+            rows={1}
+            placeholder={`Message ${activeConv.contacts?.first_name || 'contact'}...`}
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+            className="w-full bg-transparent border-none text-white text-sm p-4 pr-36 outline-none resize-none placeholder:text-white/20 min-h-[60px] flex items-center relative z-10"
+          />
+          <div className="absolute right-4 bottom-3 flex items-center gap-2 z-10">
+            <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-white/20 hover:text-white rounded-xl">
+              <Paperclip className="h-4.5 w-4.5" />
+            </Button>
+            <Button
+              type="submit"
+              disabled={isPending || !messageText.trim()}
+              className="h-11 px-6 rounded-2xl bg-[#6c47ff] hover:bg-[#5b3ce0] text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-[#6c47ff]/30 gap-2 transition-all hover:scale-[1.02] active:scale-95 border-t border-white/10"
+            >
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              <span>Send</span>
+            </Button>
+          </div>
+        </form>
+        <div className="mt-4 flex items-center justify-center gap-4">
+          <p className="text-[10px] font-black text-white/5 uppercase tracking-[0.3em] flex items-center gap-3">
+            <div className="w-10 h-px bg-white/5" />
+            {activeConv.platform} Connection Secured
+            <div className="w-10 h-px bg-white/5" />
+          </p>
+        </div>
+      </div>
+    </>
   );
 }
