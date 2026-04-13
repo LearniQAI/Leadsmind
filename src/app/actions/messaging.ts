@@ -400,6 +400,7 @@ async function syncGmail(workspaceId: string, supabase: any) {
           platform: 'email',
           external_thread_id: email,
           title: subject,
+          last_message_at: new Date(date).toISOString(),
           updated_at: new Date(date).toISOString()
         }, { onConflict: 'workspace_id, platform, external_thread_id' })
         .select('id')
@@ -409,7 +410,7 @@ async function syncGmail(workspaceId: string, supabase: any) {
         // 2. Insert Message (if not already exists)
         const { error: msgErr } = await supabase
           .from('messages')
-          .insert({
+          .upsert({
             workspace_id: workspaceId,
             conversation_id: conv.id,
             direction: 'inbound', // Simplified for sync
@@ -418,7 +419,7 @@ async function syncGmail(workspaceId: string, supabase: any) {
             external_id: thread.id,
             status: 'delivered',
             sent_at: new Date(date).toISOString()
-          });
+          }, { onConflict: 'external_id' });
         
         if (!msgErr) synced++;
       }
