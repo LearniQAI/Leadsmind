@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatBytes } from '@/lib/utils'; // Reusing for numbers or adding formatCurrency
 import { getCurrentWorkspace } from '@/lib/auth';
 
-export default async function BillingPage() {
+export default async function BillingPage({ searchParams }: { searchParams: { error?: string, success?: string } }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -94,43 +94,25 @@ export default async function BillingPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Left Column: SaaS Tiers & Connect */}
-        <div className="lg:col-span-2 space-y-10">
-          {/* Stripe Connect Card */}
-          <Card className="bg-linear-to-br from-[#6c47ff]/20 to-transparent border-[#6c47ff]/20 overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-white">Stripe Connect</CardTitle>
-                <CardDescription className="text-white/60">Connect your account to start accepting payments from your students and clients.</CardDescription>
-              </div>
-              <DollarSign className="h-10 w-10 text-[#6c47ff]/40" />
-            </CardHeader>
-            <CardContent>
-              {workspaceData?.stripe_connect_id ? (
-                <div className="flex items-center gap-3 text-green-400 font-bold bg-green-400/10 p-4 rounded-2xl border border-green-400/20">
-                  <CheckCircle2 className="h-5 w-5" />
-                  Stripe connected (Account: {workspaceData.stripe_connect_id})
-                </div>
-              ) : (
-                <form action={async () => {
-                  "use server";
-                  if (workspace?.id) {
-                    const res = await getStripeConnectUrl(workspace.id);
-                    if (res.url) redirect(res.url);
-                  }
-                }}>
-                  <Button type="submit" className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white gap-2 font-bold px-8 h-12 rounded-xl">
-                    Connect Stripe Account
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </form>
-              )}
-            </CardContent>
-          </Card>
+      {/* Error & Success Messages */}
+      {searchParams?.error && (
+        <div className="bg-red-500/10 border border-red-500/20 p-5 rounded-2xl flex items-start gap-4">
+          <div className="h-10 w-10 rounded-xl bg-red-500/20 flex items-center justify-center shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+          </div>
+          <div className="pt-1">
+            <p className="text-red-500 font-bold">Stripe Checkout Error</p>
+            <p className="text-sm text-red-500/80 mt-1">
+              {searchParams.error === 'missing_price_id' 
+                ? "Your Stripe Price IDs are missing in Vercel. Please add 'STRIPE_PRO_PRICE_ID' & 'STRIPE_ENTERPRISE_PRICE_ID' to Vercel." 
+                : searchParams.error}
+            </p>
+          </div>
+        </div>
+      )}
 
-          {/* SaaS Plan Selector */}
-          <div className="space-y-6">
+      {/* SaaS Plan Selector - Full Width Section */}
+      <div className="space-y-6">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-[#6c47ff]" />
               Platform Subscription
@@ -201,6 +183,9 @@ export default async function BillingPage() {
             </div>
           </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* Left Column: Invoices */}
+        <div className="lg:col-span-2 space-y-10">
           {/* Recent Invoices */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
