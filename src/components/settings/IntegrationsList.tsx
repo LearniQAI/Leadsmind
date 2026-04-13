@@ -39,7 +39,7 @@ export function IntegrationsList() {
               Platform Integrations
             </CardTitle>
             <CardDescription className="text-white/40 font-light mt-1 text-sm">
-              Connect your external messaging platforms (Meta, Twilio, Twitter) down below to route messages into your CRM.
+              Connect your external messaging platforms (Meta, Twilio, LinkedIn) down below to route messages into your CRM.
             </CardDescription>
           </div>
           <Button 

@@ -13,7 +13,7 @@ import {
   Loader2,
   Mail,
   Instagram,
-  Twitter,
+  Linkedin,
   MessageCircle,
   Hash,
   Filter,
@@ -174,7 +174,7 @@ export default function ConversationsPage() {
     switch (platform) {
       case 'email': return <Mail className="h-3 w-3" />;
       case 'instagram': return <Instagram className="h-3 w-3" />;
-      case 'twitter': return <Twitter className="h-3 w-3" />;
+      case 'linkedin': return <Linkedin className="h-3 w-3" />;
       case 'whatsapp': return <MessageCircle className="h-3 w-3" />;
       default: return <Hash className="h-3 w-3" />;
     }
@@ -278,7 +278,7 @@ export default function ConversationsPage() {
                           "flex items-center justify-center rounded-xs w-full h-full",
                           conv.platform === 'whatsapp' ? "text-emerald-500" :
                             conv.platform === 'instagram' ? "text-pink-500" :
-                              conv.platform === 'twitter' ? "text-sky-400" : "text-[#6c47ff]"
+                              conv.platform === 'linkedin' ? "text-blue-500" : "text-[#6c47ff]"
                         )}>
                           {getPlatformIcon(conv.platform)}
                         </div>
@@ -326,7 +326,7 @@ export default function ConversationsPage() {
             <div className="space-y-2">
               <h3 className="text-2xl font-bold text-white tracking-tight">Omichannel Messaging</h3>
               <p className="text-sm text-white/30 max-w-xs font-light leading-relaxed">
-                Connect with your customers on WhatsApp, SMS, Meta, and Twitter — all in one unified interface.
+                Connect with your customers on WhatsApp, SMS, Meta, and LinkedIn — all in one unified interface.
               </p>
             </div>
           </div>

@@ -5,35 +5,30 @@ import {
   twilioSchema, TwilioValues,
   emailSchema, EmailValues,
   metaSchema, MetaValues,
-  twitterSchema, TwitterValues
+  linkedinSchema, LinkedinValues
 } from '@/lib/validations/messaging.schema';
 import { revalidatePath } from 'next/cache';
-import { TwitterApi } from 'twitter-api-v2';
 
 import { cookies } from 'next/headers';
 
 /**
- * Generates a Twitter OAuth 2.0 authorization URL.
+ * Generates a LinkedIn OAuth 2.0 authorization URL.
  */
-export async function getTwitterAuthUrl() {
+export async function getLinkedInAuthUrl() {
   try {
-    const client = new TwitterApi({
-      clientId: process.env.TWITTER_CLIENT_ID!,
-      clientSecret: process.env.TWITTER_CLIENT_SECRET!,
-    });
+    const clientId = process.env.LINKEDIN_CLIENT_ID;
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/linkedin/callback`;
+    const state = Math.random().toString(36).substring(7);
+    const scope = 'w_member_social r_liteprofile r_emailaddress'; // Adjust scopes for messages if available
 
-    const { url, codeVerifier, state } = client.generateOAuth2AuthLink(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/twitter/callback`,
-      { scope: ['tweet.read', 'users.read', 'offline.access'] }
-    );
+    const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
 
     const cookieStore = await cookies();
-    cookieStore.set('twitter_code_verifier', codeVerifier, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600 });
-    cookieStore.set('twitter_auth_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600 });
+    cookieStore.set('linkedin_auth_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600 });
 
     return { success: true, url };
   } catch (error: any) {
-    console.error('[twitter-auth] Error generating URL:', error);
+    console.error('[linkedin-auth] Error generating URL:', error);
     return { success: false, error: error.message };
   }
 }
@@ -195,8 +190,8 @@ export async function connectMeta(platform: 'facebook' | 'instagram', values: Me
   return await baseConnect(platform, values, metaSchema);
 }
 
-export async function connectTwitter(values: TwitterValues) {
-  return await baseConnect('twitter', values, twitterSchema);
+export async function connectLinkedIn(values: LinkedinValues) {
+  return await baseConnect('linkedin', values, linkedinSchema);
 }
 
 /**
@@ -226,8 +221,8 @@ export async function syncRecentMessages() {
         let synced = 0;
         if (conn.platform === 'sms' || conn.platform === 'whatsapp') {
           synced = await syncTwilio(workspaceId, conn.platform, conn.credentials, supabase);
-        } else if (conn.platform === 'twitter') {
-          synced = await syncTwitter(workspaceId, conn.credentials, supabase);
+        } else if (conn.platform === 'linkedin') {
+          synced = await syncLinkedIn(workspaceId, conn.credentials, supabase);
         } else if (conn.platform === 'facebook' || conn.platform === 'instagram') {
           synced = await syncMeta(workspaceId, conn.platform, conn.credentials, supabase);
         }
@@ -291,64 +286,20 @@ async function syncTwilio(workspaceId: string, platform: 'sms' | 'whatsapp', cre
   return synced;
 }
 
-async function syncTwitter(workspaceId: string, credentials: any, supabase: any) {
+async function syncLinkedIn(workspaceId: string, credentials: any, supabase: any) {
   try {
     const { accessToken } = credentials;
     if (!accessToken) {
-      throw new Error('Twitter credentials missing OAuth 2.0 Access Token.');
+      throw new Error('LinkedIn credentials missing Access Token.');
     }
 
-    const client = new TwitterApi(accessToken);
-
-    // Fetch last 10 DM events using v2 API
-    const dms = await client.v2.listDmEvents({ 
-      "dm_event.fields": ['id', 'text', 'sender_id', 'created_at', 'dm_conversation_id', 'event_type'],
-      max_results: 10 
-    });
+    // Mock LinkedIn sync - LinkedIn Messaging API is restricted usually
+    // In a real scenario, you'd fetch from https://api.linkedin.com/v2/messages
+    console.log('Syncing LinkedIn for workspace:', workspaceId);
     
-    let synced = 0;
-
-    // In Twitter API v2, the result has a 'data' array inside the 'data' property of the paginator
-    const events = dms.data?.data || [];
-
-    for (const event of events) {
-      // Only sync actual messages (ignore participants joining/leaving)
-      if (event.event_type !== 'MessageCreate') continue;
-
-      const from = event.sender_id!;
-      const externalId = event.id;
-      
-      const { data: conv } = await supabase
-        .from('conversations')
-        .upsert({
-          workspace_id: workspaceId,
-          platform: 'twitter',
-          external_thread_id: from,
-          title: `Twitter User ${from}`,
-          updated_at: event.created_at || new Date().toISOString()
-        }, { onConflict: 'workspace_id, platform, external_thread_id' })
-        .select('id')
-        .single();
-
-      if (conv) {
-        const { error: msgErr } = await supabase
-          .from('messages')
-          .insert({
-            workspace_id: workspaceId,
-            conversation_id: conv.id,
-            direction: 'inbound', // Simplified for sync
-            content: event.text || '',
-            sender_handle: from,
-            external_id: externalId,
-            status: 'delivered',
-            sent_at: event.created_at || new Date().toISOString()
-          });
-        if (!msgErr) synced++;
-      }
-    }
-    return synced;
+    return 0; // Returning 0 as it's a mock for now
   } catch (err: any) {
-    console.error('[sync-twitter] v2 error:', err);
+    console.error('[sync-linkedin] error:', err);
     throw err;
   }
 }

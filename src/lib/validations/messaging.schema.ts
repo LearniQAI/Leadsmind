@@ -22,11 +22,8 @@ export const metaSchema = z.object({
 
 export type MetaValues = z.infer<typeof metaSchema>;
 
-export const twitterSchema = z.object({
-  apiKey: z.string().min(1, 'API Key is required'),
-  apiSecret: z.string().min(1, 'API Secret is required'),
+export const linkedinSchema = z.object({
   accessToken: z.string().min(1, 'Access Token is required'),
-  accessSecret: z.string().min(1, 'Access Secret is required'),
 });
 
-export type TwitterValues = z.infer<typeof twitterSchema>;
+export type LinkedinValues = z.infer<typeof linkedinSchema>;

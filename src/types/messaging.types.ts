@@ -1,4 +1,4 @@
-export type MessagingPlatform = 'email' | 'sms' | 'whatsapp' | 'instagram' | 'twitter';
+export type MessagingPlatform = 'email' | 'sms' | 'whatsapp' | 'instagram' | 'linkedin';
 
 export type PlatformConnectionStatus = 'connected' | 'disconnected' | 'error' | 'pending';
 

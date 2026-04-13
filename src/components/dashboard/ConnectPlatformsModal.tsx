@@ -19,7 +19,7 @@ import {
   Phone,
   Key
 } from 'lucide-react';
-import { FaInstagram as Instagram, FaTwitter as Twitter, FaFacebook as Facebook } from 'react-icons/fa';
+import { FaInstagram as Instagram, FaLinkedin as LinkedIn, FaFacebook as Facebook } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,16 +31,16 @@ import {
   twilioSchema, TwilioValues,
   emailSchema, EmailValues,
   metaSchema, MetaValues,
-  twitterSchema, TwitterValues
+  linkedinSchema, LinkedinValues
 } from '@/lib/validations/messaging.schema';
 import { 
   connectTwilio, 
   getConnectedPlatforms,
   connectEmail,
   connectMeta,
-  connectTwitter,
+  connectLinkedIn,
   syncRecentMessages,
-  getTwitterAuthUrl
+  getLinkedInAuthUrl
 } from '@/app/actions/messaging';
 
 interface Platform {
@@ -90,9 +90,9 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
     defaultValues: { accessToken: '', pageId: '' },
   });
 
-  const twitterForm = useForm<TwitterValues>({
-    resolver: zodResolver(twitterSchema),
-    defaultValues: { apiKey: '', apiSecret: '', accessToken: '', accessSecret: '' },
+  const linkedinForm = useForm<LinkedinValues>({
+    resolver: zodResolver(linkedinSchema),
+    defaultValues: { accessToken: '' },
   });
 
   const platforms: Platform[] = [
@@ -133,13 +133,13 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
       status: connectedPlatforms.includes('instagram') ? 'connected' : 'not_connected',
     },
     {
-      id: 'twitter',
-      name: 'Twitter',
-      description: connectedPlatforms.includes('twitter') ? 'Connected' : 'Not connected',
-      icon: Twitter,
-      iconColor: 'text-sky-400',
-      bgColor: 'bg-sky-400/10',
-      status: connectedPlatforms.includes('twitter') ? 'connected' : 'not_connected',
+      id: 'linkedin',
+      name: 'LinkedIn',
+      description: connectedPlatforms.includes('linkedin') ? 'Connected' : 'Not connected',
+      icon: LinkedIn,
+      iconColor: 'text-blue-500',
+      bgColor: 'bg-blue-500/10',
+      status: connectedPlatforms.includes('linkedin') ? 'connected' : 'not_connected',
     },
     {
       id: 'facebook',
@@ -198,13 +198,13 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
     } catch { toast.error('An error occurred'); } finally { setIsSubmitting(false); }
   };
 
-  const onTwitterSubmit = async (values: TwitterValues) => {
+  const onLinkedInSubmit = async (values: LinkedinValues) => {
     setIsSubmitting(true);
     try {
-      const result = await connectTwitter(values);
+      const result = await connectLinkedIn(values);
       if (result.success) {
-        toast.success('Twitter connected successfully!');
-        setConnectedPlatforms(prev => [...prev, 'twitter']);
+        toast.success('LinkedIn connected successfully!');
+        setConnectedPlatforms(prev => [...prev, 'linkedin']);
         syncRecentMessages();
         setSelectedPlatform(null);
       } else toast.error(result.error);
@@ -240,22 +240,35 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
     }
 
     if (selectedPlatform.id === 'email') {
+      const handleGoogleAuth = () => {
+        setIsSubmitting(true);
+        window.location.href = '/api/auth/google';
+      };
+
       return (
-        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="p-8 space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-white/70 flex items-center gap-2"><Key className="h-3.5 w-3.5 text-blue-400" /> API Key</Label>
-              <Input type="password" {...emailForm.register('apiKey')} placeholder="Resend API Key" className="h-12 bg-white/5 border-white/10 rounded-xl text-white focus:ring-1 focus:ring-[#6c47ff]/50 transition-all" />
-              {emailForm.formState.errors.apiKey && <p className="text-[11px] font-medium text-destructive mt-1">{emailForm.formState.errors.apiKey.message}</p>}
+        <div className="p-8 space-y-6 text-center">
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="h-20 w-20 rounded-3xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+              <Mail className="h-10 w-10 text-orange-500" />
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-white/70 flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-blue-400" /> From Email</Label>
-              <Input {...emailForm.register('fromEmail')} placeholder="hello@yourdomain.com" className="h-12 bg-white/5 border-white/10 rounded-xl text-white focus:ring-1 focus:ring-[#6c47ff]/50 transition-all" />
-              {emailForm.formState.errors.fromEmail && <p className="text-[11px] font-medium text-destructive mt-1">{emailForm.formState.errors.fromEmail.message}</p>}
+            <div className="space-y-1">
+              <h4 className="text-white font-bold text-lg">Official Gmail Connect</h4>
+              <p className="text-white/40 text-sm max-w-xs mx-auto">
+                Securely connect your Gmail account to sync emails and send replies directly from the CRM.
+              </p>
             </div>
           </div>
-          <SubmitButton isSubmitting={isSubmitting} />
-        </form>
+          <Button 
+            onClick={handleGoogleAuth} 
+            disabled={isSubmitting}
+            className="w-full h-12 rounded-xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest transition-all"
+          >
+            {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing...</> : 'Sign in with Google'}
+          </Button>
+          <p className="text-[10px] text-white/20 leading-relaxed italic">
+            Note: You'll be redirected to Google to authorize this application.
+          </p>
+        </div>
       );
     }
 
@@ -279,15 +292,15 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
       );
     }
 
-    if (selectedPlatform.id === 'twitter') {
-      const handleTwitterAuth = async () => {
+    if (selectedPlatform.id === 'linkedin') {
+      const handleLinkedInAuth = async () => {
         setIsSubmitting(true);
         try {
-          const result = await getTwitterAuthUrl();
+          const result = await getLinkedInAuthUrl();
           if (result.success && result.url) {
             window.location.href = result.url;
           } else {
-            toast.error(result.error || 'Failed to initialize Twitter login');
+            toast.error(result.error || 'Failed to initialize LinkedIn login');
           }
         } catch {
           toast.error('An unexpected error occurred');
@@ -299,25 +312,25 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
       return (
         <div className="p-8 space-y-6 text-center">
           <div className="flex flex-col items-center gap-4 py-4">
-            <div className="h-20 w-20 rounded-3xl bg-sky-400/10 border border-sky-400/20 flex items-center justify-center">
-              <Twitter className="h-10 w-10 text-sky-400" />
+            <div className="h-20 w-20 rounded-3xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+              <LinkedIn className="h-10 w-10 text-blue-500" />
             </div>
             <div className="space-y-1">
-              <h4 className="text-white font-bold text-lg">Official Twitter Connect</h4>
+              <h4 className="text-white font-bold text-lg">Official LinkedIn Connect</h4>
               <p className="text-white/40 text-sm max-w-xs mx-auto">
-                We use Twitter's official OAuth 2.0 to securely access your Direct Messages.
+                We use LinkedIn's official OAuth 2.0 to securely access your data.
               </p>
             </div>
           </div>
           <Button 
-            onClick={handleTwitterAuth} 
+            onClick={handleLinkedInAuth} 
             disabled={isSubmitting}
             className="w-full h-12 rounded-xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest transition-all"
           >
-            {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing...</> : 'Sign in with Twitter'}
+            {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing...</> : 'Sign in with LinkedIn'}
           </Button>
           <p className="text-[10px] text-white/20 leading-relaxed italic">
-            Note: You'll be redirected to Twitter to authorize this application.
+            Note: You'll be redirected to LinkedIn to authorize this application.
           </p>
         </div>
       );
