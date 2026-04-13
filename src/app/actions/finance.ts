@@ -93,30 +93,40 @@ export async function createCheckoutSession(tierId: string, interval: 'month' | 
       : process.env.STRIPE_ENTERPRISE_PRICE_ID || '';
   }
 
-  if (!priceId) {
-    throw new Error(`Missing Stripe Price ID for tier: ${tierId} (${interval}). Please configure Stripe variables in .env.local.`);
+  let redirectUrl = '';
+
+  try {
+    if (!priceId) {
+      console.error(`Missing Stripe Price ID for tier: ${tierId} (${interval}).`);
+      redirectUrl = '/settings/billing?error=missing_price_id';
+    } else {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        mode: 'subscription',
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        metadata: {
+          workspaceId,
+          tierId,
+        },
+        success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings/billing?success=true`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings/billing?canceled=true`,
+        customer_email: user.email,
+      });
+
+      redirectUrl = session.url || '/settings/billing?error=invalid_session';
+    }
+  } catch (err: any) {
+    console.error('Stripe Checkout Error:', err.message);
+    redirectUrl = `/settings/billing?error=${encodeURIComponent(err.message)}`;
   }
 
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    mode: 'subscription',
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
-      },
-    ],
-    metadata: {
-      workspaceId,
-      tierId,
-    },
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings/billing?success=true`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings/billing?canceled=true`,
-    customer_email: user.email,
-  });
-
-  if (session.url) {
-    redirect(session.url);
+  if (redirectUrl) {
+    redirect(redirectUrl);
   }
 }
 

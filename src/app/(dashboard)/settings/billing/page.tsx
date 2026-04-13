@@ -36,6 +36,19 @@ export default async function BillingPage() {
 
   const workspaceData = workspaceResult.data;
 
+  // Calculate actual financial metrics
+  const totalRevenue = invoices
+    .filter(inv => inv.status === 'paid')
+    .reduce((sum, inv) => sum + Number(inv.amount_due || 0), 0);
+
+  const pendingInvoicesCount = invoices
+    .filter(inv => inv.status === 'open' || inv.status === 'pending')
+    .length;
+
+  const pendingAmount = invoices
+    .filter(inv => inv.status === 'open' || inv.status === 'pending')
+    .reduce((sum, inv) => sum + Number(inv.amount_due || 0), 0);
+
   return (
     <div className="space-y-10">
       <div>
@@ -50,10 +63,9 @@ export default async function BillingPage() {
             <div className="h-10 w-10 rounded-xl bg-green-500/10 flex items-center justify-center">
               <TrendingUp className="h-5 w-5 text-green-400" />
             </div>
-            <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-[10px]">+12.5%</Badge>
           </div>
           <p className="text-xs font-bold text-white/30 uppercase tracking-widest">Total Revenue</p>
-          <h3 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">$4,250.00</h3>
+          <h3 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
         </Card>
 
         <Card className="bg-white/3 border-white/5 p-5 sm:p-6 transition-transform hover:scale-[1.02]">
@@ -61,10 +73,14 @@ export default async function BillingPage() {
             <div className="h-10 w-10 rounded-xl bg-[#6c47ff]/10 flex items-center justify-center">
               <Receipt className="h-5 w-5 text-[#6c47ff]" />
             </div>
-            <Badge className="bg-[#6c47ff]/10 text-[#6c47ff] border-[#6c47ff]/20 text-[10px]">8 Pending</Badge>
+            {pendingInvoicesCount > 0 && (
+              <Badge className="bg-[#6c47ff]/10 text-[#6c47ff] border-[#6c47ff]/20 text-[10px]">
+                {pendingInvoicesCount} Pending
+              </Badge>
+            )}
           </div>
           <p className="text-xs font-bold text-white/30 uppercase tracking-widest">Open Invoices</p>
-          <h3 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">$1,120.00</h3>
+          <h3 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">${pendingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
         </Card>
 
         <Card className="bg-white/3 border-white/5 p-5 sm:p-6 transition-transform hover:scale-[1.02] sm:col-span-2 lg:col-span-1">
@@ -144,8 +160,8 @@ export default async function BillingPage() {
                       ))}
                     </ul>
                   </CardContent>
-                  <CardContent className="pt-0">
-                    <div className="flex flex-col gap-2">
+                  <CardContent className="pt-0 pb-6 mt-auto">
+                    <div className="flex flex-col gap-3">
                       <form action={async () => {
                         "use server";
                         if (workspaceData?.id) {
@@ -155,14 +171,14 @@ export default async function BillingPage() {
                         <Button 
                           type="submit"
                           variant={workspaceData?.plan_tier === tier.id ? 'outline' : 'default'} 
-                          className={`w-full ${workspaceData?.plan_tier === tier.id ? 'border-white/10 text-white/40' : 'bg-[#6c47ff] hover:bg-[#5b3ce0]'}`}
+                          className={`w-full py-6 text-sm font-bold ${workspaceData?.plan_tier === tier.id ? 'border-white/10 text-white/40' : 'bg-[#6c47ff] hover:bg-[#5b3ce0]'}`}
                           disabled={workspaceData?.plan_tier === tier.id}
                         >
                           {workspaceData?.plan_tier === tier.id ? 'Active (Monthly)' : (tier.price === 0 ? 'Current Plan' : 'Upgrade Monthly')}
                         </Button>
                       </form>
                       
-                      {tier.price > 0 && (
+                      {tier.price > 0 && workspaceData?.plan_tier !== tier.id && (
                         <form action={async () => {
                           "use server";
                           if (workspaceData?.id) {
@@ -172,7 +188,7 @@ export default async function BillingPage() {
                           <Button 
                             type="submit"
                             variant="secondary"
-                            className="w-full bg-white/10 hover:bg-white/20 text-white"
+                            className="w-full py-6 text-sm font-bold bg-white/5 hover:bg-white/10 text-white border border-white/10"
                           >
                             Upgrade Annually (Save 20%)
                           </Button>
