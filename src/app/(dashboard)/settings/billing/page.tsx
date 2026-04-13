@@ -146,12 +146,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { er
                   </CardContent>
                   <CardContent className="pt-0 pb-6 mt-auto">
                     <div className="flex flex-col gap-3">
-                      <form action={async () => {
-                        "use server";
-                        if (workspaceData?.id) {
-                          await createCheckoutSession(tier.id, 'month');
-                        }
-                      }}>
+                      <form action={createCheckoutSession.bind(null, tier.id, 'month')}>
                         <Button 
                           type="submit"
                           variant={isCurrentPlan ? 'outline' : 'default'} 
@@ -163,12 +158,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { er
                       </form>
                       
                       {tier.price > 0 && !isCurrentPlan && (
-                        <form action={async () => {
-                          "use server";
-                          if (workspaceData?.id) {
-                            await createCheckoutSession(tier.id, 'year');
-                          }
-                        }}>
+                        <form action={createCheckoutSession.bind(null, tier.id, 'year')}>
                           <Button 
                             type="submit"
                             variant="secondary"

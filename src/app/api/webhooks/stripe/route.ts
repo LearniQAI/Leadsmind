@@ -47,10 +47,10 @@ export async function POST(req: NextRequest) {
       
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as any;
-        // Downgrade to free on cancellation
+        // Downgrade to starter on cancellation
         await supabaseAdmin
           .from('workspaces')
-          .update({ plan_tier: 'free', stripe_subscription_id: null })
+          .update({ plan_tier: 'starter', stripe_subscription_id: null })
           .eq('stripe_subscription_id', subscription.id);
         break;
       }
