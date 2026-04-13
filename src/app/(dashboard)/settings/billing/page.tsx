@@ -17,8 +17,9 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatBytes } from '@/lib/utils'; // Reusing for numbers or adding formatCurrency
 import { getCurrentWorkspace } from '@/lib/auth';
+import { CheckoutButton } from '@/components/billing/CheckoutButton';
 
-export default async function BillingPage() {
+export default async function BillingPage({ searchParams }: { searchParams: { error?: string, success?: string } }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -36,6 +37,19 @@ export default async function BillingPage() {
 
   const workspaceData = workspaceResult.data;
 
+  // Calculate actual financial metrics
+  const totalRevenue = invoices
+    .filter(inv => inv.status === 'paid')
+    .reduce((sum, inv) => sum + Number(inv.amount_due || 0), 0);
+
+  const pendingInvoicesCount = invoices
+    .filter(inv => inv.status === 'open' || inv.status === 'pending')
+    .length;
+
+  const pendingAmount = invoices
+    .filter(inv => inv.status === 'open' || inv.status === 'pending')
+    .reduce((sum, inv) => sum + Number(inv.amount_due || 0), 0);
+
   return (
     <div className="space-y-10">
       <div>
@@ -50,10 +64,9 @@ export default async function BillingPage() {
             <div className="h-10 w-10 rounded-xl bg-green-500/10 flex items-center justify-center">
               <TrendingUp className="h-5 w-5 text-green-400" />
             </div>
-            <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-[10px]">+12.5%</Badge>
           </div>
           <p className="text-xs font-bold text-white/30 uppercase tracking-widest">Total Revenue</p>
-          <h3 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">$4,250.00</h3>
+          <h3 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
         </Card>
 
         <Card className="bg-white/3 border-white/5 p-5 sm:p-6 transition-transform hover:scale-[1.02]">
@@ -61,10 +74,14 @@ export default async function BillingPage() {
             <div className="h-10 w-10 rounded-xl bg-[#6c47ff]/10 flex items-center justify-center">
               <Receipt className="h-5 w-5 text-[#6c47ff]" />
             </div>
-            <Badge className="bg-[#6c47ff]/10 text-[#6c47ff] border-[#6c47ff]/20 text-[10px]">8 Pending</Badge>
+            {pendingInvoicesCount > 0 && (
+              <Badge className="bg-[#6c47ff]/10 text-[#6c47ff] border-[#6c47ff]/20 text-[10px]">
+                {pendingInvoicesCount} Pending
+              </Badge>
+            )}
           </div>
           <p className="text-xs font-bold text-white/30 uppercase tracking-widest">Open Invoices</p>
-          <h3 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">$1,120.00</h3>
+          <h3 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">${pendingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
         </Card>
 
         <Card className="bg-white/3 border-white/5 p-5 sm:p-6 transition-transform hover:scale-[1.02] sm:col-span-2 lg:col-span-1">
@@ -78,51 +95,35 @@ export default async function BillingPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Left Column: SaaS Tiers & Connect */}
-        <div className="lg:col-span-2 space-y-10">
-          {/* Stripe Connect Card */}
-          <Card className="bg-linear-to-br from-[#6c47ff]/20 to-transparent border-[#6c47ff]/20 overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-white">Stripe Connect</CardTitle>
-                <CardDescription className="text-white/60">Connect your account to start accepting payments from your students and clients.</CardDescription>
-              </div>
-              <DollarSign className="h-10 w-10 text-[#6c47ff]/40" />
-            </CardHeader>
-            <CardContent>
-              {workspaceData?.stripe_connect_id ? (
-                <div className="flex items-center gap-3 text-green-400 font-bold bg-green-400/10 p-4 rounded-2xl border border-green-400/20">
-                  <CheckCircle2 className="h-5 w-5" />
-                  Stripe connected (Account: {workspaceData.stripe_connect_id})
-                </div>
-              ) : (
-                <form action={async () => {
-                  "use server";
-                  if (workspace?.id) {
-                    const res = await getStripeConnectUrl(workspace.id);
-                    if (res.url) redirect(res.url);
-                  }
-                }}>
-                  <Button type="submit" className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white gap-2 font-bold px-8 h-12 rounded-xl">
-                    Connect Stripe Account
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </form>
-              )}
-            </CardContent>
-          </Card>
+      {/* Error & Success Messages */}
+      {searchParams?.error && (
+        <div className="bg-red-500/10 border border-red-500/20 p-5 rounded-2xl flex items-start gap-4">
+          <div className="h-10 w-10 rounded-xl bg-red-500/20 flex items-center justify-center shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+          </div>
+          <div className="pt-1">
+            <p className="text-red-500 font-bold">Stripe Checkout Error</p>
+            <p className="text-sm text-red-500/80 mt-1">
+              {searchParams.error === 'missing_price_id' 
+                ? "Your Stripe Price IDs are missing in Vercel. Please add 'STRIPE_PRO_PRICE_ID' & 'STRIPE_ENTERPRISE_PRICE_ID' to Vercel." 
+                : searchParams.error}
+            </p>
+          </div>
+        </div>
+      )}
 
-          {/* SaaS Plan Selector */}
-          <div className="space-y-6">
+      {/* SaaS Plan Selector - Full Width Section */}
+      <div className="space-y-6">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-[#6c47ff]" />
               Platform Subscription
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {tiers.map((tier) => (
-                <Card key={tier.id} className={`bg-white/3 border-white/5 relative overflow-hidden flex flex-col ${workspaceData?.plan_tier === tier.id ? 'ring-2 ring-[#6c47ff] border-transparent' : ''}`}>
-                  {workspaceData?.plan_tier === tier.id && (
+              {tiers.map((tier) => {
+                const isCurrentPlan = workspaceData?.plan_tier === tier.id || (workspaceData?.plan_tier === 'free' && tier.id === 'starter');
+                return (
+                <Card key={tier.id} className={`bg-white/3 border-white/5 relative overflow-hidden flex flex-col ${isCurrentPlan ? 'ring-2 ring-[#6c47ff] border-transparent' : ''}`}>
+                  {isCurrentPlan && (
                     <div className="absolute top-0 right-0 bg-[#6c47ff] text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-widest">
                       Current Plan
                     </div>
@@ -144,47 +145,36 @@ export default async function BillingPage() {
                       ))}
                     </ul>
                   </CardContent>
-                  <CardContent className="pt-0">
-                    <div className="flex flex-col gap-2">
-                      <form action={async () => {
-                        "use server";
-                        if (workspaceData?.id) {
-                          await createCheckoutSession(tier.id, 'month');
-                        }
-                      }}>
-                        <Button 
-                          type="submit"
-                          variant={workspaceData?.plan_tier === tier.id ? 'outline' : 'default'} 
-                          className={`w-full ${workspaceData?.plan_tier === tier.id ? 'border-white/10 text-white/40' : 'bg-[#6c47ff] hover:bg-[#5b3ce0]'}`}
-                          disabled={workspaceData?.plan_tier === tier.id}
-                        >
-                          {workspaceData?.plan_tier === tier.id ? 'Active (Monthly)' : (tier.price === 0 ? 'Current Plan' : 'Upgrade Monthly')}
-                        </Button>
-                      </form>
+                  <CardContent className="pt-0 pb-6 mt-auto">
+                    <div className="flex flex-col gap-3">
+                      <CheckoutButton
+                        tierId={tier.id}
+                        interval="month"
+                        disabled={isCurrentPlan}
+                        isCurrentPlan={isCurrentPlan}
+                        price={tier.price}
+                      />
                       
-                      {tier.price > 0 && (
-                        <form action={async () => {
-                          "use server";
-                          if (workspaceData?.id) {
-                            await createCheckoutSession(tier.id, 'year');
-                          }
-                        }}>
-                          <Button 
-                            type="submit"
-                            variant="secondary"
-                            className="w-full bg-white/10 hover:bg-white/20 text-white"
-                          >
-                            Upgrade Annually (Save 20%)
-                          </Button>
-                        </form>
+                      {tier.price > 0 && !isCurrentPlan && (
+                        <CheckoutButton
+                          tierId={tier.id}
+                          interval="year"
+                          disabled={isCurrentPlan}
+                          isCurrentPlan={false}
+                          price={tier.price}
+                        />
                       )}
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* Left Column: Invoices */}
+        <div className="lg:col-span-2 space-y-10">
           {/* Recent Invoices */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
