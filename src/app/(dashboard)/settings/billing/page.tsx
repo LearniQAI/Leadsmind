@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatBytes } from '@/lib/utils'; // Reusing for numbers or adding formatCurrency
 import { getCurrentWorkspace } from '@/lib/auth';
+import { CheckoutButton } from '@/components/billing/CheckoutButton';
 
 export default async function BillingPage({ searchParams }: { searchParams: { error?: string, success?: string } }) {
   const supabase = await createClient();
@@ -146,27 +147,22 @@ export default async function BillingPage({ searchParams }: { searchParams: { er
                   </CardContent>
                   <CardContent className="pt-0 pb-6 mt-auto">
                     <div className="flex flex-col gap-3">
-                      <form action={createCheckoutSession.bind(null, tier.id, 'month')}>
-                        <Button 
-                          type="submit"
-                          variant={isCurrentPlan ? 'outline' : 'default'} 
-                          className={`w-full py-6 text-sm font-bold ${isCurrentPlan ? 'border-white/10 text-white/40' : 'bg-[#6c47ff] hover:bg-[#5b3ce0]'}`}
-                          disabled={isCurrentPlan}
-                        >
-                          {isCurrentPlan ? 'Active (Monthly)' : (tier.price === 0 ? 'Current Plan' : 'Upgrade Monthly')}
-                        </Button>
-                      </form>
+                      <CheckoutButton
+                        tierId={tier.id}
+                        interval="month"
+                        disabled={isCurrentPlan}
+                        isCurrentPlan={isCurrentPlan}
+                        price={tier.price}
+                      />
                       
                       {tier.price > 0 && !isCurrentPlan && (
-                        <form action={createCheckoutSession.bind(null, tier.id, 'year')}>
-                          <Button 
-                            type="submit"
-                            variant="secondary"
-                            className="w-full py-6 text-sm font-bold bg-white/5 hover:bg-white/10 text-white border border-white/10"
-                          >
-                            Upgrade Annually (Save 20%)
-                          </Button>
-                        </form>
+                        <CheckoutButton
+                          tierId={tier.id}
+                          interval="year"
+                          disabled={isCurrentPlan}
+                          isCurrentPlan={false}
+                          price={tier.price}
+                        />
                       )}
                     </div>
                   </CardContent>

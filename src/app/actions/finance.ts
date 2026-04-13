@@ -78,7 +78,7 @@ export async function createCheckoutSession(tierId: string, interval: 'month' | 
     // If it's the free tier, just update immediately without Stripe
     await supabase.from('workspaces').update({ plan_tier: 'starter' }).eq('id', workspaceId);
     revalidatePath('/settings/billing');
-    return;
+    return { url: '/settings/billing?success=true' };
   }
 
   let priceId = '';
@@ -93,12 +93,10 @@ export async function createCheckoutSession(tierId: string, interval: 'month' | 
       : process.env.STRIPE_AGENCY_PRICE_ID || process.env.STRIPE_ENTERPRISE_PRICE_ID || '';
   }
 
-  let redirectUrl = '';
-
   try {
     if (!priceId) {
       console.error(`Missing Stripe Price ID for tier: ${tierId} (${interval}).`);
-      redirectUrl = '/settings/billing?error=missing_price_id';
+      return { error: 'missing_price_id' };
     } else {
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
@@ -118,15 +116,15 @@ export async function createCheckoutSession(tierId: string, interval: 'month' | 
         customer_email: user.email,
       });
 
-      redirectUrl = session.url || '/settings/billing?error=invalid_session';
+      if (session.url) {
+        return { url: session.url };
+      } else {
+        return { error: 'invalid_session' };
+      }
     }
   } catch (err: any) {
     console.error('Stripe Checkout Error:', err.message);
-    redirectUrl = `/settings/billing?error=${encodeURIComponent(err.message)}`;
-  }
-
-  if (redirectUrl) {
-    redirect(redirectUrl);
+    return { error: err.message };
   }
 }
 
