@@ -86,7 +86,7 @@ export async function createCheckoutSession(tierId: string, interval: 'month' | 
       return { error: 'Invalid tier' };
     }
 
-    if (selectedTier.price === 0) {
+    if (selectedTier.monthlyPrice === 0) {
       // If it's the free tier, just update immediately without Stripe
       await supabase.from('workspaces').update({ plan_tier: 'starter' }).eq('id', workspaceId);
       revalidatePath('/settings/billing');
