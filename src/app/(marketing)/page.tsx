@@ -71,6 +71,7 @@ const testimonials = [
 ]
 
 export default function LandingPage() {
+  const [isAnnual, setIsAnnual] = useState(false)
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -305,13 +306,38 @@ export default function LandingPage() {
             <span className="mb-4 inline-block text-[0.7rem] font-bold uppercase tracking-[0.2em] text-[#fdab3d] fade-up">Pricing</span>
             <h2 className="mb-4 text-4xl font-extrabold tracking-tight text-foreground md:text-5xl fade-up">Simple, honest pricing</h2>
             <p className="mx-auto max-w-[480px] text-base font-light text-foreground/40 fade-up">Start free. Scale when you&apos;re ready. No surprise bills.</p>
+            
+            {/* Toggle */}
+            <div className="mt-8 flex items-center justify-center gap-4 fade-up">
+              <span className={`text-sm ${!isAnnual ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                Monthly
+              </span>
+              <button
+                onClick={() => setIsAnnual(!isAnnual)}
+                className="relative h-6 w-11 rounded-full bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
+              >
+                <div
+                  className={`absolute top-1 h-4 w-4 rounded-full bg-[#6c47ff] transition-transform ${
+                    isAnnual ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <div className="flex items-center gap-2">
+                <span className={`text-sm ${isAnnual ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                  Annual
+                </span>
+                <span className="rounded-full bg-[#fdab3d]/10 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-widest text-[#fdab3d]">
+                  Save 20%
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="mx-auto grid max-w-[900px] grid-cols-1 gap-5 lg:grid-cols-3">
             {[
-              { tier: 'Starter', price: '$0', desc: 'Perfect for solo founders and early-stage teams testing the waters.', features: ['Up to 250 contacts', '1 pipeline', 'Basic analytics', 'Email support'] },
-              { tier: 'Growth', price: '$49', desc: 'For teams that are serious about building a scalable sales machine.', features: ['Unlimited contacts', 'Unlimited pipelines', 'Advanced analytics', 'Task automation', 'Integrated LMS', 'Priority support'], featured: true },
-              { tier: 'Enterprise', price: 'Custom', desc: 'Bespoke solutions for large teams with complex needs and SLAs.', features: ['Everything in Growth', 'SSO & SAML', 'Custom integrations', 'Dedicated CSM', 'SLA guarantee'] },
+              { tier: 'Starter', price: isAnnual ? '$0' : '$0', desc: 'Perfect for solo founders and early-stage teams testing the waters.', features: ['Up to 500 contacts', '1 pipeline', '5 Tags & custom fields', 'Email support'] },
+              { tier: 'Growth', price: isAnnual ? '$77' : '$97', desc: 'For teams that are serious about building a scalable sales machine.', features: ['Unlimited contacts', 'Unlimited pipelines', 'WhatsApp & Social Inbox', 'Email Campaigns', '5 Team members', 'Priority support'], featured: true },
+              { tier: 'Agency', price: isAnnual ? '$237' : '$297', desc: 'Bespoke solutions for agencies and resellers.', features: ['Everything in Growth', 'Custom domains & White-label', 'SaaS reseller mode', 'Unlimited sub-accounts', 'Unlimited team members'] },
             ].map((p, i) => (
               <div 
                 key={i} 

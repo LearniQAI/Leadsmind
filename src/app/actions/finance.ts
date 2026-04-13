@@ -189,8 +189,8 @@ export async function getStripeConnectUrl(workspaceId: string) {
 
 export async function getSaaSTiers() {
   return [
-    { id: 'starter', name: 'Starter', price: 0, features: ['Up to 500 contacts', '5 Funnels', '1 Pipeline', '2 Team members'] },
-    { id: 'growth', name: 'Growth', price: 97, features: ['Unlimited contacts', 'Unlimited funnels', 'WhatsApp & Social Inbox', 'Email Campaigns'] },
-    { id: 'agency', name: 'Agency', price: 297, features: ['Everything in Growth', 'Custom domains & White-label', 'SaaS reseller mode', 'Unlimited sub-accounts'] },
+    { id: 'starter', name: 'Starter', price: 0, features: ['Up to 500 contacts', '1 Pipeline', '5 Tags & custom fields', '2 Team members'] },
+    { id: 'growth', name: 'Growth', price: 97, features: ['Unlimited contacts', 'Unlimited pipelines', 'WhatsApp & Social Inbox', 'Email Campaigns', '5 Team members'] },
+    { id: 'agency', name: 'Agency', price: 297, features: ['Everything in Growth', 'Custom domains & White-label', 'SaaS reseller mode', 'Unlimited sub-accounts', 'Unlimited team members'] },
   ];
 }
