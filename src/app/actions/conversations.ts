@@ -142,3 +142,52 @@ export async function sendChatMessage(conversationId: string, content: string) {
 
   return { success: true, message: dbMsg };
 }
+
+export async function getContacts() {
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return [];
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('contacts')
+    .select('id, first_name, last_name, phone, email')
+    .eq('workspace_id', workspaceId)
+    .order('first_name', { ascending: true });
+  return data || [];
+}
+
+export async function startConversation(contactId: string, platform: string, externalId: string) {
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, error: 'Not authenticated' };
+
+  const supabase = await createServerClient();
+
+  // 1. Check if it already exists
+  const { data: existing } = await supabase
+    .from('conversations')
+    .select('id')
+    .eq('workspace_id', workspaceId)
+    .eq('platform', platform)
+    .eq('external_thread_id', externalId)
+    .single();
+
+  if (existing) return { success: true, id: existing.id };
+
+  // 2. Create new
+  const { data: contact } = await supabase.from('contacts').select('first_name, last_name').eq('id', contactId).single();
+  const title = contact ? `${contact.first_name} ${contact.last_name}` : externalId;
+
+  const { data: conv, error } = await supabase
+    .from('conversations')
+    .insert({
+      workspace_id: workspaceId,
+      platform,
+      external_thread_id: externalId,
+      contact_id: contactId,
+      title
+    })
+    .select('id')
+    .single();
+
+  if (error) return { success: false, error: error.message };
+  return { success: true, id: conv.id };
+}

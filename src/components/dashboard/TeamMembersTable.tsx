@@ -139,18 +139,20 @@ export function TeamMembersTable({ members, currentUserId }: TeamMembersTablePro
                     {member.user_id !== currentUserId ? (
                       <>
                         <DropdownMenu>
-                          <DropdownMenuTrigger>
-                            <Button variant="ghost" size="sm" disabled={loadingId === member.id}>
-                              {loadingId === member.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  Change Role
-                                  <ChevronDown className="ml-2 h-4 w-4" />
-                                </>
-                              )}
-                            </Button>
-                          </DropdownMenuTrigger>
+                          <DropdownMenuTrigger 
+                            render={
+                              <Button variant="ghost" size="sm" disabled={loadingId === member.id}>
+                                {loadingId === member.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    Change Role
+                                    <ChevronDown className="ml-2 h-4 w-4" />
+                                  </>
+                                )}
+                              </Button>
+                            }
+                          />
                           <DropdownMenuContent align="end">
                             {member.role !== 'admin' && (
                               <DropdownMenuItem onClick={() => handleRoleChange(member.id, 'admin')}>

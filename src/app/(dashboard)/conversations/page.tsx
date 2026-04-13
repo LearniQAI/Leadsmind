@@ -18,23 +18,47 @@ import {
   Hash,
   Filter,
   Circle,
-  Sparkles,
   Maximize2,
   Minimize2,
   X,
   Sidebar as SidebarIcon,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  Plus,
+  User,
+  Phone as PhoneIcon,
+  Search as SearchIcon
 } from 'lucide-react';
-import { getConversations, getMessages, sendChatMessage } from '@/app/actions/conversations';
+import {
+  getConversations,
+  getMessages,
+  sendChatMessage,
+  getContacts,
+  startConversation
+} from '@/app/actions/conversations';
 import { syncRecentMessages } from '@/app/actions/messaging';
-import { getSmartReplySuggestions } from '@/app/actions/automation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
@@ -52,17 +76,25 @@ export default function ConversationsPage() {
   const [activePlatform, setActivePlatform] = useState<string>('all');
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isNewMsgOpen, setIsNewMsgOpen] = useState(false);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [selectedContact, setSelectedContact] = useState<string | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>('sms');
   const scrollRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
-  // 1. Initial Load of Conversations
+  // 1. Initial Load
   useEffect(() => {
     async function load() {
       try {
-        const data = await getConversations();
-        setConversations(data || []);
+        const [convData, contactData] = await Promise.all([
+          getConversations(),
+          getContacts()
+        ]);
+        setConversations(convData || []);
+        setContacts(contactData || []);
       } catch (err) {
-        console.error('Error loading conversations:', err);
+        console.error('Error loading initial data:', err);
       } finally {
         setIsLoadingConvs(false);
       }
@@ -224,6 +256,88 @@ export default function ConversationsPage() {
               >
                 {isFocusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
               </Button>
+
+              <Dialog open={isNewMsgOpen} onOpenChange={setIsNewMsgOpen}>
+                <DialogTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 bg-[#6c47ff]/10 text-[#6c47ff] hover:bg-[#6c47ff]/20 rounded-xl transition-all"
+                    >
+                      <Plus className="h-5 w-5" />
+                    </Button>
+                  }
+                />
+                <DialogContent className="bg-[#0b0b12] border-white/5 text-white max-w-md rounded-[32px]">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-black uppercase tracking-widest text-white">Start Conversation</DialogTitle>
+                    <DialogDescription className="text-white/40">Select a contact and platform to begin messaging.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-6 py-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-white/20 ml-1">Recipient</label>
+                      <Select value={selectedContact} onValueChange={setSelectedContact}>
+                        <SelectTrigger className="bg-white/5 border-white/5 h-12 rounded-2xl focus:ring-[#6c47ff]/50">
+                          <SelectValue placeholder="Select a contact" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#0b0b12] border-white/5 text-white">
+                          {contacts.map((c) => (
+                            <SelectItem key={c.id} value={c.id} className="focus:bg-[#6c47ff] focus:text-white">
+                              {c.first_name} {c.last_name} ({c.phone || c.email})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-white/20 ml-1">Platform</label>
+                      <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
+                        <SelectTrigger className="bg-white/5 border-white/5 h-12 rounded-2xl focus:ring-[#6c47ff]/50">
+                          <SelectValue placeholder="Select platform" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#0b0b12] border-white/5 text-white">
+                          <SelectItem value="sms" className="focus:bg-[#6c47ff]">SMS via Twilio</SelectItem>
+                          <SelectItem value="whatsapp" className="focus:bg-[#6c47ff]">WhatsApp via Twilio</SelectItem>
+                          <SelectItem value="email" className="focus:bg-[#6c47ff]">Gmail</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      onClick={async () => {
+                        if (!selectedContact || !selectedPlatform) {
+                          toast.error('Please select both a contact and a platform');
+                          return;
+                        }
+                        const contact = contacts.find(c => c.id === selectedContact);
+                        if (!contact) return;
+                        const externalId = (selectedPlatform === 'email') ? contact.email : contact.phone;
+                        if (!externalId) {
+                          toast.error(`Contact has no ${selectedPlatform === 'email' ? 'email' : 'phone number'}`);
+                          return;
+                        }
+                        const res = await startConversation(contact.id, selectedPlatform, externalId);
+                        if (res.success) {
+                          setIsNewMsgOpen(false);
+                          const updated = await getConversations();
+                          setConversations(updated);
+                          const target = updated.find(c => c.id === res.id);
+                          if (target) setActiveConv(target);
+                        } else {
+                          toast.error(res.error || 'Failed to start conversation');
+                        }
+                      }}
+                      className="w-full h-12 rounded-2xl bg-[#6c47ff] hover:bg-[#5b3ce0] text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-[#6c47ff]/30 transition-all active:scale-95"
+                    >
+                      Open Thread
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -596,11 +710,11 @@ function ChatArea({
           </div>
         </form>
         <div className="mt-4 flex items-center justify-center gap-4">
-          <p className="text-[10px] font-black text-white/5 uppercase tracking-[0.3em] flex items-center gap-3">
+          <div className="text-[10px] font-black text-white/5 uppercase tracking-[0.3em] flex items-center gap-3">
             <div className="w-10 h-px bg-white/5" />
             {activeConv.platform} Connection Secured
             <div className="w-10 h-px bg-white/5" />
-          </p>
+          </div>
         </div>
       </div>
     </>

@@ -248,22 +248,30 @@ async function syncTwilio(workspaceId: string, platform: 'sms' | 'whatsapp', cre
   const twilio = require('twilio');
   const client = twilio(credentials.accountSid, credentials.authToken);
   
-  // Fetch last 10 messages for simplicity
-  const messages = await client.messages.list({ limit: 10, to: platform === 'whatsapp' ? `whatsapp:${credentials.phoneNumber}` : credentials.phoneNumber });
+  // Fetch all messages (both directions) to built complete threads
+  const messages = await client.messages.list({ limit: 20 });
   
   let synced = 0;
   for (const msg of messages) {
-    const externalId = msg.sid;
-    const from = msg.from.replace('whatsapp:', '');
     const direction = msg.direction.includes('inbound') ? 'inbound' : 'outbound';
     
+    // The thread ID should always be the RECIPIENT if we sent it, or the SENDER if we received it
+    // i.e., the "Other Person's" number
+    const otherPersonNumber = (direction === 'inbound' ? msg.from : msg.to).replace('whatsapp:', '');
+    
+    // Only process if this message belongs to the platform we are currently syncing
+    const isWhatsAppMsg = msg.from?.startsWith('whatsapp:') || msg.to?.startsWith('whatsapp:');
+    if (platform === 'whatsapp' && !isWhatsAppMsg) continue;
+    if (platform === 'sms' && isWhatsAppMsg) continue;
+
     const { data: conv } = await supabase
       .from('conversations')
       .upsert({
         workspace_id: workspaceId,
         platform: platform,
-        external_thread_id: from,
-        title: from,
+        external_thread_id: otherPersonNumber,
+        title: otherPersonNumber,
+        last_message_at: new Date(msg.dateCreated).toISOString(),
         updated_at: new Date().toISOString()
       }, { onConflict: 'workspace_id, platform, external_thread_id' })
       .select('id')
@@ -277,8 +285,8 @@ async function syncTwilio(workspaceId: string, platform: 'sms' | 'whatsapp', cre
           conversation_id: conv.id,
           direction: direction,
           content: msg.body,
-          sender_handle: from,
-          external_id: externalId,
+          sender_handle: msg.from.replace('whatsapp:', ''),
+          external_id: msg.sid,
           status: 'delivered',
           sent_at: new Date(msg.dateCreated).toISOString()
         });

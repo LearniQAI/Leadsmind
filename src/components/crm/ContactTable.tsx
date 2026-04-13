@@ -132,11 +132,13 @@ export function ContactTable({ contacts }: ContactTableProps) {
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
-                  <DropdownMenuTrigger>
-                    <Button variant="ghost" className="h-8 w-8 p-0 text-white/20 hover:text-white hover:bg-white/5 rounded-lg">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
+                  <DropdownMenuTrigger 
+                    render={
+                      <Button variant="ghost" className="h-8 w-8 p-0 text-white/20 hover:text-white hover:bg-white/5 rounded-lg">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    }
+                  />
                   <DropdownMenuContent align="end" className="bg-[#1a1a24] border-white/10 text-white shadow-2xl">
                     <DropdownMenuItem>
                         <Link href={`/contacts/${contact.id}/edit`} className="cursor-pointer flex items-center gap-2 w-full">

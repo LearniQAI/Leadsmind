@@ -27,16 +27,21 @@ export async function getWorkspaceMembers() {
 
   if (error || !data) return [];
 
-  type MemberRow = {
-    user_id: string;
-    users: { id: string; first_name: string; last_name: string; email: string }[];
-  };
+  return (data as any[]).map((m) => {
+    // PostgREST might return the joined user as an object or a single-item array
+    const user = Array.isArray(m.users) ? m.users[0] : m.users;
+    
+    if (!user) {
+      return {
+        id: m.user_id,
+        name: 'Unknown User',
+        email: 'N/A',
+      };
+    }
 
-  return (data as unknown as MemberRow[]).map((m) => {
-    const user = m.users[0];
     return {
       id: user.id,
-      name: `${user.first_name} ${user.last_name}`,
+      name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'Unknown',
       email: user.email,
     };
   });
