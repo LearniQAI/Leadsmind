@@ -38,12 +38,12 @@ export async function getLinkedInAuthUrl() {
  */
 export async function getTikTokAuthUrl() {
   try {
-    const clientId = process.env.TIKTOK_CLIENT_KEY || process.env.TIKTOK_CLIENT_ID;
+    const clientKey = process.env.TIKTOK_CLIENT_KEY || process.env.TIKTOK_CLIENT_ID;
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/tiktok/callback`;
     const state = Math.random().toString(36).substring(7);
-    const scope = 'user.info.basic,video.list,video.upload';
+    const scope = 'user.info.basic,video.list,video.upload,video.publish';
 
-    const url = `https://www.tiktok.com/auth/authorize/?client_key=${clientId}&scope=${encodeURIComponent(scope)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+    const url = `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&scope=${encodeURIComponent(scope)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
 
     const cookieStore = await cookies();
     cookieStore.set('tiktok_auth_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600 });
@@ -51,6 +51,29 @@ export async function getTikTokAuthUrl() {
     return { success: true, url };
   } catch (error: any) {
     console.error('[tiktok-auth] Error generating URL:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Generates a Meta (Facebook/Instagram) OAuth authorization URL.
+ */
+export async function getMetaAuthUrl() {
+  try {
+    const clientId = process.env.META_APP_ID || process.env.FACEBOOK_APP_ID;
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/meta/callback`;
+    const state = Math.random().toString(36).substring(7);
+    // Requesting permissions for pages and instagram posting
+    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,public_profile,instagram_basic,instagram_content_publish';
+
+    const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
+
+    const cookieStore = await cookies();
+    cookieStore.set('meta_auth_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600 });
+
+    return { success: true, url };
+  } catch (error: any) {
+    console.error('[meta-auth] Error generating URL:', error);
     return { success: false, error: error.message };
   }
 }

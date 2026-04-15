@@ -43,7 +43,8 @@ import {
   connectTikTok,
   syncRecentMessages,
   getLinkedInAuthUrl,
-  getTikTokAuthUrl
+  getTikTokAuthUrl,
+  getMetaAuthUrl
 } from '@/app/actions/messaging';
 
 interface Platform {
@@ -202,17 +203,20 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
     } catch { toast.error('An error occurred'); } finally { setIsSubmitting(false); }
   };
 
-  const onMetaSubmit = async (values: MetaValues, platformId: 'facebook' | 'instagram') => {
+  const onMetaSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const result = await connectMeta(platformId, values);
-      if (result.success) {
-        toast.success(`${selectedPlatform?.name || platformId} connected successfully!`);
-        setConnectedPlatforms(prev => [...prev, platformId]);
-        syncRecentMessages();
-        setSelectedPlatform(null);
-      } else toast.error(result.error);
-    } catch { toast.error('An error occurred'); } finally { setIsSubmitting(false); }
+      const result = await getMetaAuthUrl();
+      if (result.success && result.url) {
+        window.location.href = result.url;
+      } else {
+        toast.error(result.error || 'Failed to initialize Meta login');
+      }
+    } catch {
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const onLinkedInSubmit = async (values: LinkedinValues) => {
@@ -304,21 +308,29 @@ export function ConnectPlatformsModal({ open, onOpenChange }: ConnectPlatformsMo
 
     if (selectedPlatform.id === 'facebook' || selectedPlatform.id === 'instagram') {
       return (
-        <form onSubmit={metaForm.handleSubmit((v) => onMetaSubmit(v, selectedPlatform.id as 'facebook' | 'instagram'))} className="p-8 space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-white/70 flex items-center gap-2"><Key className="h-3.5 w-3.5 text-blue-400" /> Access Token</Label>
-              <Input type="password" {...metaForm.register('accessToken')} placeholder="Meta Graph API Access Token" className="h-12 bg-white/5 border-white/10 rounded-xl text-white focus:ring-1 focus:ring-[#6c47ff]/50 transition-all" />
-              {metaForm.formState.errors.accessToken && <p className="text-[11px] font-medium text-destructive mt-1">{metaForm.formState.errors.accessToken.message}</p>}
+        <div className="p-8 space-y-6 text-center">
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className={cn("h-20 w-20 rounded-3xl border flex items-center justify-center", selectedPlatform.bgColor)}>
+              <selectedPlatform.icon className={cn("h-10 w-10", selectedPlatform.iconColor)} />
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-white/70 flex items-center gap-2"><Lock className="h-3.5 w-3.5 text-blue-400" /> Page ID</Label>
-              <Input {...metaForm.register('pageId')} placeholder="Meta Page ID" className="h-12 bg-white/5 border-white/10 rounded-xl text-white focus:ring-1 focus:ring-[#6c47ff]/50 transition-all font-mono" />
-              {metaForm.formState.errors.pageId && <p className="text-[11px] font-medium text-destructive mt-1">{metaForm.formState.errors.pageId.message}</p>}
+            <div className="space-y-1">
+              <h4 className="text-white font-bold text-lg">Official Meta Connect</h4>
+              <p className="text-white/40 text-sm max-w-xs mx-auto">
+                Connect your Facebook Page and Instagram Business account to manage posts and messages.
+              </p>
             </div>
           </div>
-          <SubmitButton isSubmitting={isSubmitting} />
-        </form>
+          <Button 
+            onClick={onMetaSubmit} 
+            disabled={isSubmitting}
+            className="w-full h-12 rounded-xl bg-[#1877F2] text-white hover:bg-[#1877F2]/90 font-black uppercase tracking-widest transition-all"
+          >
+            {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing...</> : 'Continue with Meta'}
+          </Button>
+          <p className="text-[10px] text-white/20 leading-relaxed italic">
+            Note: You'll be redirected to Facebook to authorize this application.
+          </p>
+        </div>
       );
     }
 
