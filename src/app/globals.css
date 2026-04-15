@@ -133,7 +133,13 @@ html {
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 0.875rem; /* Reduced from default 16px to 14px */
   }
+}
+
+/* Base font reduction for all elements */
+html {
+  font-size: 90%; /* Scale down everything globally */
 }
 
 /* ── Noise grain overlay ── */

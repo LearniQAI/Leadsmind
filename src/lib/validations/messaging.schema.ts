@@ -27,3 +27,9 @@ export const linkedinSchema = z.object({
 });
 
 export type LinkedinValues = z.infer<typeof linkedinSchema>;
+
+export const tiktokSchema = z.object({
+  accessToken: z.string().min(1, 'Access Token is required'),
+});
+
+export type TiktokValues = z.infer<typeof tiktokSchema>;

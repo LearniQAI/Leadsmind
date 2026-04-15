@@ -5,7 +5,8 @@ import {
   twilioSchema, TwilioValues,
   emailSchema, EmailValues,
   metaSchema, MetaValues,
-  linkedinSchema, LinkedinValues
+  linkedinSchema, LinkedinValues,
+  tiktokSchema, TiktokValues
 } from '@/lib/validations/messaging.schema';
 import { revalidatePath } from 'next/cache';
 
@@ -28,7 +29,28 @@ export async function getLinkedInAuthUrl() {
 
     return { success: true, url };
   } catch (error: any) {
-    console.error('[linkedin-auth] Error generating URL:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Generates a TikTok OAuth 2.0 authorization URL.
+ */
+export async function getTikTokAuthUrl() {
+  try {
+    const clientId = process.env.TIKTOK_CLIENT_KEY || process.env.TIKTOK_CLIENT_ID;
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/tiktok/callback`;
+    const state = Math.random().toString(36).substring(7);
+    const scope = 'user.info.basic,video.list,video.upload';
+
+    const url = `https://www.tiktok.com/auth/authorize/?client_key=${clientId}&scope=${encodeURIComponent(scope)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+
+    const cookieStore = await cookies();
+    cookieStore.set('tiktok_auth_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600 });
+
+    return { success: true, url };
+  } catch (error: any) {
+    console.error('[tiktok-auth] Error generating URL:', error);
     return { success: false, error: error.message };
   }
 }
@@ -192,6 +214,10 @@ export async function connectMeta(platform: 'facebook' | 'instagram', values: Me
 
 export async function connectLinkedIn(values: LinkedinValues) {
   return await baseConnect('linkedin', values, linkedinSchema);
+}
+
+export async function connectTikTok(values: TiktokValues) {
+  return await baseConnect('tiktok', values, tiktokSchema);
 }
 
 /**
