@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Play, Check, Star } from 'lucide-react'
+import { Play, Check, Star, Zap, CreditCard } from 'lucide-react'
 import { BackgroundEffects } from '@/components/marketing/BackgroundEffects'
+import { BillingPlansToggle } from '@/components/billing/BillingPlansToggle'
+import { getSaaSTiers } from '@/app/actions/finance'
 
 const brands = [
   'Acme Corp', 'TechGrow', 'Innovate', 'Nexus HQ', 'Vantage', 
@@ -71,7 +70,11 @@ const testimonials = [
 ]
 
 export default function LandingPage() {
-  const [isAnnual, setIsAnnual] = useState(false)
+  const [tiers, setTiers] = useState<any[]>([])
+
+  useEffect(() => {
+    getSaaSTiers().then(setTiers)
+  }, [])
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -87,7 +90,7 @@ export default function LandingPage() {
     fadeElements.forEach((el) => observer.observe(el))
 
     return () => observer.disconnect()
-  }, [isAnnual])
+  }, [])
 
   return (
     <div className="relative overflow-hidden bg-background font-sans selection:bg-[#6c47ff]/30">
@@ -305,73 +308,21 @@ export default function LandingPage() {
           <div className="mb-16 text-center">
             <span className="mb-4 inline-block text-[0.7rem] font-bold uppercase tracking-[0.2em] text-[#fdab3d] fade-up">Pricing</span>
             <h2 className="mb-4 text-4xl font-extrabold tracking-tight text-foreground md:text-5xl fade-up">Simple, honest pricing</h2>
-            <p className="mx-auto max-w-[480px] text-base font-light text-foreground/40 fade-up">Start free. Scale when you&apos;re ready. No surprise bills.</p>
-            
-            {/* Toggle */}
-            <div className="mt-8 flex items-center justify-center gap-4 fade-up">
-              <span className={`text-sm ${!isAnnual ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                Monthly
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsAnnual(prev => !prev)}
-                className="relative h-6 w-11 rounded-full bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
-              >
-                <div
-                  className={`absolute top-1 h-4 w-4 rounded-full bg-[#6c47ff] transition-transform duration-200 ${
-                    isAnnual ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-              <div className="flex items-center gap-2">
-                <span className={`text-sm ${isAnnual ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                  Annual
-                </span>
-                <span className="rounded-full bg-[#fdab3d]/10 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-widest text-[#fdab3d]">
-                  Save 20%
-                </span>
-              </div>
-            </div>
+            <p className="mx-auto max-w-[480px] text-base font-light text-foreground/40 fade-up">
+              Start free. Scale when you're ready. No surprise bills.
+            </p>
           </div>
 
-          <div className="mx-auto grid max-w-[900px] grid-cols-1 gap-5 lg:grid-cols-3">
-            {[
-              { tier: 'Starter', price: isAnnual ? '$0' : '$0', desc: 'Perfect for solo founders and early-stage teams testing the waters.', features: ['Up to 500 contacts', '1 pipeline', '5 Tags & custom fields', 'Email support'] },
-              { tier: 'Growth', price: isAnnual ? '$77' : '$97', desc: 'For teams that are serious about building a scalable sales machine.', features: ['Unlimited contacts', 'Unlimited pipelines', 'WhatsApp & Social Inbox', 'Email Campaigns', '5 Team members', 'Priority support'], featured: true },
-              { tier: 'Agency', price: isAnnual ? '$237' : '$297', desc: 'Bespoke solutions for agencies and resellers.', features: ['Everything in Growth', 'Custom domains & White-label', 'SaaS reseller mode', 'Unlimited sub-accounts', 'Unlimited team members'] },
-            ].map((p, i) => (
-              <div 
-                key={i} 
-                className={`relative rounded-[24px] border p-8 transition-all duration-300 fade-up ${p.featured ? 'border-[#6c47ff]/40 bg-linear-to-b from-[#6c47ff]/10 to-[#8b5cf6]/5 shadow-[0_20px_40px_rgba(108,71,255,0.1)]' : 'border-white/5 bg-white/3'}`}
-                style={{ transitionDelay: `${i * 100}ms` }}
-              >
-                {p.featured && (
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-r from-[#6c47ff] to-[#8b5cf6] px-3.5 py-1 text-[0.65rem] font-bold uppercase tracking-widest text-white whitespace-nowrap">
-                    Most Popular
-                  </div>
-                )}
-                <div className={`mb-2 text-[0.7rem] font-bold uppercase tracking-widest ${p.featured ? 'text-[#a78bfa]' : 'text-foreground/40'}`}>{p.tier}</div>
-                <div className="mb-2 text-4xl font-extrabold tracking-tight text-foreground">
-                  {p.price}<span className="text-sm font-normal text-foreground/35"> {p.price !== 'Custom' ? '/mo' : ''}</span>
-                </div>
-                <p className="mb-6 text-[0.8rem] font-light leading-relaxed text-foreground/40">{p.desc}</p>
-                <div className="mb-6 h-px w-full bg-white/5" />
-                <ul className="mb-8 flex flex-col gap-3">
-                  {p.features.map((f, j) => (
-                    <li key={j} className="flex items-center gap-2.5 text-[0.82rem] font-light text-foreground/60">
-                      <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${p.featured ? 'bg-[#6c47ff]/30 text-[#a78bfa]' : 'bg-[#6c47ff]/10 text-[#a78bfa]'}`}>
-                        <Check className="h-2.5 w-2.5" />
-                      </div>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Button className={`w-full rounded-full py-6 font-bold transition-all hover:-translate-y-0.5 ${p.featured ? 'bg-linear-to-r from-[#6c47ff] to-[#8b5cf6] text-white shadow-lg shadow-[#6c47ff]/20' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`} asChild>
-                  <Link href="/signup">
-                    {p.price === '$0' ? 'Get Started Free' : p.price === 'Custom' ? 'Contact Sales' : 'Get Started'}
-                  </Link>
-                </Button>
+          <div className="max-w-5xl mx-auto">
+            {tiers.length > 0 ? (
+              <BillingPlansToggle mode="marketing" tiers={tiers} />
+            ) : (
+              <div className="flex h-64 items-center justify-center text-white/20 font-bold uppercase tracking-widest animate-pulse">
+                Loading Plans...
               </div>
+            )}
+          </div>
+
             ))}
           </div>
         </div>

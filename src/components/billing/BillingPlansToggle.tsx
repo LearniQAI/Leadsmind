@@ -17,9 +17,14 @@ interface Tier {
 interface BillingPlansToggleProps {
   tiers: Tier[];
   currentPlanTier?: string;
+  mode?: "dashboard" | "marketing";
 }
 
-export function BillingPlansToggle({ tiers, currentPlanTier }: BillingPlansToggleProps) {
+export function BillingPlansToggle({ 
+  tiers, 
+  currentPlanTier,
+  mode = "dashboard" 
+}: BillingPlansToggleProps) {
   const [isAnnual, setIsAnnual] = useState(false);
 
   const featuredTier = "pro";
@@ -134,6 +139,7 @@ export function BillingPlansToggle({ tiers, currentPlanTier }: BillingPlansToggl
                   isCurrentPlan={isCurrentPlan}
                   displayPrice={displayPrice}
                   isFeatured={isFeatured}
+                  mode={mode}
                 />
               </CardContent>
             </Card>

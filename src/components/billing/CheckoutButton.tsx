@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 import { createCheckoutSession } from "@/app/actions/finance";
 
 interface CheckoutButtonProps {
@@ -11,6 +12,7 @@ interface CheckoutButtonProps {
   isCurrentPlan: boolean;
   displayPrice: number;
   isFeatured?: boolean;
+  mode?: "dashboard" | "marketing";
 }
 
 export function CheckoutButton({
@@ -20,6 +22,7 @@ export function CheckoutButton({
   isCurrentPlan,
   displayPrice,
   isFeatured = false,
+  mode = "dashboard",
 }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
 
@@ -40,6 +43,21 @@ export function CheckoutButton({
       setLoading(false);
     }
   };
+
+  if (mode === "marketing") {
+    return (
+      <Link
+        href="/signup"
+        className={`w-full py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-2 ${
+          isFeatured
+            ? "bg-[#6c47ff] hover:bg-[#5b3ce0] text-white shadow-lg shadow-[#6c47ff]/30 border border-white/10"
+            : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
+        }`}
+      >
+        {displayPrice === 0 ? "Get Started for Free" : "Start 14-Day Free Trial"}
+      </Link>
+    );
+  }
 
   if (isCurrentPlan) {
     return (
