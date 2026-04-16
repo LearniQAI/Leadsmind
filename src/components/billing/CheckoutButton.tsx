@@ -54,7 +54,7 @@ export function CheckoutButton({
             : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
         }`}
       >
-        {displayPrice === 0 ? "Get Started for Free" : "Start 14-Day Free Trial"}
+        {displayPrice === 0 ? "Get Started for Free" : "Subscribe Now"}
       </Link>
     );
   }
@@ -98,7 +98,7 @@ export function CheckoutButton({
           Processing...
         </>
       ) : (
-        `Get Started — $${displayPrice}/mo`
+        `Subscribe Now — $${displayPrice}/${interval === 'year' ? 'yr' : 'mo'}`
       )}
     </button>
   );

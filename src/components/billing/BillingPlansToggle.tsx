@@ -55,9 +55,6 @@ export function BillingPlansToggle({
         </button>
         <span className={cn("text-sm font-bold transition-colors flex items-center gap-2", isAnnual ? "text-white" : "text-white/40")}>
           Annual
-          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full">
-            Save ~20%
-          </span>
         </span>
       </div>
 
@@ -115,7 +112,7 @@ export function BillingPlansToggle({
 
                 {isAnnual && displayPrice > 0 && (
                   <p className="text-[11px] text-emerald-400 font-bold mt-1">
-                    Billed ${displayPrice * 12}/year — save ${(tier.monthlyPrice - displayPrice) * 12}/yr
+                    Billed ${displayPrice * 12}/year — Subscribe immediately
                   </p>
                 )}
               </CardHeader>

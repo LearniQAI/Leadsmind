@@ -205,7 +205,7 @@ export async function getSaaSTiers() {
     {
       id: 'pro',
       name: 'Pro',
-      monthlyPrice: 97,
+      monthlyPrice: 77,
       annualPrice: 77,
       features: [
         'Unlimited contacts',
@@ -219,7 +219,7 @@ export async function getSaaSTiers() {
     {
       id: 'enterprise',
       name: 'Enterprise',
-      monthlyPrice: 297,
+      monthlyPrice: 237,
       annualPrice: 237,
       features: [
         'Everything in Pro',

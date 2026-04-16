@@ -99,7 +99,7 @@ export function SignupForm() {
       <CardHeader className="space-y-1 px-0 pb-6 text-center">
         <CardTitle className="text-3xl font-extrabold tracking-tight text-foreground">Create account</CardTitle>
         <CardDescription className="text-sm font-light text-foreground/40">
-          Start your free trial today. No credit card required.
+          Get started with your Leadsmind account today.
         </CardDescription>
       </CardHeader>
       <CardContent className="px-0">
