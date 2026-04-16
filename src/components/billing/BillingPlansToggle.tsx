@@ -66,7 +66,7 @@ export function BillingPlansToggle({
             currentPlanTier === tier.id ||
             (currentPlanTier === "free" && tier.id === "starter");
 
-          const displayPrice = isAnnual ? tier.annualPrice : tier.monthlyPrice;
+          const displayPrice = isAnnual ? tier.annualPrice * 12 : tier.monthlyPrice;
           const originalPrice = !isAnnual ? null : tier.monthlyPrice;
 
           return (
@@ -99,20 +99,20 @@ export function BillingPlansToggle({
                 <CardTitle className="text-white text-lg font-black">{tier.name}</CardTitle>
 
                 <div className="mt-4 flex items-baseline gap-2">
-                  {originalPrice !== null && originalPrice > 0 && (
-                    <span className="text-white/30 line-through text-lg font-bold">${originalPrice}</span>
+                  {isAnnual && tier.monthlyPrice > 0 && (
+                    <span className="text-white/30 text-lg font-bold">${tier.monthlyPrice}</span>
                   )}
                   <span className="text-4xl font-black text-white">
                     {displayPrice === 0 ? "Free" : `$${displayPrice}`}
                   </span>
                   {displayPrice > 0 && (
-                    <span className="text-white/40 text-sm">/mo</span>
+                    <span className="text-white/40 text-sm">/{isAnnual ? 'yr' : 'mo'}</span>
                   )}
                 </div>
 
                 {isAnnual && displayPrice > 0 && (
-                  <p className="text-[11px] text-emerald-400 font-bold mt-1">
-                    Billed ${displayPrice * 12}/year — Subscribe immediately
+                  <p className="text-[11px] text-emerald-400 font-bold mt-1 uppercase tracking-tighter">
+                    Full Annual Access — One-time payment
                   </p>
                 )}
               </CardHeader>
