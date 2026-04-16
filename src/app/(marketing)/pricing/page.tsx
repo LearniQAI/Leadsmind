@@ -52,7 +52,7 @@ export default async function PricingPage() {
           <h2 className="text-3xl font-bold tracking-tight text-white mb-4">Frequently Asked Questions</h2>
           <p className="text-white/40">Everything you need to know about the platform and billing.</p>
         </div>
-        <Accordion type="single" collapsible className="w-full space-y-4">
+        <Accordion className="w-full space-y-4">
           {faqs.map((faq, index) => (
             <AccordionItem key={index} value={`item-${index}`} className="border-white/5 bg-white/3 rounded-2xl px-6">
               <AccordionTrigger className="text-left font-bold text-white hover:text-[#6c47ff] hover:no-underline py-6">
