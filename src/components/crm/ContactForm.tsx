@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Input } from '@/components/ui/input';
@@ -142,37 +142,49 @@ export function ContactForm({ initialData, members }: ContactFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="source" className="text-white/60">Source (Optional)</Label>
-          <Select 
-            onValueChange={(v: string | null) => form.setValue('source', v ?? undefined)}
-            defaultValue={form.getValues('source') ?? undefined}
-          >
-            <SelectTrigger className="bg-[#0b0b10] border-white/5 text-white h-11 rounded-xl">
-              <SelectValue placeholder="Select source" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
-              <SelectItem value="website">Website</SelectItem>
-              <SelectItem value="referral">Referral</SelectItem>
-              <SelectItem value="linkedin">LinkedIn</SelectItem>
-              <SelectItem value="cold_outreach">Cold Outreach</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
-            </SelectContent>
-          </Select>
+          <Controller
+            name="source"
+            control={form.control}
+            render={({ field }) => (
+              <Select 
+                onValueChange={field.onChange}
+                value={field.value || ""}
+              >
+                <SelectTrigger className="bg-[#0b0b10] border-white/5 text-white h-11 rounded-xl">
+                  <SelectValue placeholder="Select source" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
+                  <SelectItem value="website">Website</SelectItem>
+                  <SelectItem value="referral">Referral</SelectItem>
+                  <SelectItem value="linkedin">LinkedIn</SelectItem>
+                  <SelectItem value="cold_outreach">Cold Outreach</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="ownerId" className="text-white/60">Assigned Owner</Label>
-          <Select 
-            onValueChange={(v: string | null) => form.setValue('ownerId', v ?? undefined)}
-            defaultValue={form.getValues('ownerId') ?? undefined}
-          >
-            <SelectTrigger className="bg-[#0b0b10] border-white/5 text-white h-11 rounded-xl">
-              <SelectValue placeholder="Select owner" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
-              {members.map(member => (
-                <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Controller
+            name="ownerId"
+            control={form.control}
+            render={({ field }) => (
+              <Select 
+                onValueChange={field.onChange}
+                value={field.value || ""}
+              >
+                <SelectTrigger className="bg-[#0b0b10] border-white/5 text-white h-11 rounded-xl">
+                  <SelectValue placeholder="Select owner" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
+                  {members.map(member => (
+                    <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Play, Check, Star } from 'lucide-react'
@@ -87,7 +87,7 @@ export default function LandingPage() {
     fadeElements.forEach((el) => observer.observe(el))
 
     return () => observer.disconnect()
-  }, [])
+  }, [isAnnual])
 
   return (
     <div className="relative overflow-hidden bg-background font-sans selection:bg-[#6c47ff]/30">
@@ -313,11 +313,12 @@ export default function LandingPage() {
                 Monthly
               </span>
               <button
-                onClick={() => setIsAnnual(!isAnnual)}
+                type="button"
+                onClick={() => setIsAnnual(prev => !prev)}
                 className="relative h-6 w-11 rounded-full bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
               >
                 <div
-                  className={`absolute top-1 h-4 w-4 rounded-full bg-[#6c47ff] transition-transform ${
+                  className={`absolute top-1 h-4 w-4 rounded-full bg-[#6c47ff] transition-transform duration-200 ${
                     isAnnual ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
@@ -365,8 +366,10 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Button className={`w-full rounded-full py-6 font-bold transition-all hover:-translate-y-0.5 ${p.featured ? 'bg-linear-to-r from-[#6c47ff] to-[#8b5cf6] text-white shadow-lg shadow-[#6c47ff]/20' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}>
-                  {p.price === '$0' ? 'Get Started Free' : p.price === 'Custom' ? 'Contact Sales' : 'Start 14-Day Trial'}
+                <Button className={`w-full rounded-full py-6 font-bold transition-all hover:-translate-y-0.5 ${p.featured ? 'bg-linear-to-r from-[#6c47ff] to-[#8b5cf6] text-white shadow-lg shadow-[#6c47ff]/20' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`} asChild>
+                  <Link href="/signup">
+                    {p.price === '$0' ? 'Get Started Free' : p.price === 'Custom' ? 'Contact Sales' : 'Get Started'}
+                  </Link>
                 </Button>
               </div>
             ))}

@@ -3,9 +3,10 @@ import { createServerClient } from '@/lib/supabase/server';
 import { ContactTable } from '@/components/crm/ContactTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { ImportContactsModal } from '@/components/crm/ImportContactsModal';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,10 +47,7 @@ export default async function ContactsPage({
           <p className="text-sm text-white/40 font-medium">Manage and organize your business relationships</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="border-white/5 bg-white/3 hover:bg-white/5 text-white/60 h-11 px-5 rounded-xl gap-2 font-semibold">
-            <Filter className="h-4 w-4" />
-            <span>Filters</span>
-          </Button>
+          <ImportContactsModal />
           <Button className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white h-11 px-5 rounded-xl gap-2 font-bold shadow-lg shadow-[#6c47ff]/20" asChild>
             <Link href="/contacts/new">
               <Plus className="h-5 w-5" />

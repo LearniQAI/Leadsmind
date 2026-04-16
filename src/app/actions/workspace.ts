@@ -1,14 +1,20 @@
 'use server';
 
 import { createServerClient } from '@/lib/supabase/server';
-import { getCurrentWorkspaceId, getUser } from '@/lib/auth';
+import { getCurrentWorkspaceId, getUser, getCurrentWorkspace } from '@/lib/auth';
 import { WorkspaceValues } from '@/lib/validations/workspace.schema';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 
 export async function getWorkspaceMembers() {
-  const workspaceId = await getCurrentWorkspaceId();
+  let workspaceId = await getCurrentWorkspaceId();
+  
+  if (!workspaceId) {
+    const workspace = await getCurrentWorkspace();
+    workspaceId = workspace?.id ?? null;
+  }
+
   if (!workspaceId) return [];
 
   const supabase = await createServerClient();

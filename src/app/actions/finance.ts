@@ -18,11 +18,11 @@ export async function getProducts(workspaceId: string) {
   return data;
 }
 
-export async function createProduct(workspaceId: string, productData: any) {
+export async function createProduct(productData: any) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('products')
-    .insert({ workspace_id: workspaceId, ...productData })
+    .insert(productData)
     .select()
     .single();
 
@@ -231,4 +231,36 @@ export async function getSaaSTiers() {
       ],
     },
   ];
+}
+// --- Data Management ---
+export async function deleteProduct(productId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from('products').delete().eq('id', productId);
+  if (error) throw error;
+  revalidatePath('/settings/billing');
+}
+
+export async function createInvoice(invoiceData: any) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('invoices')
+    .insert(invoiceData)
+    .select()
+    .single();
+
+  if (error) throw error;
+  revalidatePath('/settings/billing');
+  return data;
+}
+
+export async function getContactsForInvoicing(workspaceId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('contacts')
+    .select('id, first_name, last_name, email')
+    .eq('workspace_id', workspaceId)
+    .order('first_name');
+
+  if (error) throw error;
+  return data;
 }

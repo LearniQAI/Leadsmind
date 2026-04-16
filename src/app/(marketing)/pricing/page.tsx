@@ -66,8 +66,8 @@ const faqs = [
     answer: 'Yes, you can upgrade or downgrade your plan at any time from your dashboard settings.',
   },
   {
-    question: 'Do you offer a free trial for the Pro plan?',
-    answer: 'We offer a 14-day free trial for the Pro plan so you can experience all the advanced features.',
+    question: 'How do I upgrade to the Growth or Agency plan?',
+    answer: 'Simply sign up for a free Starter account, and navigate to the Billing section in your dashboard to instantly upgrade and unlock advanced features.',
   },
   {
     question: 'How does the billing work?',
@@ -99,11 +99,12 @@ export default function PricingPage() {
             Monthly
           </span>
           <button
-            onClick={() => setIsAnnual(!isAnnual)}
+            type="button"
+            onClick={() => setIsAnnual(prev => !prev)}
             className="relative h-6 w-11 rounded-full bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <div
-              className={`absolute top-1 h-4 w-4 rounded-full bg-primary transition-transform ${
+              className={`absolute top-1 h-4 w-4 rounded-full bg-primary transition-transform duration-200 ${
                 isAnnual ? 'translate-x-6' : 'translate-x-1'
               }`}
             />

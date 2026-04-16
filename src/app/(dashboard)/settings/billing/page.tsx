@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { getInvoices, getProducts, getSaaSTiers, createCheckoutSession, getStripeConnectUrl } from '@/app/actions/finance';
+import Link from 'next/link';
+import { getInvoices, getProducts, getSaaSTiers, createCheckoutSession, getStripeConnectUrl, getContactsForInvoicing, deleteProduct } from '@/app/actions/finance';
 import { Button } from '@/components/ui/button';
 import {
   CreditCard,
@@ -10,7 +11,8 @@ import {
   Package,
   CheckCircle2,
   TrendingUp,
-  DollarSign
+  DollarSign,
+  Trash2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,8 +21,16 @@ import { formatBytes } from '@/lib/utils'; // Reusing for numbers or adding form
 import { getCurrentWorkspace } from '@/lib/auth';
 import { CheckoutButton } from '@/components/billing/CheckoutButton';
 import { BillingPlansToggle } from '@/components/billing/BillingPlansToggle';
+import { ProductModal } from '@/components/billing/ProductModal';
+import { InvoiceModal } from '@/components/billing/InvoiceModal';
 
-export default async function BillingPage({ searchParams }: { searchParams: { error?: string, success?: string } }) {
+export default async function BillingPage({ 
+  searchParams 
+}: { 
+  searchParams: Promise<{ error?: string, success?: string, interval?: 'month' | 'year' }> 
+}) {
+  const params = await searchParams;
+  const isAnnual = params?.interval === 'year';
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -29,11 +39,12 @@ export default async function BillingPage({ searchParams }: { searchParams: { er
   const workspace = await getCurrentWorkspace();
   if (!workspace) redirect('/login');
 
-  const [invoices, products, tiers, workspaceResult] = await Promise.all([
+  const [invoices, products, tiers, workspaceResult, contacts] = await Promise.all([
     getInvoices(workspace.id),
     getProducts(workspace.id),
     getSaaSTiers(),
-    supabase.from('workspaces').select('*').eq('id', workspace.id).single()
+    supabase.from('workspaces').select('*').eq('id', workspace.id).single(),
+    getContactsForInvoicing(workspace.id)
   ]);
 
   const workspaceData = workspaceResult.data;
@@ -97,7 +108,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { er
       </div>
 
       {/* Error & Success Messages */}
-      {searchParams?.error && (
+      {params?.error && (
         <div className="bg-red-500/10 border border-red-500/20 p-5 rounded-2xl flex items-start gap-4">
           <div className="h-10 w-10 rounded-xl bg-red-500/20 flex items-center justify-center shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
@@ -105,9 +116,9 @@ export default async function BillingPage({ searchParams }: { searchParams: { er
           <div className="pt-1">
             <p className="text-red-500 font-bold">Stripe Checkout Error</p>
             <p className="text-sm text-red-500/80 mt-1">
-              {searchParams.error === 'missing_price_id' 
+              {params.error === 'missing_price_id' 
                 ? "Your Stripe Price IDs are missing in Vercel. Please add 'STRIPE_PRO_PRICE_ID' & 'STRIPE_ENTERPRISE_PRICE_ID' to Vercel." 
-                : searchParams.error}
+                : params.error}
             </p>
           </div>
         </div>
@@ -135,6 +146,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { er
                 <Receipt className="h-5 w-5 text-[#6c47ff]" />
                 Invoices
               </h2>
+              <InvoiceModal workspaceId={workspace.id} contacts={contacts} />
             </div>
             <Card className="bg-white/3 border-white/5 overflow-hidden rounded-[32px]">
               <div className="overflow-x-auto no-scrollbar">
@@ -194,9 +206,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { er
                 <Package className="h-5 w-5 text-[#6c47ff]" />
                 Products
               </h2>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-white/30 hover:text-white bg-white/5 border border-white/10 rounded-lg">
-                <Plus className="h-4 w-4" />
-              </Button>
+              <ProductModal workspaceId={workspace.id} />
             </div>
 
             <div className="space-y-4">
@@ -207,13 +217,23 @@ export default async function BillingPage({ searchParams }: { searchParams: { er
               ) : (
                 products.map((prod) => (
                   <Card key={prod.id} className="bg-white/3 border-white/5 hover:bg-white/5 transition-all p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-bold text-white">{prod.name}</p>
-                        <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold mt-1">{prod.type}</p>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-white">{prod.name}</p>
+                          <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold mt-1">{prod.type}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className="text-sm font-extrabold text-[#6c47ff]">${prod.price}</span>
+                          <form action={async () => {
+                            'use server';
+                            await deleteProduct(prod.id);
+                          }}>
+                            <Button size="icon" variant="ghost" className="h-6 w-6 text-white/10 hover:text-red-500 hover:bg-red-500/10 rounded-md">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </form>
+                        </div>
                       </div>
-                      <span className="text-sm font-extrabold text-[#6c47ff]">${prod.price}</span>
-                    </div>
                   </Card>
                 ))
               )}

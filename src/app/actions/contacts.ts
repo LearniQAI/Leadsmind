@@ -24,6 +24,20 @@ export async function createContact(payload: {
   const supabase = await createServerClient();
 
   try {
+    // Check for duplicates first if email is provided
+    if (payload.email) {
+      const { data: existing } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('workspace_id', workspaceId)
+        .eq('email', payload.email)
+        .maybeSingle();
+
+      if (existing) {
+        return { success: false, error: 'A contact with this email already exists in your workspace.' };
+      }
+    }
+
     const { data: contact, error } = await supabase
       .from('contacts')
       .insert({
