@@ -1,15 +1,16 @@
 import { Metadata } from 'next'
-import { 
-  requireAuth, 
-  getCurrentProfile, 
-  getUserWorkspaces, 
-  getCurrentWorkspaceId 
+import {
+  requireAuth,
+  getCurrentProfile,
+  getUserWorkspaces,
+  getCurrentWorkspaceId
 } from '@/lib/auth'
 import { ProfileForm } from '@/components/settings/ProfileForm'
 import { PasswordForm } from '@/components/settings/PasswordForm'
 import { WorkspaceList } from '@/components/settings/WorkspaceList'
 import { IntegrationsList } from '@/components/settings/IntegrationsList'
 import { Separator } from '@/components/ui/separator'
+import { redirect } from 'next/navigation'
 
 export const metadata: Metadata = {
   title: 'Account Settings | LeadsMind',
@@ -23,7 +24,7 @@ export default async function AccountSettingsPage() {
   const profile = await getCurrentProfile()
   const workspaces = await getUserWorkspaces()
   const activeWorkspaceId = await getCurrentWorkspaceId()
-  
+
   if (!activeWorkspaceId) {
     redirect('/login')
   }
@@ -64,9 +65,9 @@ export default async function AccountSettingsPage() {
         <Separator />
 
         <section id="workspaces">
-          <WorkspaceList 
-            workspaces={workspaces} 
-            activeWorkspaceId={activeWorkspaceId} 
+          <WorkspaceList
+            workspaces={workspaces}
+            activeWorkspaceId={activeWorkspaceId}
           />
         </section>
 
