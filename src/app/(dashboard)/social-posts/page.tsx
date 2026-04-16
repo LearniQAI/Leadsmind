@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import { getCurrentWorkspaceId } from '@/lib/auth';
 import { SocialPostsClient } from '@/components/social/SocialPostsClient';
 import { getConnectedPlatforms } from '@/app/actions/messaging';

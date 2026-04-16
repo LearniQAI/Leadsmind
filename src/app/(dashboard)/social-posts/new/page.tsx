@@ -1,6 +1,7 @@
 import React from 'react';
 import { SocialPostComposer } from '@/components/social/SocialPostComposer';
 import { createServerClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import { getCurrentWorkspaceId } from '@/lib/auth';
 
 export const metadata = {

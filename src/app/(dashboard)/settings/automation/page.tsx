@@ -1,4 +1,5 @@
 import { createServerClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import { requireAdmin, getCurrentWorkspaceId } from '@/lib/auth';
 import { AutomationSettingsForm } from '@/components/dashboard/AutomationSettingsForm';
 import { AutomationStatsOverview } from '@/components/dashboard/AutomationStatsOverview';
