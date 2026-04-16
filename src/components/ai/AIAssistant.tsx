@@ -36,51 +36,56 @@ export function AIAssistant() {
     setMessages(prev => [...prev, { role: 'user', content: input.trim() }]);
     setIsLoading(true);
 
-    // Simple local fallback for common questions if API fails or for speed
+    // High Availability Local Knowledge Base
     const localResponses: Record<string, string> = {
+      'hello': "Hi there! I'm LeadsMind AI. I can help you with your CRM, LMS, or Billing questions. What's on your mind?",
+      'hi': "Hello! How can I assist you with Leadsmind today?",
+      'help': "I can guide you through: \n- **CRM**: Managing leads.\n- **LMS**: Courses & progress.\n- **Billing**: Stripe & plans.",
       'crm': "LeadsMind CRM helps you manage leads through custom pipeline stages. You can assign owners to each lead and track progress in real-time.",
       'lead': "You can create leads manually or import them via CSV in the Contacts section (/contacts).",
       'lms': "Our LMS allows you to build courses, manage curriculum, and track student enrollment and progress.",
-      'billing': "We offer Starter (Free), Pro ($97/mo), and Enterprise ($297/mo) plans. Each tier scales with your contact volume and team size.",
-      'pricing': "Check our pricing page (/pricing) for a detailed comparison of features across our Starter, Pro, and Enterprise plans.",
-      'stripe': "You can connect your Stripe account in the Settings (/settings/billing) to start accepting payments and generating invoices.",
+      'billing': "We offer Starter (Free), Pro ($97/mo), and Enterprise ($297/mo) plans. Each tier scales with your contact volume.",
+      'pricing': "Check our pricing page (/pricing) for a detailed comparison of features across our plans.",
+      'stripe': "You can connect your Stripe account in the Settings (/settings/billing) to start accepting payments.",
     };
 
     const fallbackKey = Object.keys(localResponses).find(key => userMessage.includes(key));
+
+    // Instant local response for common keywords
+    if (fallbackKey) {
+        setMessages(prev => [...prev, { role: 'assistant', content: localResponses[fallbackKey] }]);
+        setIsLoading(false);
+        return;
+    }
 
     try {
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [...messages, { role: 'user', content: userMessage }]
+          messages: [...messages, { role: 'user', content: input.trim() }]
         }),
       });
 
       const data = await response.json();
       
       if (!response.ok) {
-        if (fallbackKey) {
-            setMessages(prev => [...prev, { 
-                role: 'assistant', 
-                content: localResponses[fallbackKey] 
-            }]);
-        } else if (response.status === 429) {
+        if (response.status === 429) {
           setMessages(prev => [...prev, { 
             role: 'assistant', 
-            content: "It looks like my OpenAI quota has been exceeded. Please check your billing settings at platform.openai.com. In the meantime, I can still assist you with general questions about the CRM, LMS, or Pricing!" 
+            content: "I'm currently in 'Lite Mode' (API quota hit). I can still help you with CRM, LMS, and Billing! Try asking specifically about those." 
           }]);
         } else {
           setMessages(prev => [...prev, { 
             role: 'assistant', 
-            content: `I'm having a bit of trouble: ${data.error || 'Unknown error'}` 
+            content: "I'm having a small connection issue. Please try again or explore our dashboard!" 
           }]);
         }
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
       }
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I'm having trouble connecting right now." }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting to my brain right now. Try again in a second!" }]);
     } finally {
       setIsLoading(false);
     }
