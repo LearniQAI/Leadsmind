@@ -31,10 +31,22 @@ export function AIAssistant() {
   async function handleSend() {
     if (!input.trim() || isLoading) return;
 
-    const userMessage = input.trim();
+    const userMessage = input.trim().toLowerCase();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setMessages(prev => [...prev, { role: 'user', content: input.trim() }]);
     setIsLoading(true);
+
+    // Simple local fallback for common questions if API fails or for speed
+    const localResponses: Record<string, string> = {
+      'crm': "LeadsMind CRM helps you manage leads through custom pipeline stages. You can assign owners to each lead and track progress in real-time.",
+      'lead': "You can create leads manually or import them via CSV in the Contacts section (/contacts).",
+      'lms': "Our LMS allows you to build courses, manage curriculum, and track student enrollment and progress.",
+      'billing': "We offer Starter (Free), Pro ($97/mo), and Enterprise ($297/mo) plans. Each tier scales with your contact volume and team size.",
+      'pricing': "Check our pricing page (/pricing) for a detailed comparison of features across our Starter, Pro, and Enterprise plans.",
+      'stripe': "You can connect your Stripe account in the Settings (/settings/billing) to start accepting payments and generating invoices.",
+    };
+
+    const fallbackKey = Object.keys(localResponses).find(key => userMessage.includes(key));
 
     try {
       const response = await fetch('/api/ai/chat', {
@@ -47,8 +59,23 @@ export function AIAssistant() {
 
       const data = await response.json();
       
-      if (data.error) {
-        setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${data.error}` }]);
+      if (!response.ok) {
+        if (fallbackKey) {
+            setMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: localResponses[fallbackKey] 
+            }]);
+        } else if (response.status === 429) {
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: "It looks like my OpenAI quota has been exceeded. Please check your billing settings at platform.openai.com. In the meantime, I can still assist you with general questions about the CRM, LMS, or Pricing!" 
+          }]);
+        } else {
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: `I'm having a bit of trouble: ${data.error || 'Unknown error'}` 
+          }]);
+        }
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
       }
