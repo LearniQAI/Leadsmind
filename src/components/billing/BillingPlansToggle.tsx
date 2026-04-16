@@ -98,21 +98,26 @@ export function BillingPlansToggle({
               <CardHeader className={cn("pt-8", isFeatured && "pt-10")}>
                 <CardTitle className="text-white text-lg font-black">{tier.name}</CardTitle>
 
-                <div className="mt-4 flex items-baseline gap-2">
+                <div className="mt-4 flex flex-col gap-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-black text-white">
+                      {displayPrice === 0 ? "Free" : `$${displayPrice}`}
+                    </span>
+                    {displayPrice > 0 && (
+                      <span className="text-white/40 text-sm">/{isAnnual ? 'year' : 'mo'}</span>
+                    )}
+                  </div>
+                  
                   {isAnnual && tier.monthlyPrice > 0 && (
-                    <span className="text-white/30 text-lg font-bold">${tier.monthlyPrice}</span>
-                  )}
-                  <span className="text-4xl font-black text-white">
-                    {displayPrice === 0 ? "Free" : `$${displayPrice}`}
-                  </span>
-                  {displayPrice > 0 && (
-                    <span className="text-white/40 text-sm">/{isAnnual ? 'yr' : 'mo'}</span>
+                    <span className="text-white/30 text-[12px] font-bold">
+                      Equivalent to ${tier.monthlyPrice}/mo
+                    </span>
                   )}
                 </div>
 
                 {isAnnual && displayPrice > 0 && (
-                  <p className="text-[11px] text-emerald-400 font-bold mt-1 uppercase tracking-tighter">
-                    Full Annual Access — One-time payment
+                  <p className="text-[11px] text-emerald-400 font-bold mt-2 uppercase tracking-tighter">
+                    Full Annual Access — Billed once
                   </p>
                 )}
               </CardHeader>
