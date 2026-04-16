@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useState, useEffect, useRef } from "react";
-import ReactFlow, {
+import {
+  ReactFlow,
   Background,
   BackgroundVariant,
   Controls,
@@ -13,8 +14,8 @@ import ReactFlow, {
   Edge,
   MarkerType,
   Node,
-} from "reactflow";
-import "reactflow/dist/style.css";
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 
 import { TriggerNode } from "./nodes/TriggerNode";
 import { ActionNode } from "./nodes/ActionNode";
@@ -127,13 +128,15 @@ export function WorkflowBuilder({
   );
 
   const onAddNode = useCallback((type: string, item: any) => {
+    // Destructure icon out so we don't try to sync React components to the server
+    const { icon, ...serializableData } = item;
+    
     const newNode: Node = {
       id: `${type}-${Date.now()}`,
       type,
       position: { x: Math.random() * 400 + 100, y: Math.random() * 400 + 100 },
       data: { 
-        label: item.label, 
-        ...item,
+        ...serializableData,
         analytics: isAnalyticsMode ? { count: 0, status: 'idle' } : undefined
       },
     };

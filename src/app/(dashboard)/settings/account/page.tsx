@@ -1,10 +1,10 @@
 import { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { 
-  requireAuth, 
-  getCurrentProfile, 
-  getUserWorkspaces, 
-  getCurrentWorkspaceId 
+import {
+  requireAuth,
+  getCurrentProfile,
+  getUserWorkspaces,
+  getCurrentWorkspaceId
 } from '@/lib/auth'
 import { ProfileForm } from '@/components/settings/ProfileForm'
 import { PasswordForm } from '@/components/settings/PasswordForm'
@@ -24,7 +24,7 @@ export default async function AccountSettingsPage() {
   const profile = await getCurrentProfile()
   const workspaces = await getUserWorkspaces()
   const activeWorkspaceId = await getCurrentWorkspaceId()
-  
+
   if (!activeWorkspaceId) {
     redirect('/login')
   }
@@ -65,9 +65,9 @@ export default async function AccountSettingsPage() {
         <Separator />
 
         <section id="workspaces">
-          <WorkspaceList 
-            workspaces={workspaces} 
-            activeWorkspaceId={activeWorkspaceId} 
+          <WorkspaceList
+            workspaces={workspaces}
+            activeWorkspaceId={activeWorkspaceId}
           />
         </section>
 
