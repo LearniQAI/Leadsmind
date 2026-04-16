@@ -5,7 +5,8 @@ import {
   twilioSchema, TwilioValues,
   emailSchema, EmailValues,
   metaSchema, MetaValues,
-  linkedinSchema, LinkedinValues
+  linkedinSchema, LinkedinValues,
+  tiktokSchema, TiktokValues
 } from '@/lib/validations/messaging.schema';
 import { revalidatePath } from 'next/cache';
 
@@ -28,7 +29,51 @@ export async function getLinkedInAuthUrl() {
 
     return { success: true, url };
   } catch (error: any) {
-    console.error('[linkedin-auth] Error generating URL:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Generates a TikTok OAuth 2.0 authorization URL.
+ */
+export async function getTikTokAuthUrl() {
+  try {
+    const clientKey = process.env.TIKTOK_CLIENT_KEY || process.env.TIKTOK_CLIENT_ID;
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/tiktok/callback`;
+    const state = Math.random().toString(36).substring(7);
+    const scope = 'user.info.basic,video.list,video.upload,video.publish';
+
+    const url = `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&scope=${encodeURIComponent(scope)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+
+    const cookieStore = await cookies();
+    cookieStore.set('tiktok_auth_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600 });
+
+    return { success: true, url };
+  } catch (error: any) {
+    console.error('[tiktok-auth] Error generating URL:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Generates a Meta (Facebook/Instagram) OAuth authorization URL.
+ */
+export async function getMetaAuthUrl() {
+  try {
+    const clientId = process.env.META_APP_ID || process.env.FACEBOOK_APP_ID;
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/meta/callback`;
+    const state = Math.random().toString(36).substring(7);
+    // Requesting permissions for pages and instagram posting
+    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,public_profile,instagram_basic,instagram_content_publish';
+
+    const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
+
+    const cookieStore = await cookies();
+    cookieStore.set('meta_auth_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600 });
+
+    return { success: true, url };
+  } catch (error: any) {
+    console.error('[meta-auth] Error generating URL:', error);
     return { success: false, error: error.message };
   }
 }
@@ -194,12 +239,17 @@ export async function connectLinkedIn(values: LinkedinValues) {
   return await baseConnect('linkedin', values, linkedinSchema);
 }
 
+export async function connectTikTok(values: TiktokValues) {
+  return await baseConnect('tiktok', values, tiktokSchema);
+}
+
 /**
  * Synchronizes recent messages from all connected platforms for the current workspace.
  */
 export async function syncRecentMessages() {
   try {
     const workspaceId = await getCurrentWorkspaceId();
+    console.log('[syncRecentMessages] workspaceId used for sync:', workspaceId);
     if (!workspaceId) return { success: false, error: 'No active workspace' };
 
     const supabase = await createServerClient();
@@ -247,22 +297,30 @@ async function syncTwilio(workspaceId: string, platform: 'sms' | 'whatsapp', cre
   const twilio = require('twilio');
   const client = twilio(credentials.accountSid, credentials.authToken);
   
-  // Fetch last 10 messages for simplicity
-  const messages = await client.messages.list({ limit: 10, to: platform === 'whatsapp' ? `whatsapp:${credentials.phoneNumber}` : credentials.phoneNumber });
+  // Fetch all messages (both directions) to built complete threads
+  const messages = await client.messages.list({ limit: 20 });
   
   let synced = 0;
   for (const msg of messages) {
-    const externalId = msg.sid;
-    const from = msg.from.replace('whatsapp:', '');
     const direction = msg.direction.includes('inbound') ? 'inbound' : 'outbound';
     
+    // The thread ID should always be the RECIPIENT if we sent it, or the SENDER if we received it
+    // i.e., the "Other Person's" number
+    const otherPersonNumber = (direction === 'inbound' ? msg.from : msg.to).replace('whatsapp:', '');
+    
+    // Only process if this message belongs to the platform we are currently syncing
+    const isWhatsAppMsg = msg.from?.startsWith('whatsapp:') || msg.to?.startsWith('whatsapp:');
+    if (platform === 'whatsapp' && !isWhatsAppMsg) continue;
+    if (platform === 'sms' && isWhatsAppMsg) continue;
+
     const { data: conv } = await supabase
       .from('conversations')
       .upsert({
         workspace_id: workspaceId,
         platform: platform,
-        external_thread_id: from,
-        title: from,
+        external_thread_id: otherPersonNumber,
+        title: otherPersonNumber,
+        last_message_at: new Date(msg.dateCreated).toISOString(),
         updated_at: new Date().toISOString()
       }, { onConflict: 'workspace_id, platform, external_thread_id' })
       .select('id')
@@ -276,8 +334,8 @@ async function syncTwilio(workspaceId: string, platform: 'sms' | 'whatsapp', cre
           conversation_id: conv.id,
           direction: direction,
           content: msg.body,
-          sender_handle: from,
-          external_id: externalId,
+          sender_handle: msg.from.replace('whatsapp:', ''),
+          external_id: msg.sid,
           status: 'delivered',
           sent_at: new Date(msg.dateCreated).toISOString()
         });
@@ -372,13 +430,24 @@ async function syncMeta(workspaceId: string, platform: 'facebook' | 'instagram',
 }
 async function syncGmail(workspaceId: string, supabase: any) {
   try {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      throw new Error('Google OAuth credentials (CLIENT_ID/SECRET) are missing in environment variables.');
+    }
+    console.log(`[sync-gmail] Starting sync for workspace: ${workspaceId}`);
     const { getGmailService } = require('@/lib/google/gmail');
     const gmailService = await getGmailService(workspaceId);
     
-    // Fetch recent threads
-    const { threads } = await gmailService.getThreads(5);
-    if (!threads) return 0;
+    console.log('[sync-gmail] Fetching recent threads...');
+    const gmailData = await gmailService.getThreads(5);
+    console.log('[sync-gmail] Google API response:', JSON.stringify(gmailData));
+    
+    const threads = gmailData.threads;
+    if (!threads || !Array.isArray(threads)) {
+      console.log('[sync-gmail] No threads found or invalid response structure');
+      return 0;
+    }
 
+    console.log(`[sync-gmail] Found ${threads.length} threads. Processing details...`);
     let synced = 0;
     for (const thread of threads) {
       const detail = await gmailService.getMessage(thread.id);
@@ -398,7 +467,7 @@ async function syncGmail(workspaceId: string, supabase: any) {
         .upsert({
           workspace_id: workspaceId,
           platform: 'email',
-          external_thread_id: email,
+          external_thread_id: thread.id, // Group by actual Google Thread ID
           title: subject,
           last_message_at: new Date(date).toISOString(),
           updated_at: new Date(date).toISOString()
@@ -407,6 +476,7 @@ async function syncGmail(workspaceId: string, supabase: any) {
         .single();
 
       if (conv) {
+        console.log(`[sync-gmail] Conversation upserted: ${conv.id}. Upserting message...`);
         // 2. Insert Message (if not already exists)
         const { error: msgErr } = await supabase
           .from('messages')
@@ -421,12 +491,19 @@ async function syncGmail(workspaceId: string, supabase: any) {
             sent_at: new Date(date).toISOString()
           }, { onConflict: 'external_id' });
         
-        if (!msgErr) synced++;
+        if (!msgErr) {
+          synced++;
+        } else {
+          console.error('[sync-gmail] Message upsert error:', msgErr);
+        }
+      } else {
+        console.error('[sync-gmail] Failed to upsert conversation for email:', email);
       }
     }
+    console.log(`[sync-gmail] Sync complete. Total synced: ${synced}`);
     return synced;
-  } catch (err) {
-    console.error('[sync-gmail] Error:', err);
-    return 0;
+  } catch (err: any) {
+    console.error('[sync-gmail] Critical error during sync:', err.message);
+    throw err; // Re-throw to be caught by syncRecentMessages
   }
 }

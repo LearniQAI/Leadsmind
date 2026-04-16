@@ -86,7 +86,7 @@ export async function createCheckoutSession(tierId: string, interval: 'month' | 
       return { error: 'Invalid tier' };
     }
 
-    if (selectedTier.price === 0) {
+    if (selectedTier.monthlyPrice === 0) {
       // If it's the free tier, just update immediately without Stripe
       await supabase.from('workspaces').update({ plan_tier: 'starter' }).eq('id', workspaceId);
       revalidatePath('/settings/billing');
@@ -94,15 +94,15 @@ export async function createCheckoutSession(tierId: string, interval: 'month' | 
     }
 
     let priceId = '';
-    if (tierId === 'growth') {
-      priceId = interval === 'year' 
-        ? process.env.STRIPE_GROWTH_ANNUAL_PRICE_ID || process.env.STRIPE_PRO_ANNUAL_PRICE_ID || '' 
-        : process.env.STRIPE_GROWTH_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID || '';
+    if (tierId === 'pro') {
+      priceId = interval === 'year'
+        ? process.env.STRIPE_PRO_ANNUAL_PRICE_ID || ''
+        : process.env.STRIPE_PRO_PRICE_ID || '';
     }
-    if (tierId === 'agency') {
-      priceId = interval === 'year' 
-        ? process.env.STRIPE_AGENCY_ANNUAL_PRICE_ID || process.env.STRIPE_ENTERPRISE_ANNUAL_PRICE_ID || '' 
-        : process.env.STRIPE_AGENCY_PRICE_ID || process.env.STRIPE_ENTERPRISE_PRICE_ID || '';
+    if (tierId === 'enterprise') {
+      priceId = interval === 'year'
+        ? process.env.STRIPE_ENTERPRISE_ANNUAL_PRICE_ID || ''
+        : process.env.STRIPE_ENTERPRISE_PRICE_ID || '';
     }
 
     if (!priceId) {
@@ -189,8 +189,46 @@ export async function getStripeConnectUrl(workspaceId: string) {
 
 export async function getSaaSTiers() {
   return [
-    { id: 'starter', name: 'Starter', price: 0, features: ['Up to 500 contacts', '1 Pipeline', '5 Tags & custom fields', '2 Team members'] },
-    { id: 'growth', name: 'Growth', price: 97, features: ['Unlimited contacts', 'Unlimited pipelines', 'WhatsApp & Social Inbox', 'Email Campaigns', '5 Team members'] },
-    { id: 'agency', name: 'Agency', price: 297, features: ['Everything in Growth', 'Custom domains & White-label', 'SaaS reseller mode', 'Unlimited sub-accounts', 'Unlimited team members'] },
+    {
+      id: 'starter',
+      name: 'Starter',
+      monthlyPrice: 0,
+      annualPrice: 0,
+      features: [
+        'Up to 500 contacts',
+        '5 Funnels',
+        '1 Pipeline',
+        '2 Team members',
+        'Basic email support',
+      ],
+    },
+    {
+      id: 'pro',
+      name: 'Pro',
+      monthlyPrice: 97,
+      annualPrice: 77,
+      features: [
+        'Unlimited contacts',
+        'Unlimited funnels & pipelines',
+        'WhatsApp & Social Inbox',
+        'Email Campaigns',
+        'SMS via Twilio',
+        'Priority support',
+      ],
+    },
+    {
+      id: 'enterprise',
+      name: 'Enterprise',
+      monthlyPrice: 297,
+      annualPrice: 237,
+      features: [
+        'Everything in Pro',
+        'Custom domains & White-label',
+        'SaaS reseller mode',
+        'Unlimited sub-accounts',
+        'Dedicated account manager',
+        'SLA guarantee',
+      ],
+    },
   ];
 }

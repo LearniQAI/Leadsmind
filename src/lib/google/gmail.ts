@@ -15,11 +15,14 @@ export async function getGmailService(workspaceId: string) {
     .single();
 
   if (error || !connection) {
+    console.error(`[gmail-service] Connection not found for workspace ${workspaceId}:`, error);
     throw new Error('Gmail is not connected for this workspace');
   }
 
+  console.log('[gmail-service] Found connection. Checking token status...');
   // Ensure token is fresh
   const accessToken = await refreshGoogleToken(connection.id, connection.credentials);
+  console.log('[gmail-service] Token ready.');
 
   return {
     /**

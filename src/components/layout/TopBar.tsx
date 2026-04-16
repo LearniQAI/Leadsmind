@@ -30,6 +30,7 @@ const pageTitles: Record<string, string> = {
   '/settings/workspace': 'Workspace Settings',
   '/settings/team': 'Team Members',
   '/settings/account': 'Account Settings',
+  '/social-posts': 'Social Multi-Poster',
 };
 
 export function TopBar({ user, workspace }: TopBarProps) {

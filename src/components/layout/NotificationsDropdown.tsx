@@ -37,7 +37,7 @@ export function NotificationsDropdown() {
     // Setup realtime subscription to the notifications table
     const supabase = createClient();
     const channel = supabase
-      .channel('realtime_notifications')
+      .channel(`notifications-${Math.random().toString(36).substring(7)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications' },

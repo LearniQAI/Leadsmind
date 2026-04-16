@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatBytes } from '@/lib/utils'; // Reusing for numbers or adding formatCurrency
 import { getCurrentWorkspace } from '@/lib/auth';
 import { CheckoutButton } from '@/components/billing/CheckoutButton';
+import { BillingPlansToggle } from '@/components/billing/BillingPlansToggle';
 
 export default async function BillingPage({ searchParams }: { searchParams: { error?: string, success?: string } }) {
   const supabase = await createClient();
@@ -112,65 +113,17 @@ export default async function BillingPage({ searchParams }: { searchParams: { er
         </div>
       )}
 
-      {/* SaaS Plan Selector - Full Width Section */}
+      {/* SaaS Plan Selector */}
       <div className="space-y-6">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-[#6c47ff]" />
-              Platform Subscription
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {tiers.map((tier) => {
-                const isCurrentPlan = workspaceData?.plan_tier === tier.id || (workspaceData?.plan_tier === 'free' && tier.id === 'starter');
-                return (
-                <Card key={tier.id} className={`bg-white/3 border-white/5 relative overflow-hidden flex flex-col ${isCurrentPlan ? 'ring-2 ring-[#6c47ff] border-transparent' : ''}`}>
-                  {isCurrentPlan && (
-                    <div className="absolute top-0 right-0 bg-[#6c47ff] text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-widest">
-                      Current Plan
-                    </div>
-                  )}
-                  <CardHeader>
-                    <CardTitle className="text-white text-lg">{tier.name}</CardTitle>
-                    <div className="flex items-baseline gap-1 mt-2">
-                      <span className="text-3xl font-extrabold text-white">${tier.price}</span>
-                      <span className="text-white/40 text-sm">/mo</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex-1">
-                    <ul className="space-y-3 mb-8">
-                      {tier.features.map((feat, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-white/50">
-                          <CheckCircle2 className="h-4 w-4 text-[#6c47ff] mt-0.5" />
-                          <span>{feat}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                  <CardContent className="pt-0 pb-6 mt-auto">
-                    <div className="flex flex-col gap-3">
-                      <CheckoutButton
-                        tierId={tier.id}
-                        interval="month"
-                        disabled={isCurrentPlan}
-                        isCurrentPlan={isCurrentPlan}
-                        price={tier.price}
-                      />
-                      
-                      {tier.price > 0 && !isCurrentPlan && (
-                        <CheckoutButton
-                          tierId={tier.id}
-                          interval="year"
-                          disabled={isCurrentPlan}
-                          isCurrentPlan={false}
-                          price={tier.price}
-                        />
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-                );
-              })}
-            </div>
-          </div>
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <CreditCard className="h-5 w-5 text-[#6c47ff]" />
+          Platform Subscription
+        </h2>
+        <BillingPlansToggle 
+          tiers={tiers} 
+          currentPlanTier={workspaceData?.plan_tier}
+        />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* Left Column: Invoices */}
