@@ -35,7 +35,10 @@ const NODE_CATEGORIES = [
     items: [
       { type: "action", label: "Send SMS", icon: MessageSquare, actionType: "sms", color: "#6c47ff", description: "Send automated text message" },
       { type: "action", label: "Send Email", icon: Mail, actionType: "email", color: "#6c47ff", description: "Send personalized email" },
-      { type: "action", label: "Apply Tag", icon: Tag, actionType: "tag", color: "#6c47ff", description: "Add tag to the contact" }
+      { type: "action", label: "Apply Tag", icon: Tag, actionType: "tag", color: "#6c47ff", description: "Add tag to the contact" },
+      { type: "action", label: "Social Post", icon: ArrowRight, actionType: "social_post", color: "#ec4899", description: "Post to Facebook/LinkedIn" },
+      { type: "action", label: "LMS Enroll", icon: Zap, actionType: "lms_enroll", color: "#8b5cf6", description: "Enroll student in course" },
+      { type: "action", label: "LMS Progress", icon: ArrowRight, actionType: "lms_update_progress", color: "#8b5cf6", description: "Update lesson progress" }
     ]
   }
 ];

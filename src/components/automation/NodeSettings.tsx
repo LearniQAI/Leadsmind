@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface NodeSettingsProps {
   node: any;
@@ -80,25 +81,90 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
               </div>
             </div>
           )}
-
-          {/* Tag Settings */}
-          {data.actionType === 'tag' && (
+          {data.actionType === 'social_post' && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Select Tag</label>
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Platform</label>
+                <div className="grid grid-cols-2 gap-2">
+                   <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      const platforms = data.platforms || [];
+                      const next = platforms.includes('facebook') ? platforms.filter((p: string) => p !== 'facebook') : [...platforms, 'facebook'];
+                      handleChange('platforms', next);
+                    }}
+                    className={cn("bg-white/5 border-white/10 text-[10px]", (data.platforms || []).includes('facebook') && "bg-[#6c47ff]/20 border-[#6c47ff]/50 text-white")}
+                   >
+                     Facebook
+                   </Button>
+                   <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      const platforms = data.platforms || [];
+                      const next = platforms.includes('linkedin') ? platforms.filter((p: string) => p !== 'linkedin') : [...platforms, 'linkedin'];
+                      handleChange('platforms', next);
+                    }}
+                    className={cn("bg-white/5 border-white/10 text-[10px]", (data.platforms || []).includes('linkedin') && "bg-[#6c47ff]/20 border-[#6c47ff]/50 text-white")}
+                   >
+                     LinkedIn
+                   </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Post Content</label>
+                <Textarea 
+                  value={data.content || ""} 
+                  onChange={(e) => handleChange('content', e.target.value)}
+                  className="bg-white/5 border-white/10 text-white min-h-[100px]"
+                  placeholder="What would you like to share?"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* LMS Enroll Settings */}
+          {data.actionType === 'lms_enroll' && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Select Course</label>
                 <Select 
-                  value={data.tag || ""} 
-                  onValueChange={(val) => handleChange('tag', val)}
+                  value={data.courseId || ""} 
+                  onValueChange={(val) => handleChange('courseId', val)}
                 >
                   <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                    <SelectValue placeholder="Choose a tag..." />
+                    <SelectValue placeholder="Choose a course..." />
                   </SelectTrigger>
                   <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
-                    <SelectItem value="hot-lead">Hot Lead</SelectItem>
-                    <SelectItem value="follow-up">Needs Follow-up</SelectItem>
-                    <SelectItem value="newsletter">Newsletter Subscriber</SelectItem>
+                    <SelectItem value="course-1">Mastering Leadsmind</SelectItem>
+                    <SelectItem value="course-2">Advanced Automation</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+          )}
+
+          {/* LMS Progress Settings */}
+          {data.actionType === 'lms_update_progress' && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Lesson ID</label>
+                <Input 
+                  value={data.lessonId || ""} 
+                  onChange={(e) => handleChange('lessonId', e.target.value)}
+                  className="bg-white/5 border-white/10 text-white"
+                  placeholder="Enter Lesson UUID"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox"
+                  checked={!!data.completed}
+                  onChange={(e) => handleChange('completed', e.target.checked)}
+                  className="w-4 h-4 rounded border-white/10 bg-white/5"
+                />
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Mark as Completed</label>
               </div>
             </div>
           )}

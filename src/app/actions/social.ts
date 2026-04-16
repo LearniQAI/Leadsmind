@@ -36,7 +36,7 @@ export async function createSocialPost(values: {
     if (!workspaceId) return { success: false, error: 'No active workspace' };
 
     const supabase = await createServerClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('social_posts')
       .insert({
         workspace_id: workspaceId,
@@ -45,12 +45,14 @@ export async function createSocialPost(values: {
         media_urls: values.media_urls || [],
         scheduled_at: values.scheduled_at,
         status: values.scheduled_at ? 'scheduled' : 'draft',
-      });
+      })
+      .select()
+      .single();
 
     if (error) throw error;
 
     revalidatePath('/social-posts');
-    return { success: true };
+    return { success: true, id: data.id };
   } catch (error: any) {
     console.error('[social-posts] Error creating post:', error);
     return { success: false, error: error.message };

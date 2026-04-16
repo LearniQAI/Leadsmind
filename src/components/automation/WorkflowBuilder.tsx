@@ -23,9 +23,10 @@ import { DelayNode } from "./nodes/DelayNode";
 import { NodesPanel } from "./NodesPanel";
 import { ExecutionLogs } from "./ExecutionLogs";
 import { NodeSettings } from "./NodeSettings";
+import { WorkflowGuide } from "./WorkflowGuide";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Save, Play, BarChart2, Shield, Plus, Loader2, History, Zap } from "lucide-react";
+import { Save, Play, BarChart2, Shield, Plus, Loader2, History, Zap, HelpCircle } from "lucide-react";
 import { updateWorkflow } from "@/app/actions/automation";
 import { toast } from "sonner";
 
@@ -56,6 +57,7 @@ export function WorkflowBuilder({
   const [isSaving, setIsSaving] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -103,30 +105,25 @@ export function WorkflowBuilder({
 
   const onConnect = useCallback(
     (params: Connection) => {
-      const isLoop = edges.some(e => e.source === params.target && e.target === params.source);
-      
       setEdges((eds) =>
         addEdge(
           {
             ...params,
-            animated: true,
+            animated: false,
             style: { 
-              stroke: isLoop ? "#f59e0b" : "#6c47ff", 
+              stroke: "#94a3b8", // Slate 400
               strokeWidth: 2,
-              strokeDasharray: isLoop ? "5,5" : "none"
             },
             markerEnd: {
               type: MarkerType.ArrowClosed,
-              color: isLoop ? "#f59e0b" : "#6c47ff",
+              color: "#94a3b8",
             },
-            label: isLoop ? "Loop" : undefined,
-            labelStyle: { fill: "#f59e0b", fontWeight: 900, fontSize: 10 },
           },
           eds
         )
       );
     },
-    [edges, setEdges]
+    [setEdges]
   );
 
   const onAddNode = useCallback((type: string, item: any) => {
@@ -195,6 +192,17 @@ export function WorkflowBuilder({
             </span>
           </Button>
 
+          <Button 
+            variant="secondary" 
+            className="bg-[#1a1a24] border-white/5 text-white gap-2 hover:bg-white/10 rounded-2xl"
+            onClick={() => setShowGuide(true)}
+          >
+            <HelpCircle className={showGuide ? "text-amber-400" : "text-white/40"} size={16} />
+            <span className="text-xs font-bold uppercase tracking-wider">
+              Guide
+            </span>
+          </Button>
+
           {isSaving && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
               <Loader2 className="animate-spin text-white/40" size={12} />
@@ -248,6 +256,7 @@ export function WorkflowBuilder({
 
       {showPanel && <NodesPanel onAddNode={onAddNode} />}
       {showLogs && workflowId && <ExecutionLogs workflowId={workflowId} />}
+      {showGuide && <WorkflowGuide onClose={() => setShowGuide(false)} />}
       {selectedNode && (
         <NodeSettings 
           node={selectedNode} 
@@ -271,11 +280,11 @@ export function WorkflowBuilder({
           snapGrid={[15, 15]}
         >
           <Background 
-            color="#6c47ff" 
-            gap={30} 
-            size={1.5} 
-            variant={BackgroundVariant.Dots} 
-            className="opacity-10"
+            color="#ffffff" 
+            gap={40} 
+            size={1} 
+            variant={BackgroundVariant.Lines} 
+            className="opacity-[0.03]"
           />
           <Controls className="bg-[#1a1a24] border-white/5 !fill-white rounded-xl overflow-hidden mb-6 ml-6" />
           <MiniMap 

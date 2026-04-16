@@ -148,3 +148,21 @@ export async function getAutomationStats(workspaceId: string) {
     successRate: totalRecent ? Math.round(((totalRecent - (failureCount || 0)) / totalRecent) * 100) : 100
   };
 }
+
+export async function getAutomationLogsForContact(contactId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('automation_logs')
+    .select(`
+      *,
+      workflow:automation_workflows(name)
+    `)
+    .eq('contact_id', contactId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[automation-logs] Error:', error);
+    return [];
+  }
+  return data || [];
+}

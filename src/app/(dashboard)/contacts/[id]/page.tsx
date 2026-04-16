@@ -5,6 +5,7 @@ import {
   getContactNotes, 
   getContactTasks 
 } from '@/app/actions/crm';
+import { getAutomationLogsForContact } from '@/app/actions/automation';
 import { ContactDetailLayout } from '@/components/crm/ContactDetailLayout';
 import { ActivityTimeline } from '@/components/crm/ActivityTimeline';
 import { NotesSection } from '@/components/crm/NotesSection';
@@ -19,6 +20,8 @@ import {
 } from 'lucide-react';
 import { getContactDocuments } from '@/app/actions/media';
 import { DocumentsSection } from '@/components/crm/DocumentsSection';
+import { AutomationLogsSection } from '@/components/crm/AutomationLogsSection';
+import { Zap } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,13 +37,15 @@ export default async function ContactDetailPage({
     activitiesResult, 
     notesResult, 
     tasksResult,
-    docsResult
+    docsResult,
+    automationLogsResult
   ] = await Promise.all([
     getContact(id),
     getContactActivities(id),
     getContactNotes(id),
     getContactTasks(id),
-    getContactDocuments(id)
+    getContactDocuments(id),
+    getAutomationLogsForContact(id)
   ]);
 
   if (!contactResult.success) {
@@ -76,6 +81,10 @@ export default async function ContactDetailPage({
             <FileText className="h-4 w-4" />
             <span>Documents</span>
           </TabsTrigger>
+          <TabsTrigger value="automation" className="rounded-xl px-6 data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] gap-2 font-bold transition-all">
+            <Zap className="h-4 w-4" />
+            <span>Automation</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="activity" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -92,6 +101,10 @@ export default async function ContactDetailPage({
 
         <TabsContent value="documents" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           <DocumentsSection contactId={id} documents={documents} />
+        </TabsContent>
+
+        <TabsContent value="automation" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <AutomationLogsSection logs={automationLogsResult || []} />
         </TabsContent>
         
       </Tabs>

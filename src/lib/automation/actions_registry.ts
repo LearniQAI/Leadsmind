@@ -2,6 +2,8 @@ import { createServerClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
 import { sendSMS } from "@/lib/sms";
 import { calculateLeadScore } from "@/app/actions/automation";
+import { publishSocialPost } from "@/app/actions/social";
+import { enrollStudent, updateProgress } from "@/app/actions/lms";
 
 export const AutomationActions = {
   send_email: async (workspaceId: string, contactId: string, config: any) => {
@@ -104,5 +106,32 @@ export const AutomationActions = {
 
   lead_score: async (workspaceId: string, contactId: string) => {
     await calculateLeadScore(contactId);
+  },
+
+  social_post: async (workspaceId: string, contactId: string, config: any) => {
+    const { content, platforms } = config;
+    if (!content || !platforms) return;
+
+    // Create and publish social post
+    const result = await (await import("@/app/actions/social")).createSocialPost({
+      content,
+      platforms
+    });
+
+    if (result.success && result.id) {
+      await (await import("@/app/actions/social")).publishSocialPost(result.id);
+    }
+  },
+
+  lms_enroll: async (workspaceId: string, contactId: string, config: any) => {
+    const { courseId } = config;
+    if (!courseId) return;
+    await enrollStudent(courseId, contactId);
+  },
+
+  lms_update_progress: async (workspaceId: string, contactId: string, config: any) => {
+    const { lessonId, completed } = config;
+    if (!lessonId) return;
+    await updateProgress(contactId, lessonId, !!completed, 0);
   }
 };

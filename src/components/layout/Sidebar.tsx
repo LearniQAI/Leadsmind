@@ -95,6 +95,7 @@ const navGroups: NavGroup[] = [
     name: 'Marketing',
     items: [
       { name: 'Social Posts', href: '/social-posts', icon: Share2 },
+      { name: 'Lead Forms', href: '/forms', icon: LayoutDashboard },
       { name: 'Automations', href: '/automations', icon: Zap },
     ]
   },
