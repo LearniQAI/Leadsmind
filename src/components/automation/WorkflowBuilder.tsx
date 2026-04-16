@@ -3,6 +3,7 @@
 import { useCallback, useState, useEffect, useRef } from "react";
 import ReactFlow, {
   Background,
+  BackgroundVariant,
   Controls,
   MiniMap,
   useNodesState,
@@ -273,7 +274,7 @@ export function WorkflowBuilder({
             color="#6c47ff" 
             gap={30} 
             size={1.5} 
-            variant="dots" 
+            variant={BackgroundVariant.Dots} 
             className="opacity-10"
           />
           <Controls className="bg-[#1a1a24] border-white/5 !fill-white rounded-xl overflow-hidden mb-6 ml-6" />

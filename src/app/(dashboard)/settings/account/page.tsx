@@ -23,6 +23,10 @@ export default async function AccountSettingsPage() {
   const profile = await getCurrentProfile()
   const workspaces = await getUserWorkspaces()
   const activeWorkspaceId = await getCurrentWorkspaceId()
+  
+  if (!activeWorkspaceId) {
+    redirect('/login')
+  }
 
   if (!profile) {
     return <div>Error loading profile</div>
