@@ -1,5 +1,8 @@
-'use client'
+'use client';
 
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 import { Play, Check, Star, Zap, CreditCard } from 'lucide-react'
 import { BackgroundEffects } from '@/components/marketing/BackgroundEffects'
 import { BillingPlansToggle } from '@/components/billing/BillingPlansToggle'
