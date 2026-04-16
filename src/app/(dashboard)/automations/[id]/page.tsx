@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation';
 
 interface AutomationPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default function AutomationPage({ params }: AutomationPageProps) {
+export default async function AutomationPage({ params }: AutomationPageProps) {
+  const { id } = await params;
   // Prevent 404 by redirecting to the builder
-  redirect(`/automations/${params.id}/edit`);
+  redirect(`/automations/${id}/edit`);
 }

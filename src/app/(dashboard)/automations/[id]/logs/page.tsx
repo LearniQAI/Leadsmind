@@ -8,12 +8,13 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 interface LogsPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function LogsPage({ params }: LogsPageProps) {
+  const { id } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -23,7 +24,7 @@ export default async function LogsPage({ params }: LogsPageProps) {
   const { data: workflow } = await supabase
     .from("automation_workflows")
     .select("name")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!workflow) notFound();
@@ -39,7 +40,7 @@ export default async function LogsPage({ params }: LogsPageProps) {
         email
       )
     `)
-    .eq("workflow_id", params.id)
+    .eq("workflow_id", id)
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -58,7 +59,7 @@ export default async function LogsPage({ params }: LogsPageProps) {
           </div>
         </div>
         
-        <Link href={`/automations/${params.id}/edit`}>
+        <Link href={`/automations/${id}/edit`}>
           <Button variant="secondary" className="bg-white/5 border-white/10 text-white gap-2 rounded-xl">
             <Activity size={16} className="text-[#6c47ff]" />
             Return to Builder

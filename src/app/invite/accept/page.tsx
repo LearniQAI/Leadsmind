@@ -7,11 +7,11 @@ import { redirect } from 'next/navigation';
 import { AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 interface InvitePageProps {
-  searchParams: { token?: string };
+  searchParams: Promise<{ token?: string }>;
 }
 
 export default async function InviteAcceptPage({ searchParams }: InvitePageProps) {
-  const token = searchParams.token;
+  const { token } = await searchParams;
 
   if (!token) {
     return (

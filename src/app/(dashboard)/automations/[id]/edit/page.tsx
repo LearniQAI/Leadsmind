@@ -6,12 +6,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 interface EditAutomationPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function EditAutomationPage({ params }: EditAutomationPageProps) {
+  const { id } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -20,7 +21,7 @@ export default async function EditAutomationPage({ params }: EditAutomationPageP
   const { data: workflow } = await supabase
     .from("automation_workflows")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!workflow) notFound();
@@ -57,7 +58,7 @@ export default async function EditAutomationPage({ params }: EditAutomationPageP
       {/* Main Canvas Area */}
       <main className="flex-1 relative overflow-hidden">
         <WorkflowBuilder 
-          workflowId={params.id}
+          workflowId={id}
           initialNodes={workflow.nodes as any}
           initialEdges={workflow.edges as any}
           initialStatus={workflow.status}
