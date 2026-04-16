@@ -56,24 +56,14 @@ export async function createCheckoutSession(tierId: string, interval: 'month' | 
       return { error: 'Not authenticated' };
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
+    const { data: membership } = await supabase
+      .from('workspace_members')
       .select('workspace_id')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
+      .limit(1)
       .single();
 
-    let workspaceId = profile?.workspace_id;
-
-    // Fallback: Use the same cookie-based logic as getCurrentWorkspace
-    if (!workspaceId) {
-      const { data: member } = await supabase
-        .from('workspace_members')
-        .select('workspace_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .single();
-      workspaceId = member?.workspace_id;
-    }
+    let workspaceId = membership?.workspace_id;
 
     if (!workspaceId) {
       return { error: 'Workspace not found. Need an active workspace to upgrade.' };

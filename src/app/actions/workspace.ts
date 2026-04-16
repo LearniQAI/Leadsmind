@@ -1,11 +1,14 @@
 'use server';
 
 import { createServerClient } from '@/lib/supabase/server';
-import { getCurrentWorkspaceId, getUser, getCurrentWorkspace } from '@/lib/auth';
+import { getCurrentWorkspaceId, getUser, getCurrentWorkspace, requireAdmin } from '@/lib/auth';
 import { WorkspaceValues } from '@/lib/validations/workspace.schema';
+import { AutomationSettingsValues } from '@/lib/validations/automation-settings.schema';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { Resend } from 'resend';
+import { Twilio } from 'twilio';
 
 export async function getWorkspaceMembers() {
   let workspaceId = await getCurrentWorkspaceId();
@@ -210,4 +213,53 @@ export async function createNewWorkspace(name: string) {
 
   revalidatePath('/settings/account');
   return { success: true, workspace } as const;
+}
+
+export async function updateAutomationSettings(values: AutomationSettingsValues) {
+  await requireAdmin();
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, error: 'No active workspace' };
+
+  const supabase = await createServerClient();
+
+  const { error } = await supabase
+    .from('workspaces')
+    .update({
+      resend_api_key: values.resend_api_key,
+      email_from_name: values.email_from_name,
+      email_from_address: values.email_from_address,
+      twilio_sid: values.twilio_sid,
+      twilio_token: values.twilio_token,
+      twilio_number: values.twilio_number,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', workspaceId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/settings/automation');
+  return { success: true };
+}
+
+export async function testResendConnection(apiKey: string) {
+  try {
+    const resend = new Resend(apiKey);
+    const { data, error } = await resend.apiKeys.list();
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to verify Resend API key' };
+  }
+}
+
+export async function testTwilioConnection(sid: string, token: string) {
+  try {
+    const client = new Twilio(sid, token);
+    await client.api.v2010.accounts(sid).fetch();
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to verify Twilio credentials' };
+  }
 }

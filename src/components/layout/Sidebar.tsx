@@ -111,6 +111,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'Billing', href: '/settings/billing', icon: CreditCard },
       { name: 'Settings', href: '/settings/account', icon: Building2 },
+      { name: 'Automation', href: '/settings/automation', icon: Zap },
     ]
   }
 ];

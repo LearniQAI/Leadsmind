@@ -22,4 +22,4 @@ ALTER TABLE public.automation_workflows ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Workspace owners can manage workflows"
 ON public.automation_workflows FOR ALL
 TO authenticated
-USING (workspace_id = (SELECT workspace_id FROM profiles WHERE id = auth.uid()));
+USING (workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()));

@@ -20,15 +20,32 @@ export default function NewAutomationPage() {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase.from('profiles').select('workspace_id').eq('id', user?.id).single();
-      
-      if (!profile?.workspace_id) throw new Error('No workspace found');
+      if (!user) throw new Error('Authentication required');
 
-      const workflow = await createWorkflow(profile.workspace_id, name);
-      toast.success('Workflow created');
+      const { data: membership, error: memberError } = await supabase
+        .from('workspace_members')
+        .select('workspace_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single();
+      
+      if (memberError || !membership?.workspace_id) {
+        throw new Error('You must be a member of a workspace to create automations');
+      }
+
+      const workflow = await createWorkflow(membership.workspace_id, name);
+      
+      if (!workflow?.id) {
+        throw new Error('Failed to retrieve new workflow ID');
+      }
+
+      toast.success('Workflow initialized successfully');
+      
+      // Navigate to the edit builder
       router.push(`/automations/${workflow.id}/edit`);
-    } catch (error) {
-      toast.error('Failed to create workflow');
+    } catch (error: any) {
+      console.error("Workflow creation error:", error);
+      toast.error(error.message || 'Failed to create workflow');
       setLoading(false);
     }
   };

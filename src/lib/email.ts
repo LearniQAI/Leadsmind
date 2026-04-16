@@ -5,16 +5,34 @@ interface SendEmailProps {
   subject: string
   react: React.ReactElement
   text?: string
+  config?: {
+    apiKey?: string | null
+    fromEmail?: string | null
+    fromName?: string | null
+  }
 }
 
-export async function sendEmail({ to, subject, react, text }: SendEmailProps) {
-  const resend = new Resend(process.env.RESEND_API_KEY)
+export async function sendEmail({ to, subject, react, text, config }: SendEmailProps) {
+  const apiKey = config?.apiKey || process.env.RESEND_API_KEY
+  const fromAddress = config?.fromEmail || 'onboarding@resend.dev'
+  const fromName = config?.fromName || 'LeadsMind'
+  
+  if (!apiKey || apiKey === 're_123') {
+    console.log('--- EMAIL SANDBOX MODE ---')
+    console.log(`To: ${to}`)
+    console.log(`Subject: ${subject}`)
+    console.log(`Body (Text): ${text || 'React component provided'}`)
+    console.log('---------------------------')
+    return { id: 'mock_id_' + Date.now() }
+  }
+
+  const resend = new Resend(apiKey)
   try {
     const { data, error } = await resend.emails.send({
-      from: 'LeadsMind <onboarding@resend.dev>', // Update with verified domain in production
+      from: `${fromName} <${fromAddress}>`,
       to,
       subject,
-      react,
+      react: react as any,
       text: text || '',
     })
 

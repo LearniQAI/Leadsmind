@@ -9,9 +9,12 @@ import {
   Settings,
   Clock,
   ArrowRight,
-  MoreVertical
+  MoreVertical,
+  Edit,
+  History
 } from 'lucide-react';
 import Link from 'next/link';
+import { DeleteAutomationItem } from '@/components/automation/DeleteAutomationItem';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -73,10 +76,20 @@ export default async function AutomationsPage() {
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   } />
-                  <DropdownMenuContent align="end" className="bg-[#1a1a24] border-white/5 text-white">
-                    <DropdownMenuItem>Edit Logic</DropdownMenuItem>
-                    <DropdownMenuItem>View Logs</DropdownMenuItem>
-                    <DropdownMenuItem className="text-red-400">Delete</DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="bg-[#1a1a24] border-white/5 text-white p-1 rounded-xl">
+                    <Link href={`/automations/${wf.id}/edit`}>
+                      <DropdownMenuItem className="cursor-pointer">
+                        <Edit className="mr-2 h-4 w-4 text-white/40" />
+                        Edit Logic
+                      </DropdownMenuItem>
+                    </Link>
+                    <Link href={`/automations/${wf.id}/logs`}>
+                      <DropdownMenuItem className="cursor-pointer">
+                        <History className="mr-2 h-4 w-4 text-white/40" />
+                        View Logs
+                      </DropdownMenuItem>
+                    </Link>
+                    <DeleteAutomationItem id={wf.id} />
                   </DropdownMenuContent>
                 </DropdownMenu>
               </CardHeader>

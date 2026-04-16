@@ -58,7 +58,7 @@ export async function createContact(payload: {
         return { success: false, error: 'Failed to create contact' };
     }
 
-    // Log activity
+    // 1. Log Activity
     await supabase.from('contact_activities').insert({
         workspace_id: workspaceId,
         contact_id: contact.id,
@@ -66,6 +66,15 @@ export async function createContact(payload: {
         description: `Contact created by ${user.email}`,
         created_by: user.id
     });
+
+    // 2. Trigger Automations
+    try {
+        const { triggerWorkflows } = await import('@/lib/automation/executor');
+        await triggerWorkflows(workspaceId, 'Contact Created', contact.id);
+    } catch (err) {
+        console.error('Automation trigger failed:', err);
+        // We don't fail the contact creation if automation fails
+    }
 
     revalidatePath('/contacts');
     return { success: true, data: contact };
