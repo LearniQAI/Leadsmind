@@ -8,6 +8,7 @@ import { getSocialPosts } from '@/app/actions/social';
 
 export default async function SocialPostsPage() {
   const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) redirect('/login');
   const connectedPlatforms = await getConnectedPlatforms();
   const initialPosts = await getSocialPosts();
 

@@ -8,6 +8,7 @@ import { Shield, Zap, Info } from 'lucide-react';
 export default async function AutomationSettingsPage() {
   await requireAdmin();
   const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) redirect('/login');
 
   const supabase = await createServerClient();
   

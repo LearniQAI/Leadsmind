@@ -11,6 +11,7 @@ export const metadata = {
 export default async function NewSocialPostPage() {
   const supabase = await createServerClient();
   const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) redirect('/login');
   
   // Get connected platforms
   const { data: platformsData } = await supabase
