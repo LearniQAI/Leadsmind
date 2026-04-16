@@ -73,7 +73,7 @@ export function BillingPlansToggle({
             <Card
               key={tier.id}
               className={cn(
-                "relative overflow-hidden flex flex-col transition-all duration-300",
+                "relative flex flex-col transition-all duration-300",
                 isFeatured
                   ? "bg-[#6c47ff]/10 border-[#6c47ff]/40 ring-2 ring-[#6c47ff]/50 shadow-[0_0_60px_rgba(108,71,255,0.12)]"
                   : "bg-white/[0.03] border-white/5",
