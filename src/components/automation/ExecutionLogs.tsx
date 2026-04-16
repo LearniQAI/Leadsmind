@@ -100,7 +100,9 @@ export function ExecutionLogs({ workflowId }: ExecutionLogsProps) {
               </div>
 
               {log.status === 'error' && (
-                <XCircle size={14} className="text-rose-500 opacity-50" title={log.error_message} />
+                <div title={log.error_message || undefined}>
+                  <XCircle size={14} className="text-rose-500 opacity-50" />
+                </div>
               )}
               {log.status === 'success' && (
                 <CheckCircle2 size={14} className="text-emerald-500 opacity-50" />
