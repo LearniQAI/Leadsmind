@@ -96,7 +96,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'Social Posts', href: '/social-posts', icon: Share2 },
       { name: 'Lead Forms', href: '/forms', icon: LayoutDashboard },
-      { name: 'Automations', href: '/automations', icon: Zap },
+      { name: 'Workflows', href: '/automations', icon: Zap },
     ]
   },
   {
@@ -112,7 +112,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'Billing', href: '/settings/billing', icon: CreditCard },
       { name: 'Settings', href: '/settings/account', icon: Building2 },
-      { name: 'Automation', href: '/settings/automation', icon: Zap },
+      { name: 'Automation Settings', href: '/settings/automation', icon: Zap },
     ]
   }
 ];

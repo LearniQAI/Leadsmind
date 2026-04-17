@@ -119,12 +119,12 @@ export function ContactDetailLayout({ contact, children }: ContactDetailLayoutPr
                  Tags
                </span>
                <div className="flex flex-wrap gap-2">
-                 {contact.tags.map(tag => (
+                 {contact.tags?.map(tag => (
                    <Badge key={tag} className="bg-white/5 hover:bg-white/10 text-white/60 border-none px-3 py-1 rounded-lg text-xs font-medium transition-colors">
                      {tag}
                    </Badge>
                  ))}
-                 {contact.tags.length === 0 && <span className="text-xs text-white/20 italic">No tags</span>}
+                 {(!contact.tags || contact.tags.length === 0) && <span className="text-xs text-white/20 italic">No tags</span>}
                </div>
             </div>
           </div>

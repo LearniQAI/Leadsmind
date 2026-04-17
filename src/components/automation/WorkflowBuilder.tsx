@@ -110,14 +110,17 @@ export function WorkflowBuilder({
         addEdge(
           {
             ...params,
-            animated: false,
+            animated: true,
+            type: 'smoothstep',
+            interactionWidth: 20,
             style: { 
-              stroke: "#94a3b8", // Slate 400
-              strokeWidth: 2,
+              stroke: "#6c47ff", 
+              strokeWidth: 3,
+              opacity: 0.6
             },
             markerEnd: {
               type: MarkerType.ArrowClosed,
-              color: "#94a3b8",
+              color: "#6c47ff",
             },
           },
           eds
@@ -131,19 +134,31 @@ export function WorkflowBuilder({
     // Destructure icon out so we don't try to sync React components to the server
     const { icon, ...serializableData } = item;
     
+    // Find better position (center or relative to current nodes)
+    const position = nodes.length > 0 
+      ? { x: nodes[nodes.length - 1].position.x + 250, y: nodes[nodes.length - 1].position.y }
+      : { x: 100, y: 100 };
+
     const newNode: Node = {
       id: `${type}-${Date.now()}`,
       type,
-      position: { x: Math.random() * 400 + 100, y: Math.random() * 400 + 100 },
+      position,
       data: { 
         ...serializableData,
         analytics: isAnalyticsMode ? { count: 0, status: 'idle' } : undefined
       },
     };
+
     setNodes((nds) => nds.concat(newNode));
+
+    // If it's a trigger, we also want to update the root workflow record's trigger_type column
+    if (type === 'trigger' && workflowId && item.triggerType) {
+       updateWorkflow(workflowId, { trigger_type: item.triggerType });
+    }
+
     setShowPanel(false);
     toast.success(`${item.label} added to workflow`);
-  }, [setNodes, isAnalyticsMode]);
+  }, [setNodes, isAnalyticsMode, nodes, workflowId]);
 
   const handleManualSave = async () => {
     if (!workflowId) return;
@@ -196,13 +211,12 @@ export function WorkflowBuilder({
           </Button>
 
           <Button 
-            variant="secondary" 
-            className="bg-[#1a1a24] border-white/5 text-white gap-2 hover:bg-white/10 rounded-2xl"
+            className="bg-amber-500/10 border border-amber-500/20 text-amber-500 gap-2 hover:bg-amber-500/20 rounded-2xl animate-pulse"
             onClick={() => setShowGuide(true)}
           >
-            <HelpCircle className={showGuide ? "text-amber-400" : "text-white/40"} size={16} />
-            <span className="text-xs font-bold uppercase tracking-wider">
-              Guide
+            <HelpCircle size={16} />
+            <span className="text-xs font-black uppercase tracking-wider">
+              How-To Guide
             </span>
           </Button>
 
@@ -284,10 +298,10 @@ export function WorkflowBuilder({
         >
           <Background 
             color="#ffffff" 
-            gap={40} 
-            size={1} 
-            variant={BackgroundVariant.Lines} 
-            className="opacity-[0.03]"
+            gap={20} 
+            size={0.5} 
+            variant={BackgroundVariant.Dots} 
+            className="opacity-[0.05]"
           />
           <Controls className="bg-[#1a1a24] border-white/5 !fill-white rounded-xl overflow-hidden mb-6 ml-6" />
           <MiniMap 

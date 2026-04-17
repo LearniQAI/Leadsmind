@@ -18,9 +18,11 @@ const NODE_CATEGORIES = [
   {
     title: "Triggers",
     items: [
-      { type: "trigger", label: "Contact Created", icon: UserPlus, color: "#10b981", description: "When a new lead enters the system" },
-      { type: "trigger", label: "Tag Added", icon: Tag, color: "#10b981", description: "When a specific tag is applied" },
-      { type: "trigger", label: "Webhook", icon: Zap, color: "#10b981", description: "Trigger from external HTTP request" }
+      { type: "trigger", triggerType: "contact_created", label: "Contact Created", icon: UserPlus, color: "#10b981", description: "When a new lead enters the system" },
+      { type: "trigger", triggerType: "lead_scored", label: "Lead Scored", icon: Zap, color: "#10b981", description: "When a lead score is calculated" },
+      { type: "trigger", triggerType: "tag_added", label: "Tag Added", icon: Tag, color: "#10b981", description: "When a specific tag is applied" },
+      { type: "trigger", triggerType: "form_submitted", label: "Form Submitted", icon: Mail, color: "#10b981", description: "When a lead forms is submitted" },
+      { type: "trigger", triggerType: "webhook", label: "Webhook", icon: Share2, color: "#10b981", description: "Trigger from external HTTP request" }
     ]
   },
   {

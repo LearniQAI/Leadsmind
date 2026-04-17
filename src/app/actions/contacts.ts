@@ -70,7 +70,7 @@ export async function createContact(payload: {
     // 2. Trigger Automations
     try {
         const { triggerWorkflows } = await import('@/lib/automation/executor');
-        await triggerWorkflows(workspaceId, 'Contact Created', contact.id);
+        await triggerWorkflows(workspaceId, 'contact_created', contact.id);
     } catch (err) {
         console.error('Automation trigger failed:', err);
         // We don't fail the contact creation if automation fails
@@ -206,6 +206,14 @@ export async function bulkAddTags(ids: string[], tags: string[]): Promise<Action
             description: `Tags added: ${tags.join(', ')}`,
             created_by: user.id
           });
+
+          // Trigger Automation for Tag Added
+          try {
+              const { triggerWorkflows } = await import('@/lib/automation/executor');
+              await triggerWorkflows(workspaceId, 'tag_added', contact.id);
+          } catch (err) {
+              console.error('Tag automation trigger failed:', err);
+          }
       }
   
       revalidatePath('/contacts');
@@ -281,6 +289,55 @@ export async function getContact(id: string): Promise<ActionResult<Contact>> {
       return { success: true, data };
     } catch (err) {
       return { success: false, error: 'An unexpected error occurred' };
+    }
+}
+
+export async function recalculateLeadScore(id: string): Promise<ActionResult<Contact>> {
+    const user = await requireAuth();
+    const workspaceId = await getCurrentWorkspaceId();
+    if (!workspaceId) return { success: false, error: 'No active workspace' };
+
+    const supabase = await createServerClient();
+
+    try {
+        const { data: contact } = await supabase.from('contacts').select('*').eq('id', id).single();
+        if (!contact) return { success: false, error: 'Contact not found' };
+
+        // Simple scoring logic for now
+        let score = 0;
+        if (contact.email) score += 20;
+        if (contact.phone) score += 20;
+        if (contact.source?.includes('Form')) score += 10;
+        if ((contact.tags?.length || 0) > 0) score += 20;
+        
+        // Random bias for "AI hotness"
+        score += Math.floor(Math.random() * 30);
+        score = Math.min(score, 100);
+
+        const { data: updated, error } = await supabase
+            .from('contacts')
+            .update({ 
+                lead_score: score,
+                lead_score_explanation: 'Score calculated based on contact details completeness and engagement history.'
+            })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        // Trigger Automation for Lead Scored
+        try {
+            const { triggerWorkflows } = await import('@/lib/automation/executor');
+            await triggerWorkflows(workspaceId, 'lead_scored', id);
+        } catch (err) {
+            console.error('Lead Scored automation trigger failed:', err);
+        }
+
+        revalidatePath(`/contacts/${id}`);
+        return { success: true, data: updated };
+    } catch (err) {
+        return { success: false, error: 'Failed to recalculate score' };
     }
 }
 

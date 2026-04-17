@@ -25,7 +25,7 @@ const activityIcons = {
 export function ActivityTimeline({ activities }: ActivityTimelineProps) {
   return (
     <div className="space-y-8 relative before:absolute before:inset-0 before:left-[19px] before:w-px before:bg-white/5 before:my-4">
-      {activities.map((activity, index) => {
+      {activities?.map((activity, index) => {
         const config = activityIcons[activity.type] || activityIcons.system;
         return (
           <div key={activity.id} className="relative pl-12">
@@ -59,7 +59,7 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
           </div>
         );
       })}
-      {activities.length === 0 && (
+      {(!activities || activities.length === 0) && (
         <div className="flex flex-col items-center justify-center py-20 text-white/20">
             <Clock className="h-12 w-12 mb-3" />
             <p className="text-sm font-medium">No activity logged yet</p>

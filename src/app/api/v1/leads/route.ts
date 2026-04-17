@@ -52,8 +52,8 @@ export async function POST(request: Request) {
     });
 
     // 3. Trigger Automation Workflows
-    // We trigger 'CONTACT_CREATED' logic
     await triggerWorkflows(workspaceId, 'contact_created', contact.id);
+    await triggerWorkflows(workspaceId, 'form_submitted', contact.id);
 
     return NextResponse.json({ 
       success: true, 

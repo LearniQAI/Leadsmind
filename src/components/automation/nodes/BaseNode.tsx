@@ -30,44 +30,50 @@ export function BaseNode({
   return (
     <div
       className={cn(
-        "relative min-w-[220px] rounded-xl border bg-[#0b0b15] p-4 transition-all duration-200",
+        "relative min-w-[240px] rounded-2xl border bg-[#0d0d1a]/80 backdrop-blur-xl p-0 transition-all duration-300 group overflow-hidden",
         selected
-          ? "border-[#6c47ff] shadow-[0_0_20px_rgba(108,71,255,0.1)] ring-1 ring-[#6c47ff]/50"
-          : "border-white/5 shadow-md hover:border-white/10"
+          ? "border-[#6c47ff] shadow-[0_0_30px_rgba(108,71,255,0.2)] ring-1 ring-[#6c47ff]/50"
+          : "border-white/10 shadow-lg hover:border-white/20 hover:bg-[#111122]"
       )}
     >
-      {/* Analytics Badge - Minimal */}
-      {analytics && (
-        <div className="absolute -top-3 -right-3 flex items-center gap-2 rounded-lg bg-[#1a1a24] border border-white/10 px-3 py-1.5 shadow-xl pointer-events-none">
-          <div className="flex flex-col items-end">
-            <span className="text-[7px] font-bold text-white/30 uppercase tracking-wider mb-0.5">Hits</span>
-            <span className="text-xs font-bold text-white leading-none">{analytics.count}</span>
-          </div>
-          <div className={cn(
-            "h-1.5 w-1.5 rounded-full", 
-            analytics.status === 'active' ? "bg-emerald-400" : "bg-white/10"
-          )} />
-        </div>
-      )}
+      {/* Category Accent Bar */}
+      <div 
+        className="h-1.5 w-full"
+        style={{ background: `linear-gradient(90deg, ${color}, ${color}40)` }}
+      />
 
-      <div className="flex items-center gap-3">
+      <div className="p-4 flex items-center gap-4">
+        {/* Node Icon */}
         <div 
-          className="flex h-10 w-10 items-center justify-center rounded-lg transition-transform"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-all duration-500 group-hover:scale-110 shadow-inner"
           style={{ 
-            background: color + '10',
+            background: `radial-gradient(circle at center, ${color}30, ${color}10)`,
             color: color,
-            border: `1px solid ${color}20`
+            border: `1px solid ${color}30`
           }}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className="h-5 w-5 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" />
         </div>
-        <div className="space-y-0">
-          <h3 className="text-[10px] font-bold tracking-wider text-white uppercase">{label}</h3>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 className="text-[11px] font-black tracking-tighter text-white uppercase truncate">{label}</h3>
+            {analytics && (
+               <div className="flex items-center gap-1.5 h-4 px-1.5 rounded-full bg-white/5 border border-white/10">
+                  <div className={cn("h-1 w-1 rounded-full animate-pulse", analytics.count > 0 ? "bg-emerald-400" : "bg-white/10")} />
+                  <span className="text-[8px] font-bold text-white/40">{analytics.count}</span>
+               </div>
+            )}
+          </div>
           {sublabel && (
-            <p className="text-[9px] font-medium text-white/40 tracking-wide">{sublabel}</p>
+            <p className="text-[10px] font-medium text-white/30 tracking-wide truncate">{sublabel}</p>
           )}
         </div>
       </div>
+
+      {/* Connection Indicator Glows */}
+      <div className="absolute top-1/2 -left-1 w-2 h-8 -translate-y-1/2 bg-white/5 rounded-full blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute top-1/2 -right-1 w-2 h-8 -translate-y-1/2 bg-white/5 rounded-full blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
 
       {children}
 
@@ -77,12 +83,12 @@ export function BaseNode({
           <Handle
             type="target"
             position={Position.Top}
-            className="!h-1.5 !w-1.5 !border-none !bg-white/20 hover:!bg-white/40 !transition-colors"
+            className="!h-3 !w-12 !rounded-full !border-white/10 !bg-[#1a1a24] hover:!bg-[#2a2a3a] !border !transition-all hover:!scale-110 !-top-1.5 shadow-lg"
           />
           <Handle
             type="source"
             position={Position.Bottom}
-            className="!h-1.5 !w-1.5 !border-none !bg-white/20 hover:!bg-white/40 !transition-colors"
+            className="!h-3 !w-12 !rounded-full !border-white/10 !bg-[#1a1a24] hover:!bg-[#2a2a3a] !border !transition-all hover:!scale-110 !-bottom-1.5 shadow-lg flex items-center justify-center after:content-[''] after:w-1.5 after:h-1.5 after:bg-white/20 after:rounded-full"
           />
         </>
       )}
