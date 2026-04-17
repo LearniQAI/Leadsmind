@@ -1,10 +1,33 @@
 'use client';
 
 import { useState } from 'react';
+import { Contact } from '@/types/crm.types';
 import { addTag } from '@/app/actions/contacts';
 import { toast } from 'sonner';
-import { Plus, Loader2 } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Tag, 
+  Calendar, 
+  User, 
+  MoreVertical, 
+  Zap, 
+  Plus, 
+  Loader2 
+} from 'lucide-react';
+import { format } from 'date-fns';
+import Link from 'next/link';
+
+interface ContactDetailLayoutProps {
+  contact: Contact;
+  children: React.ReactNode;
+}
 
 export function ContactDetailLayout({ contact, children }: ContactDetailLayoutProps) {
   const [isAddingTag, setIsAddingTag] = useState(false);
