@@ -367,10 +367,13 @@ export function WorkflowBuilder({
         onAdd={onAddNode} 
       />
       
-      <ExecutionLogs
-        isOpen={showLogs}
-        onClose={() => setShowLogs(false)}
-      />
+      {workflowId && (
+        <ExecutionLogs
+          workflowId={workflowId}
+          isOpen={showLogs}
+          onClose={() => setShowLogs(false)}
+        />
+      )}
 
       <WorkflowGuide
         isOpen={showGuide}
