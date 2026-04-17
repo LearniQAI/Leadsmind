@@ -62,18 +62,22 @@ export function ExecutionLogs({ workflowId }: ExecutionLogsProps) {
   }, [workflowId, supabase]);
 
   return (
-    <div className="absolute top-24 right-6 z-20 w-80 rounded-3xl border border-white/5 bg-[#050510]/80 p-1 shadow-2xl backdrop-blur-3xl">
-      <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Execution History</h2>
-        <Activity size={12} className="text-emerald-400 animate-pulse" />
+    <div className="absolute top-24 right-8 z-20 w-80 rounded-[32px] border border-white/5 bg-[#080812]/90 p-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] backdrop-blur-3xl ring-1 ring-white/10 overflow-hidden">
+      <div className="px-5 py-4 flex items-center justify-between">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">Audit History</h2>
+        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20">
+           <Activity size={10} className="text-emerald-500 animate-pulse" />
+        </div>
       </div>
 
-      <ScrollArea className="h-[400px] px-2 py-2">
-        <div className="space-y-1">
+      <ScrollArea className="h-[420px] px-3">
+        <div className="space-y-2 pb-4">
           {logs.length === 0 && (
-            <div className="py-20 text-center">
-              <Clock size={24} className="mx-auto text-white/5 mb-2" />
-              <p className="text-[10px] text-white/20 uppercase tracking-widest font-bold">No runs recorded yet</p>
+            <div className="py-24 text-center">
+              <div className="h-16 w-16 rounded-full bg-white/5 mx-auto flex items-center justify-center mb-4">
+                 <Clock size={20} className="text-white/10" />
+              </div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest font-black leading-tight">Waiting for<br/>executions...</p>
             </div>
           )}
           

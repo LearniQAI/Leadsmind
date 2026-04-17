@@ -326,11 +326,73 @@ export function AutomationSettingsForm({ initialValues }: AutomationSettingsForm
           </CardContent>
         </Card>
 
-        {/* Action Bar */}
-        <div className="flex justify-end pt-4">
-          <Button type="submit" size="lg" disabled={isSaving} className="px-10 gap-2 shadow-lg shadow-primary/20">
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save All Settings
+
+        {/* Webhook Security Card */}
+        <Card className="border-none shadow-xl bg-gradient-to-br from-background to-accent/20 overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-6 opacity-5">
+            <ShieldCheck size={120} />
+          </div>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Webhook Security</CardTitle>
+                  <CardDescription>Secure your external lead capture integrations.</CardDescription>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6 relative z-10">
+            <FormField
+              control={form.control}
+              name="webhook_secret"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Webhook Secret Key</FormLabel>
+                  <FormControl>
+                    <div className="flex gap-2">
+                      <Input 
+                        type="password" 
+                        {...field} 
+                        readOnly
+                        className="bg-black/20 backdrop-blur-sm border-white/10 font-mono text-emerald-400"
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        className="gap-2"
+                        onClick={() => {
+                          const newSecret = btoa(Math.random().toString()).substring(0, 32);
+                          form.setValue('webhook_secret', newSecret, { shouldDirty: true });
+                          toast.info('New secret generated. Remember to Save.');
+                        }}
+                      >
+                        <Activity className="w-4 h-4" />
+                        Regenerate
+                       </Button>
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    Use this secret in the <code className="text-primary">Authorization: Bearer [SECRET]</code> header for your POST requests.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Action Bar - Moved to bottom */}
+        <div className="flex justify-end items-center gap-4 bg-background/50 backdrop-blur-md p-6 border border-white/5 rounded-3xl sticky bottom-4 z-50">
+          <p className="text-xs text-muted-foreground mr-auto hidden md:block">
+            Settings are workspace-specific and apply to all automated workflows.
+          </p>
+          <Button type="submit" size="lg" disabled={isSaving} className="px-10 gap-2 shadow-xl shadow-primary/40 rounded-2xl h-14 text-base font-bold transition-all hover:scale-[1.02] active:scale-[0.98]">
+            {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+            Save Infra Changes
           </Button>
         </div>
       </form>

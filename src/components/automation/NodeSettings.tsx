@@ -32,7 +32,7 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/5 bg-[#0b0b15]/50">
           <div>
-            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1">Step Settings</h2>
+            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1">Configuration</h2>
             <h3 className="text-sm font-black text-white uppercase tracking-tight">{data.label}</h3>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} className="text-white/30 hover:text-white">
@@ -40,8 +40,32 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
           </Button>
         </div>
 
+        {/* Helpful Intro for Non-Techies */}
+        <div className="px-6 py-4 bg-primary/5 border-b border-white/5 flex gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg shrink-0 h-fit">
+             <Zap className="w-3 h-3 text-primary" />
+          </div>
+          <p className="text-[10px] text-white/50 leading-relaxed italic">
+            {type === 'trigger' && "This is how your automation starts. When this happens, the following steps will run."}
+            {type === 'delay' && "This pauses the automation for a specific amount of time before moving to the next step."}
+            {type === 'condition' && "This checks a specific detail about your lead and splits them into two paths: Yes or No."}
+            {type === 'action' && "This is an action that Leadsmind will perform automatically for you."}
+          </p>
+        </div>
+
         {/* Form Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          
+          {/* Step Name (Renaming) */}
+          <div className="space-y-2 p-4 rounded-2xl bg-white/5 border border-white/10">
+            <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Display name</label>
+            <Input 
+              value={data.label || ""} 
+              onChange={(e) => handleChange('label', e.target.value)}
+              className="bg-transparent border-none text-white font-bold p-0 h-auto focus-visible:ring-0 text-base"
+              placeholder="Give this step a name..."
+            />
+          </div>
           
           {/* Email Settings */}
           {data.actionType === 'email' && (
@@ -81,6 +105,8 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
               </div>
             </div>
           )}
+
+          {/* Social Settings */}
           {data.actionType === 'social_post' && (
             <div className="space-y-4">
               <div className="space-y-2">
@@ -124,68 +150,80 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
             </div>
           )}
 
-          {/* LMS Enroll Settings */}
-          {data.actionType === 'lms_enroll' && (
+          {/* CRM: Update Field */}
+          {data.actionType === 'update_field' && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Select Course</label>
-                <Select 
-                  value={data.courseId || ""} 
-                  onValueChange={(val) => handleChange('courseId', val)}
-                >
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Select Field</label>
+                <Select value={data.field || ""} onValueChange={(val) => handleChange('field', val)}>
                   <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                    <SelectValue placeholder="Choose a course..." />
+                    <SelectValue placeholder="Choose a contact field..." />
                   </SelectTrigger>
                   <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
-                    <SelectItem value="course-1">Mastering Leadsmind</SelectItem>
-                    <SelectItem value="course-2">Advanced Automation</SelectItem>
+                    <SelectItem value="first_name">First Name</SelectItem>
+                    <SelectItem value="last_name">Last Name</SelectItem>
+                    <SelectItem value="tags">Tags</SelectItem>
+                    <SelectItem value="phone">Phone Number</SelectItem>
+                    <SelectItem value="lead_score">Lead Score</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">New Value</label>
+                <Input 
+                  value={data.value || ""} 
+                  onChange={(e) => handleChange('value', e.target.value)}
+                  className="bg-white/5 border-white/10 text-white"
+                  placeholder="Enter new value..."
+                />
+              </div>
             </div>
           )}
 
-          {/* LMS Progress Settings */}
-          {data.actionType === 'lms_update_progress' && (
+          {/* CRM: Move to Stage */}
+          {data.actionType === 'move_to_stage' && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Lesson ID</label>
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Target Stage ID</label>
                 <Input 
-                  value={data.lessonId || ""} 
-                  onChange={(e) => handleChange('lessonId', e.target.value)}
+                  value={data.stageId || ""} 
+                  onChange={(e) => handleChange('stageId', e.target.value)}
                   className="bg-white/5 border-white/10 text-white"
-                  placeholder="Enter Lesson UUID"
+                  placeholder="Enter Stage UUID"
                 />
-              </div>
-              <div className="flex items-center gap-2">
-                <input 
-                  type="checkbox"
-                  checked={!!data.completed}
-                  onChange={(e) => handleChange('completed', e.target.checked)}
-                  className="w-4 h-4 rounded border-white/10 bg-white/5"
-                />
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Mark as Completed</label>
               </div>
             </div>
           )}
 
-          {/* Delay Settings */}
+          {/* CRM: Notify Team */}
+          {data.actionType === 'notify_team' && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Alert Message</label>
+                <Textarea 
+                  value={data.message || ""} 
+                  onChange={(e) => handleChange('message', e.target.value)}
+                  className="bg-white/5 border-white/10 text-white min-h-[100px]"
+                  placeholder="e.g. {contact_name} just entered the Hot Leads stage!"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Logic: Delay Settings */}
           {type === 'delay' && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Wait Duration</label>
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed">Wait for how long?</label>
                 <div className="grid grid-cols-2 gap-2">
                   <Input 
                     type="number"
                     value={data.durationValue || 1} 
                     onChange={(e) => handleChange('durationValue', parseInt(e.target.value))}
-                    className="bg-white/5 border-white/10 text-white"
+                    className="bg-white/5 border-white/10 text-white h-12"
                   />
-                  <Select 
-                    value={data.durationUnit || "hours"} 
-                    onValueChange={(val) => handleChange('durationUnit', val)}
-                  >
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <Select value={data.durationUnit || "hours"} onValueChange={(val) => handleChange('durationUnit', val)}>
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white h-12">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
@@ -195,71 +233,63 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
                     </SelectContent>
                   </Select>
                 </div>
+                <p className="text-[9px] text-white/20 italic">Tip: Setting this to 1 hour gives you time to manually check high-value leads.</p>
               </div>
             </div>
           )}
 
-          {/* Condition Settings */}
+          {/* Logic: Condition Settings */}
           {type === 'condition' && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Contact Field</label>
-                <Select 
-                  value={data.field || "email"} 
-                  onValueChange={(val) => handleChange('field', val)}
-                >
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed">1. What detail should we check?</label>
+                <Select value={data.field || "email"} onValueChange={(val) => handleChange('field', val)}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white h-12">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="first_name">First Name</SelectItem>
-                    <SelectItem value="phone">Phone</SelectItem>
-                    <SelectItem value="source">Source</SelectItem>
-                    <SelectItem value="lead_score">Lead Score</SelectItem>
+                    <SelectItem value="email">Email Address</SelectItem>
+                    <SelectItem value="first_name">Person's Name</SelectItem>
+                    <SelectItem value="phone">Phone Number</SelectItem>
+                    <SelectItem value="lead_score">Lead Score (Hotness)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Operator</label>
-                <Select 
-                  value={data.operator || "contains"} 
-                  onValueChange={(val) => handleChange('operator', val)}
-                >
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed">2. Check if it...</label>
+                <Select value={data.operator || "contains"} onValueChange={(val) => handleChange('operator', val)}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white h-12">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
-                    <SelectItem value="equals">Equals</SelectItem>
-                    <SelectItem value="contains">Contains</SelectItem>
-                    <SelectItem value="exists">Exists</SelectItem>
-                    <SelectItem value="greater_than">Greater Than</SelectItem>
+                    <SelectItem value="equals">Exactly matches</SelectItem>
+                    <SelectItem value="contains">Contains this text</SelectItem>
+                    <SelectItem value="exists">Is not empty (is known)</SelectItem>
+                    <SelectItem value="greater_than">Is greater than (score)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
               {data.operator !== 'exists' && (
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Value</label>
+                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed">3. Match this text/value:</label>
                   <Input 
                     value={data.value || ""} 
                     onChange={(e) => handleChange('value', e.target.value)}
-                    className="bg-white/5 border-white/10 text-white"
-                    placeholder="Value to check..."
+                    className="bg-white/5 border-white/10 text-white h-12"
+                    placeholder="Enter value here..."
                   />
                 </div>
               )}
             </div>
           )}
 
-          {/* Trigger Details (Read-only for now) */}
+          {/* Trigger Details */}
           {type === 'trigger' && (
             <div className="p-4 rounded-2xl bg-[#6c47ff]/5 border border-[#6c47ff]/20">
-              <div className="flex gap-3">
-                <AlertCircle className="text-[#6c47ff] shrink-0" size={16} />
-                <p className="text-[11px] text-[#6c47ff]/80 leading-relaxed">
-                  This workflow will run every time a <strong>{data.label}</strong> event occurs. No further configuration required.
+              <div className="flex gap-3 text-[#6c47ff]">
+                <AlertCircle size={16} className="shrink-0" />
+                <p className="text-[11px] leading-relaxed">
+                  This workflow will run every time a <strong>{data.label}</strong> event occurs.
                 </p>
               </div>
             </div>

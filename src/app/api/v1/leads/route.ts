@@ -12,10 +12,32 @@ const supabaseAdmin = createClient(
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { workspaceId, formId, firstName, lastName, email, phone, ...metadata } = body;
+    const { workspaceId, secret, firstName, lastName, email, phone, formId, ...metadata } = body;
+    const authHeader = request.headers.get('Authorization');
+    const providedSecret = secret || (authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : authHeader);
 
     if (!workspaceId) {
       return NextResponse.json({ error: 'Missing workspaceId' }, { status: 400 });
+    }
+
+    // Verify Webhook Secret (Enforced only for Secure Webhooks/Integrations)
+    // For the public tracker.js, the secret is not required but recommended for server-side handlers
+    const { data: workspace, error: wError } = await supabaseAdmin
+      .from('workspaces')
+      .select('webhook_secret')
+      .eq('id', workspaceId)
+      .single();
+
+    if (wError || !workspace) {
+      return NextResponse.json({ error: 'Invalid Workspace ID' }, { status: 401 });
+    }
+
+    const isWebhookRequest = request.headers.get('x-source') === 'webhook' || metadata.source_type === 'api';
+    
+    if (workspace.webhook_secret && isWebhookRequest) {
+      if (workspace.webhook_secret !== providedSecret) {
+        return NextResponse.json({ error: 'Invalid Webhook Secret' }, { status: 401 });
+      }
     }
 
     if (!email && !phone) {

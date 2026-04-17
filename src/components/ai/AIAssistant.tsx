@@ -36,17 +36,15 @@ export function AIAssistant() {
     setMessages(prev => [...prev, { role: 'user', content: input.trim() }]);
     setIsLoading(true);
 
-    // High Availability Local Knowledge Base
+    // High Availability Local Knowledge Base (Trained on new features)
     const localResponses: Record<string, string> = {
-      'hello': "Hi there! I'm LeadsMind AI. I can help you with your CRM, LMS, or Billing questions. What's on your mind?",
-      'hi': "Hello! How can I assist you with Leadsmind today?",
-      'help': "I can guide you through: \n- **CRM**: Managing leads.\n- **LMS**: Courses & progress.\n- **Billing**: Stripe & plans.",
-      'crm': "LeadsMind CRM helps you manage leads through custom pipeline stages. You can assign owners to each lead and track progress in real-time.",
-      'lead': "You can create leads manually or import them via CSV in the Contacts section (/contacts).",
-      'lms': "Our LMS allows you to build courses, manage curriculum, and track student enrollment and progress.",
-      'billing': "We offer Starter (Free), Pro ($97/mo), and Enterprise ($297/mo) plans. Each tier scales with your contact volume.",
-      'pricing': "Check our pricing page (/pricing) for a detailed comparison of features across our plans.",
-      'stripe': "You can connect your Stripe account in the Settings (/settings/billing) to start accepting payments.",
+      'hello': "Hi! I'm your Leadsmind assistant. I can help you with CRM, Automation, or Lead Capture. What's on your mind?",
+      'automation': "Our new Automation Builder is a powerhouse! It uses a 'sequential vertical flow' to make things easy. You can Add Actions (like Move in Pipeline or Notify Team) and set Decisions (If/Else) or Pauses (Wait).",
+      'webhook': "To secure your lead capture, we've implemented Webhook Secrets. You can find and regenerate your unique secret in Settings > Automation. Use it in the header `Authorization: Bearer [Secret]` for custom integrations.",
+      'tracking': "Need to capture leads from your website? Check the 'Smart Tracker' in Settings > Automation. Just copy the script into your footer, and we'll detect your forms automatically!",
+      'pipeline': "You can now automate your sales cycle! Set a trigger for 'Contact Created' or 'Form Filled Out' and add a 'Move in Pipeline' action to keep things moving.",
+      'crm': "Leadsmind CRM is optimized for conversions. With the new 'Smart Leads' API, you can push leads from anywhere securely.",
+      'billing': "We have three simple tiers: Starter (Free), Pro ($97/mo), and Enterprise ($297/mo). You can manage this in your Billing Settings.",
     };
 
     const fallbackKey = Object.keys(localResponses).find(key => userMessage.includes(key));
@@ -70,22 +68,12 @@ export function AIAssistant() {
       const data = await response.json();
       
       if (!response.ok) {
-        if (response.status === 429) {
-          setMessages(prev => [...prev, { 
-            role: 'assistant', 
-            content: "I'm currently in 'Lite Mode' (API quota hit). I can still help you with CRM, LMS, and Billing! Try asking specifically about those." 
-          }]);
-        } else {
-          setMessages(prev => [...prev, { 
-            role: 'assistant', 
-            content: "I'm having a small connection issue. Please try again or explore our dashboard!" 
-          }]);
-        }
+        setMessages(prev => [...prev, { role: 'assistant', content: "I'm experiencing a brief brain freeze. Try asking specifically about 'automation', 'webhook', or 'billing'!" }]);
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
       }
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting to my brain right now. Try again in a second!" }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: "My connection is a bit spotty. Try again in a second!" }]);
     } finally {
       setIsLoading(false);
     }
@@ -97,68 +85,73 @@ export function AIAssistant() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "h-14 w-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 hover:scale-110 active:scale-95",
+          "h-16 w-16 rounded-[24px] flex items-center justify-center shadow-2xl transition-all duration-500 hover:scale-110 active:scale-95 group overflow-hidden relative",
           isOpen 
-            ? "bg-white/10 border border-white/20 backdrop-blur-xl rotate-90" 
-            : "bg-linear-to-br from-[#6c47ff] to-[#8b5cf6] text-white shadow-[#6c47ff]/40"
+            ? "bg-white/10 border border-white/20 backdrop-blur-3xl" 
+            : "bg-linear-to-br from-[#6c47ff] to-[#4c29ff] text-white shadow-[#6c47ff]/40"
         )}
       >
-        {isOpen ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
+        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+        {isOpen ? <X className="h-7 w-7 relative z-10" /> : <Sparkles className="h-7 w-7 relative z-10" />}
       </button>
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="absolute bottom-20 right-0 w-[350px] sm:w-[400px] h-[550px] max-h-[80vh] flex flex-col bg-[#0b0b12] border border-white/10 rounded-[32px] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.6)] backdrop-blur-2xl animate-in slide-in-from-bottom-5 fade-in duration-300">
+        <div className="absolute bottom-24 right-0 w-[380px] sm:w-[420px] h-[600px] max-h-[85vh] flex flex-col bg-[#05050a]/90 border border-white/10 rounded-[40px] overflow-hidden shadow-[0_60px_120px_-20px_rgba(0,0,0,0.8)] backdrop-blur-3xl animate-in slide-in-from-right-10 fade-in duration-500">
           
           {/* Header */}
-          <div className="p-6 bg-linear-to-br from-[#6c47ff]/20 to-transparent border-b border-white/5">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-linear-to-br from-[#6c47ff] to-[#8b5cf6] flex items-center justify-center shadow-lg shadow-[#6c47ff]/20 text-white">
-                <Sparkles className="h-5 w-5" />
+          <div className="p-8 bg-linear-to-b from-primary/10 to-transparent border-b border-white/5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12">
+               <Zap size={80} className="text-primary fill-primary" />
+            </div>
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-xl shadow-primary/20 text-white">
+                <Bot className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="text-sm font-black text-white uppercase tracking-widest">LeadsMind AI</h3>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] text-white/40 font-bold uppercase">Ask me anything</span>
+                <h3 className="text-base font-bold text-white tracking-tight">IntelligenceHub</h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  <span className="text-[10px] text-white/40 font-black uppercase tracking-widest">Always Learning</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+          <div className="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar scroll-smooth">
             {messages.map((m, i) => (
               <div
                 key={i}
                 className={cn(
-                  "flex gap-3 max-w-[85%] animate-in fade-in slide-in-from-bottom-2 duration-300",
+                  "flex gap-4 max-w-[90%] group",
                   m.role === 'user' ? "ml-auto flex-row-reverse" : "mr-auto"
                 )}
               >
                 <div className={cn(
-                  "h-8 w-8 rounded-lg shrink-0 flex items-center justify-center text-[10px] font-bold",
-                  m.role === 'user' ? "bg-white/10 text-white" : "bg-[#6c47ff]/20 text-[#6c47ff]"
+                  "h-10 w-10 min-w-[40px] rounded-xl flex items-center justify-center text-[10px] font-bold transition-transform group-hover:scale-110",
+                  m.role === 'user' ? "bg-white/10 text-white" : "bg-primary/20 text-primary border border-primary/20"
                 )}>
-                  {m.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                  {m.role === 'user' ? <User className="h-5 w-5" /> : <Bot className="h-5 w-5" />}
                 </div>
                 <div className={cn(
-                  "p-4 rounded-2xl text-sm leading-relaxed",
+                  "p-5 rounded-2xl text-[13px] leading-relaxed shadow-sm transition-all",
                   m.role === 'user' 
-                    ? "bg-[#6c47ff] text-white rounded-tr-none" 
-                    : "bg-white/5 text-white/80 rounded-tl-none border border-white/5"
+                    ? "bg-primary text-white rounded-tr-none font-medium" 
+                    : "bg-white/5 text-white/90 rounded-tl-none border border-white/5"
                 )}>
                   {m.content}
                 </div>
               </div>
             ))}
+            
             {isLoading && (
-              <div className="flex gap-3 max-w-[85%] animate-pulse">
-                <div className="h-8 w-8 rounded-lg shrink-0 bg-[#6c47ff]/10 flex items-center justify-center">
-                  <Bot className="h-4 w-4 text-[#6c47ff]/40" />
+              <div className="flex gap-4 max-w-[90%] items-end">
+                <div className="h-10 w-10 min-w-[40px] rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                  <Bot className="h-5 w-5 text-primary/40" />
                 </div>
-                <div className="bg-white/3 p-4 rounded-2xl rounded-tl-none border border-white/5 text-white/20">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                <div className="p-4 px-6 rounded-2xl rounded-tl-none border border-white/5 bg-white/5 text-primary flex items-center gap-2">
+                   <span className="text-sm font-black tracking-[0.3em] animate-pulse">....</span>
                 </div>
               </div>
             )}

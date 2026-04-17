@@ -244,6 +244,10 @@ export async function updateDealStage(
             description: `Deal moved to new stage`,
             created_by: user.id
         });
+
+        // Trigger Workflows
+        const { triggerWorkflows } = await import('@/lib/automation/executor');
+        await triggerWorkflows(workspaceId, 'stage_changed', deal.contact_id);
     }
 
     revalidatePath('/pipelines');

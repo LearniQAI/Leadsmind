@@ -231,6 +231,7 @@ export async function updateAutomationSettings(values: AutomationSettingsValues)
       twilio_sid: values.twilio_sid,
       twilio_token: values.twilio_token,
       twilio_number: values.twilio_number,
+      webhook_secret: values.webhook_secret,
       updated_at: new Date().toISOString(),
     })
     .eq('id', workspaceId);

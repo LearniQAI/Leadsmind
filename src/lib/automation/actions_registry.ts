@@ -133,5 +133,66 @@ export const AutomationActions = {
     const { lessonId, completed } = config;
     if (!lessonId) return;
     await updateProgress(contactId, lessonId, !!completed, 0);
+  },
+
+  update_field: async (workspaceId: string, contactId: string, config: any) => {
+    const { field, value } = config;
+    if (!field) return;
+
+    const supabase = await createServerClient();
+    const { error } = await supabase
+      .from("contacts")
+      .update({ [field]: value })
+      .eq("id", contactId)
+      .eq("workspace_id", workspaceId);
+
+    if (error) throw error;
+  },
+
+  move_to_stage: async (workspaceId: string, contactId: string, config: any) => {
+    const { stageId } = config;
+    if (!stageId) return;
+
+    const supabase = await createServerClient();
+    
+    // Find the latest opportunity for this contact
+    const { data: opportunity } = await supabase
+      .from("opportunities")
+      .select("id")
+      .eq("contact_id", contactId)
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (opportunity) {
+      await supabase
+        .from("opportunities")
+        .update({ stage_id: stageId })
+        .eq("id", opportunity.id);
+    }
+  },
+
+  notify_team: async (workspaceId: string, contactId: string, config: any) => {
+    const { message, type = "info" } = config;
+    const supabase = await createServerClient();
+
+    // Fetch contact name for the notification
+    const { data: contact } = await supabase
+      .from("contacts")
+      .select("first_name, last_name")
+      .eq("id", contactId)
+      .single();
+
+    const contactName = contact ? `${contact.first_name} ${contact.last_name}` : "A contact";
+    const finalMessage = message?.replace("{contact_name}", contactName) || `Automation alert for ${contactName}`;
+
+    await supabase.from("notifications").insert({
+      workspace_id: workspaceId,
+      title: "Automation Triggered",
+      message: finalMessage,
+      type: type,
+      link: `/contacts/${contactId}`
+    });
   }
 };

@@ -2,46 +2,48 @@
 
 import { 
   Zap, 
-  Play, 
   GitBranch, 
   Clock, 
   MessageSquare, 
   Mail, 
   UserPlus, 
-  Tag,
-  ArrowRight,
-  Share2
+  Share2,
+  Database,
+  LayoutGrid,
+  BellRing
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const NODE_CATEGORIES = [
   {
-    title: "Triggers",
+    title: "1. When should this start?",
     items: [
-      { type: "trigger", triggerType: "contact_created", label: "Contact Created", icon: UserPlus, color: "#10b981", description: "When a new lead enters the system" },
-      { type: "trigger", triggerType: "lead_scored", label: "Lead Scored", icon: Zap, color: "#10b981", description: "When a lead score is calculated" },
-      { type: "trigger", triggerType: "tag_added", label: "Tag Added", icon: Tag, color: "#10b981", description: "When a specific tag is applied" },
-      { type: "trigger", triggerType: "form_submitted", label: "Form Submitted", icon: Mail, color: "#10b981", description: "When a lead forms is submitted" },
-      { type: "trigger", triggerType: "webhook", label: "Webhook", icon: Share2, color: "#10b981", description: "Trigger from external HTTP request" }
+      { type: "trigger", triggerType: "contact_created", label: "New Contact", icon: UserPlus, color: "#10b981", description: "Start when someone new is added" },
+      { type: "trigger", triggerType: "form_submitted", label: "Form Filled Out", icon: Mail, color: "#10b981", description: "Start when a website form is submitted" },
+      { type: "trigger", triggerType: "webhook", label: "Website Sync", icon: Share2, color: "#10b981", description: "Sync data from your own website" }
     ]
   },
   {
-    title: "Logic",
+    title: "2. Add a decision or a wait",
     items: [
-      { type: "condition", label: "If / Else", icon: GitBranch, color: "#f59e0b", description: "Split flow based on conditions" },
-      { type: "delay", label: "Wait / Delay", icon: Clock, color: "#0ea5e9", description: "Pause flow for a duration" }
+      { type: "condition", label: "Add a Decision", icon: GitBranch, color: "#f59e0b", description: "Split the flow (e.g. Yes/No)" },
+      { type: "delay", label: "Wait a while", icon: Clock, color: "#0ea5e9", description: "Pause before the next step" }
     ]
   },
   {
-    title: "Actions",
+    title: "3. What should happen?",
     items: [
-      { type: "action", label: "Send SMS", icon: MessageSquare, actionType: "sms", color: "#6c47ff", description: "Send automated text message" },
-      { type: "action", label: "Send Email", icon: Mail, actionType: "email", color: "#6c47ff", description: "Send personalized email" },
-      { type: "action", label: "Apply Tag", icon: Tag, actionType: "tag", color: "#6c47ff", description: "Add tag to the contact" },
-      { type: "action", label: "Social Post", icon: ArrowRight, actionType: "social_post", color: "#ec4899", description: "Post to Facebook/LinkedIn" },
-      { type: "action", label: "LMS Enroll", icon: Zap, actionType: "lms_enroll", color: "#8b5cf6", description: "Enroll student in course" },
-      { type: "action", label: "LMS Progress", icon: ArrowRight, actionType: "lms_update_progress", color: "#8b5cf6", description: "Update lesson progress" }
+      { type: "action", label: "Change Lead Info", icon: Database, actionType: "update_field", color: "#6c47ff", description: "Update details like tags or score" },
+      { type: "action", label: "Move in Pipeline", icon: LayoutGrid, actionType: "move_to_stage", color: "#6c47ff", description: "Move lead to a new sales column" },
+      { type: "action", label: "Internal Alert", icon: BellRing, actionType: "notify_team", color: "#f43f5e", description: "Notify yourself or your team" }
+    ]
+  },
+  {
+    title: "Communication",
+    items: [
+      { type: "action", label: "Message Lead (SMS)", icon: MessageSquare, actionType: "sms", color: "#38bdf8", description: "Send an automated text message" },
+      { type: "action", label: "Send an Email", icon: Mail, actionType: "email", color: "#38bdf8", description: "Send a personalized automated email" },
+      { type: "action", label: "Post to Socials", icon: Share2, actionType: "social_post", color: "#ec4899", description: "Auto-post to Facebook or LinkedIn" }
     ]
   }
 ];
@@ -52,50 +54,46 @@ interface NodesPanelProps {
 
 export function NodesPanel({ onAddNode }: NodesPanelProps) {
   return (
-    <div className="absolute top-24 left-6 z-20 w-72 rounded-3xl border border-white/5 bg-[#050510]/80 p-1 shadow-2xl backdrop-blur-3xl">
-      <div className="px-4 py-3 border-b border-white/5">
-        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Step Library</h2>
+    <div className="absolute top-24 left-8 z-20 w-80 rounded-[32px] border border-white/5 bg-[#080812]/90 p-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] backdrop-blur-3xl ring-1 ring-white/10">
+      <div className="px-5 py-4">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">Add Action</h2>
+        <p className="text-[9px] text-white/40 font-medium mt-1 italic">Pick what should happen next in your workflow</p>
       </div>
       
-      <ScrollArea className="h-[500px] px-2 py-2">
-        <div className="space-y-6">
+      <ScrollArea className="h-[520px] px-3">
+        <div className="space-y-8 pb-4">
           {NODE_CATEGORIES.map((category: any) => (
-            <div key={category.title} className="space-y-2">
-              <h3 className="px-2 text-[9px] font-bold uppercase tracking-widest text-white/20">
-                {category.title}
-              </h3>
-              <div className="grid gap-1">
+            <div key={category.title} className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-white/5" />
+                <h3 className="text-[9px] font-black uppercase tracking-widest text-white/20 whitespace-nowrap">
+                  {category.title}
+                </h3>
+                <div className="h-px flex-1 bg-white/5" />
+              </div>
+              <div className="grid gap-2">
                 {category.items.map((item: any) => (
                   <button
                     key={item.label}
                     onClick={() => onAddNode(item.type, item)}
-                    className="group relative flex items-start gap-3 rounded-2xl p-3 text-left transition-all hover:bg-white/5"
+                    className="group relative flex items-start gap-4 rounded-2xl p-4 text-left transition-all hover:bg-white/5 active:scale-95"
                   >
                     <div 
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 transition-transform group-hover:scale-110"
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/5 border border-white/5 transition-all duration-500 group-hover:bg-white/10 group-hover:border-white/20 shadow-inner"
                       style={{ color: item.color }}
                     >
-                      <item.icon size={18} />
+                      <item.icon size={20} className="drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]" />
                     </div>
-                    <div className="flex-1 pr-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-white uppercase tracking-tight">
+                    <div className="flex-1 overflow-hidden">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[12px] font-bold text-white/90 uppercase tracking-tight">
                           {item.label}
                         </span>
-                        <ArrowRight size={10} className="text-white/0 transition-all group-hover:text-white/20" />
                       </div>
-                      <p className="text-[9px] leading-relaxed text-white/30 line-clamp-1">
+                      <p className="text-[10px] leading-snug text-white/30 line-clamp-2 italic font-medium">
                         {item.description}
                       </p>
                     </div>
-
-                    {/* Hover Glow */}
-                    <div 
-                      className="absolute inset-0 rounded-2xl opacity-0 transition-opacity group-hover:opacity-100 pointer-events-none"
-                      style={{ 
-                        background: `radial-gradient(400px circle at var(--x) var(--y), ${item.color}10, transparent 40%)` 
-                      }}
-                    />
                   </button>
                 ))}
               </div>

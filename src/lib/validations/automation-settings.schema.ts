@@ -7,6 +7,7 @@ export const automationSettingsSchema = z.object({
   twilio_sid: z.string().optional().or(z.literal('')),
   twilio_token: z.string().optional().or(z.literal('')),
   twilio_number: z.string().optional().or(z.literal('')),
+  webhook_secret: z.string().optional().or(z.literal('')),
 });
 
 export type AutomationSettingsValues = z.infer<typeof automationSettingsSchema>;

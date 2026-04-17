@@ -40,6 +40,7 @@ export default async function AutomationSettingsPage() {
     twilio_sid: workspace.twilio_sid || '',
     twilio_token: workspace.twilio_token || '',
     twilio_number: workspace.twilio_number || '',
+    webhook_secret: workspace.webhook_secret || '',
   };
 
   return (
@@ -84,43 +85,80 @@ export default async function AutomationSettingsPage() {
           <AutomationSettingsForm initialValues={initialValues} />
         </section>
 
-        {/* Lead Capture Integration */}
+        {/* Website Integration - Premium Script Generator */}
         <section className="space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground ml-1">Website Lead Capture</h3>
-          <div className="p-6 rounded-3xl border border-white/5 bg-[#050510]/50 backdrop-blur-xl">
-            <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground ml-1">Website Integration</h3>
+            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold rounded-full border border-emerald-500/20">MATCHES HUBSPOT & GHL</span>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-6 rounded-3xl border border-white/5 bg-[#050510]/50 backdrop-blur-xl space-y-4">
               <div className="flex items-start gap-4">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <Info className="w-5 h-5 text-blue-500" />
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Zap className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-white">How to connect your website</h4>
+                  <h4 className="text-sm font-bold text-white">Leadsmind Smart Tracker</h4>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    To capture leads from your website and trigger automations, send a POST request to the endpoint below.
-                    Once a lead is captured, it will automatically trigger any active workflow with a "Contact Created" trigger.
+                    Paste this script into your website&apos;s <code className="text-primary">&lt;head&gt;</code> tag. 
+                    It will automatically identify visitors and sync them with your CRM.
                   </p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <div className="text-[10px] font-bold uppercase text-white/30">Your Webhook Endpoint</div>
-                <div className="p-3 bg-black/40 border border-white/5 rounded-xl font-mono text-[11px] text-blue-400 break-all select-all">
-                  {`${process.env.NEXT_PUBLIC_APP_URL}/api/v1/leads`}
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] font-bold uppercase text-white/30">Your Tracking Script</div>
+                  <button className="text-[10px] font-bold text-primary hover:underline">Copy Script</button>
+                </div>
+                <div className="p-4 bg-black/60 border border-white/10 rounded-2xl font-mono text-[11px] text-blue-300 break-all select-all leading-relaxed relative group">
+{`<script src="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/tracker.js" 
+  data-workspace-id="${workspaceId}" 
+  async defer>
+</script>`}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="text-[10px] font-bold uppercase text-white/30">Required JSON Payload</div>
-                <div className="p-3 bg-black/40 border border-white/5 rounded-xl font-mono text-[11px] text-emerald-400">
-{`{
-  "workspaceId": "${workspaceId}",
-  "email": "lead@example.com",
-  "firstName": "John",
-  "lastName": "Doe",
-  "phone": "+1234567890"
-}`}
+              <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/5">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-medium text-white/60">Currently monitoring active domains: 0</span>
+              </div>
+            </div>
+
+            <div className="p-6 rounded-3xl border border-white/5 bg-[#050510]/50 backdrop-blur-xl flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <Info className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">Secure Webhook Integration</h4>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      For custom forms (Elementor, Webflow, Shopify), send a POST request with your <span className="text-primary font-bold">Webhook Secret</span> in the header.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-[10px] font-bold uppercase text-white/30 mb-1">API Endpoint</div>
+                    <div className="p-3 bg-black/40 border border-white/5 rounded-xl font-mono text-[10px] text-emerald-400 break-all leading-relaxed">
+                      {`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/v1/leads`}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold uppercase text-white/30 mb-1">Required Header</div>
+                    <div className="p-3 bg-black/40 border border-white/5 rounded-xl font-mono text-[10px] text-blue-400 leading-relaxed">
+                      Authorization: Bearer [Your_Secret]
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              <Button variant="ghost" className="w-full mt-6 text-[11px] font-bold border border-white/10 hover:bg-white/15 rounded-xl h-12">
+                Detailed API Docs
+              </Button>
             </div>
           </div>
         </section>

@@ -131,16 +131,20 @@ export function WorkflowBuilder({
   );
 
   const onAddNode = useCallback((type: string, item: any) => {
-    // Destructure icon out so we don't try to sync React components to the server
     const { icon, ...serializableData } = item;
     
-    // Find better position (center or relative to current nodes)
-    const position = nodes.length > 0 
-      ? { x: nodes[nodes.length - 1].position.x + 250, y: nodes[nodes.length - 1].position.y }
-      : { x: 100, y: 100 };
+    // Find the current bottom-most node to append below it
+    const lastNode = nodes.length > 0 
+      ? nodes.reduce((prev, curr) => (prev.position.y > curr.position.y ? prev : curr))
+      : null;
+
+    const newNodeId = `${type}-${Date.now()}`;
+    const position = lastNode 
+      ? { x: lastNode.position.x, y: lastNode.position.y + 150 }
+      : { x: 250, y: 50 };
 
     const newNode: Node = {
-      id: `${type}-${Date.now()}`,
+      id: newNodeId,
       type,
       position,
       data: { 
@@ -151,14 +155,24 @@ export function WorkflowBuilder({
 
     setNodes((nds) => nds.concat(newNode));
 
-    // If it's a trigger, we also want to update the root workflow record's trigger_type column
+    // Automatically connect to the last node if it exists
+    if (lastNode) {
+      setEdges((eds) => addEdge({
+        id: `e-${lastNode.id}-${newNodeId}`,
+        source: lastNode.id,
+        target: newNodeId,
+        type: 'smoothstep',
+        animated: true,
+      }, eds));
+    }
+
     if (type === 'trigger' && workflowId && item.triggerType) {
        updateWorkflow(workflowId, { trigger_type: item.triggerType });
     }
 
     setShowPanel(false);
     toast.success(`${item.label} added to workflow`);
-  }, [setNodes, isAnalyticsMode, nodes, workflowId]);
+  }, [setNodes, setEdges, isAnalyticsMode, nodes, workflowId]);
 
   const handleManualSave = async () => {
     if (!workflowId) return;
@@ -179,11 +193,11 @@ export function WorkflowBuilder({
       <div className="absolute top-6 left-6 right-6 z-10 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-3 pointer-events-auto">
           <Button 
-            className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white gap-2 shadow-lg shadow-[#6c47ff]/20 rounded-2xl"
+            className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white gap-2 shadow-lg shadow-[#6c47ff]/20 rounded-2xl h-11 px-6 transition-all"
             onClick={() => setShowPanel(!showPanel)}
           >
             <Plus size={16} />
-            <span className="text-xs font-bold uppercase tracking-wider">Add Step</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Add Action</span>
           </Button>
           
           <div className="h-4 w-px bg-white/10 mx-1" />
@@ -253,7 +267,7 @@ export function WorkflowBuilder({
         <div className="flex items-center gap-2 pointer-events-auto">
           <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md mr-4">
             <Shield className="text-blue-400" size={14} />
-            <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">Logic Secure</span>
+            <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">Automation Secure</span>
           </div>
           
           <Button variant="ghost" className="text-white/40 hover:text-white hover:bg-white/5 gap-2 h-10 px-4 rounded-2xl">
@@ -282,7 +296,11 @@ export function WorkflowBuilder({
         />
       )}
 
-      <div className="h-full w-full">
+      <div className="h-full w-full relative overflow-hidden">
+        {/* Subtle Depth Layers */}
+        <div className="absolute inset-0 bg-[#020205]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(108,71,255,0.05),transparent_70%)]" />
+        
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -293,30 +311,42 @@ export function WorkflowBuilder({
           onPaneClick={() => setSelectedNodeId(null)}
           nodeTypes={nodeTypes}
           fitView
-          snapToGrid
-          snapGrid={[15, 15]}
+          fitViewOptions={{ padding: 0.5 }}
+          defaultEdgeOptions={{
+            type: 'smoothstep',
+            animated: true,
+            style: { 
+              stroke: "#6c47ff", 
+              strokeWidth: 3,
+              opacity: 0.4
+            },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: "#6c47ff",
+              width: 20,
+              height: 20
+            },
+          }}
         >
           <Background 
-            color="#ffffff" 
-            gap={20} 
-            size={0.5} 
-            variant={BackgroundVariant.Dots} 
-            className="opacity-[0.05]"
+            variant={BackgroundVariant.Lines} 
+            className="opacity-[0.02]"
+            color="#ffffff"
+            gap={60}
           />
-          <Controls className="bg-[#1a1a24] border-white/5 !fill-white rounded-xl overflow-hidden mb-6 ml-6" />
-          <MiniMap 
-            nodeStrokeWidth={3} 
-            maskColor="rgba(0, 0, 0, 0.7)" 
-            className="!bg-[#0b0b15] !border-white/5 !rounded-3xl !mb-6 !mr-6"
-            nodeColor={(n: Node) => {
-              if (n.type === 'trigger') return '#10b981';
-              if (n.type === 'action') return '#6c47ff';
-              if (n.type === 'condition') return '#f59e0b';
-              if (n.type === 'delay') return '#0ea5e9';
-              return '#1a1a24';
-            }}
-          />
+          <Controls className="!bg-[#0a0a1a]/80 !backdrop-blur-xl !border-white/10 !fill-white !shadow-2xl !rounded-2xl !overflow-hidden !m-6 !border" />
         </ReactFlow>
+
+        {/* Empty State / Welcome */}
+        {nodes.length <= 1 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+            <div className="text-center space-y-4">
+              <Zap className="w-16 h-16 text-primary mx-auto" />
+              <h2 className="text-2xl font-black uppercase tracking-widest text-white">Start Building</h2>
+              <p className="text-sm text-white/40 font-medium">Add your first action step below the trigger</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

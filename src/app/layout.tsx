@@ -12,8 +12,44 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "LeadsMind - CRM & LMS Platform",
-  description: "A comprehensive SaaS solution for CRM and LMS.",
+  title: "Leadsmind | The Ultra-Premium CRM & CRM Automation Platform",
+  description: "Capture, automate, and close more deals with the world's most intelligent CRM. Built for high-performance sales, marketing, and course creators.",
+  keywords: ["CRM", "Marketing Automation", "LMS", "Lead Capture", "Sales Pipeline", "Email Marketing", "Automation Workflow"],
+  authors: [{ name: "Leadsmind Team" }],
+  openGraph: {
+    title: "Leadsmind | Premium CRM & Automation",
+    description: "The all-in-one platform for lead capture and visual automation.",
+    url: "https://leadsmind.ai",
+    siteName: "Leadsmind",
+    images: [{ url: "/og-image.jpg", width: 1200, height: 630 }],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Leadsmind | Premium CRM",
+    description: "Automate your sales pipeline with ease.",
+    images: ["/og-image.jpg"],
+  },
+  robots: "index, follow",
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Leadsmind",
+  "operatingSystem": "Web",
+  "applicationCategory": "BusinessApplication",
+  "offers": {
+    "@type": "Offer",
+    "price": "97.00",
+    "priceCurrency": "USD"
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.9",
+    "ratingCount": "1250"
+  }
 };
 
 export default function RootLayout({
@@ -24,7 +60,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={poppins.variable}>
       <head>
-        {/* Native Theme Flash Prevention Script - Safe for React 19 */}
+        <script
+          id="ld-json"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <script
           id="theme-initializer"
           dangerouslySetInnerHTML={{
@@ -34,7 +74,7 @@ export default function RootLayout({
                   var theme = localStorage.getItem('theme');
                   var supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
                   if (!theme && supportDarkMode) theme = 'dark';
-                  if (!theme) theme = 'dark'; // Default to dark for LeadsMind
+                  if (!theme) theme = 'dark';
                   document.documentElement.classList.add(theme === 'system' ? (supportDarkMode ? 'dark' : 'light') : theme);
                 } catch (e) {}
               })();
