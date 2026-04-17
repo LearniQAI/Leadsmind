@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
-import { WorkflowBuilder } from "@/components/automation/WorkflowBuilder";
+import { LinearWorkflowBuilder } from "@/components/automation/LinearWorkflowBuilder";
 import { ArrowLeft, Zap } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
