@@ -34,10 +34,10 @@ export function ExecutionLogs({ workflowId, isOpen, onClose }: ExecutionLogsProp
   useEffect(() => {
     const fetchLogs = async () => {
       const { data } = await supabase
-        .from("automation_logs")
+        .from("workflow_executions")
         .select(`
           *,
-          contacts (
+          contact:contacts (
             first_name,
             last_name,
             email
@@ -58,7 +58,7 @@ export function ExecutionLogs({ workflowId, isOpen, onClose }: ExecutionLogsProp
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
-        table: 'automation_logs',
+        table: 'workflow_executions',
         filter: `workflow_id=eq.${workflowId}`
       }, () => {
         fetchLogs();
@@ -103,10 +103,10 @@ export function ExecutionLogs({ workflowId, isOpen, onClose }: ExecutionLogsProp
               
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-bold text-white truncate uppercase tracking-tight">
-                  {log.contacts?.first_name} {log.contacts?.last_name}
+                  {log.contact?.first_name} {log.contact?.last_name}
                 </p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[9px] text-white/30 truncate">Node: {log.node_id.split('-')[0]}</span>
+                  <span className="text-[9px] text-white/30 truncate">Step: {log.current_step || 'End'}</span>
                   <span className="text-[9px] text-white/10">•</span>
                   <span className="text-[9px] text-white/30">{format(new Date(log.created_at), 'HH:mm:ss')}</span>
                 </div>

@@ -3,26 +3,11 @@ import { redirect } from 'next/navigation';
 import { getWorkflows } from '@/app/actions/automation';
 import { Button } from '@/components/ui/button';
 import {
-  Plus,
-  Zap,
-  Play,
-  Settings,
-  Clock,
-  ArrowRight,
-  MoreVertical,
-  Edit,
-  History
+  Plus
 } from 'lucide-react';
 import Link from 'next/link';
-import { DeleteAutomationItem } from '@/components/automation/DeleteAutomationItem';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { WorkflowsTable } from '@/components/automation/WorkflowsTable';
 import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 import { getCurrentWorkspace } from '@/lib/auth';
 
 export default async function AutomationsPage() {

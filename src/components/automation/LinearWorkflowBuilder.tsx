@@ -30,7 +30,6 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { updateWorkflow } from '@/app/actions/automation';
-import { createServerClient } from '@/lib/supabase/server';
 import { createClient } from '@/lib/supabase/client';
 
 interface Step {

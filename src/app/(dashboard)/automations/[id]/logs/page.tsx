@@ -22,19 +22,19 @@ export default async function LogsPage({ params }: LogsPageProps) {
 
   // Fetch workflow details
   const { data: workflow } = await supabase
-    .from("automation_workflows")
+    .from("workflows")
     .select("name")
     .eq("id", id)
     .single();
 
   if (!workflow) notFound();
 
-  // Fetch logs
+  // Fetch recent executions
   const { data: logs } = await supabase
-    .from("automation_logs")
+    .from("workflow_executions")
     .select(`
       *,
-      contacts (
+      contact:contacts (
         first_name,
         last_name,
         email
@@ -105,14 +105,14 @@ export default async function LogsPage({ params }: LogsPageProps) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-white">
-                        {log.contacts ? `${log.contacts.first_name} ${log.contacts.last_name}` : 'System Task'}
+                        {log.contact ? `${log.contact.first_name} ${log.contact.last_name}` : 'System Task'}
                     </span>
                     <Badge variant="outline" className="text-[9px] uppercase tracking-widest border-white/10 text-white/40">
-                        {log.node_id.split('-')[0]}
+                        STEP {log.current_step || 'END'}
                     </Badge>
                   </div>
                   <p className="text-xs text-white/30 mt-1">
-                    {log.error_message || `Action "${log.node_id}" completed successfully at ${format(new Date(log.created_at), 'HH:mm:ss')}`}
+                    {log.error_message || `Execution ${log.status === 'completed' ? 'completed successfully' : 'is currently ' + log.status} at ${format(new Date(log.completed_at || log.created_at), 'HH:mm:ss')}`}
                   </p>
                 </div>
 
@@ -123,7 +123,7 @@ export default async function LogsPage({ params }: LogsPageProps) {
                   <div className="flex items-center justify-end gap-1 mt-1 text-white/40">
                     <User size={12} />
                     <span className="text-[10px] font-bold uppercase tracking-tighter">
-                        {log.contacts?.email || 'SYSTEM'}
+                        {log.contact?.email || 'SYSTEM'}
                     </span>
                   </div>
                 </div>
