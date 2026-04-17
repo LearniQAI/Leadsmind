@@ -182,29 +182,29 @@ export function LinearWorkflowBuilder({ workflowId, initialWorkflow }: { workflo
         </div>
 
         <div className="mt-auto space-y-6 pt-8 border-t border-white/5">
-           <div className="flex items-center justify-between px-2 py-3 rounded-2xl bg-white/[0.02] border border-white/5">
+           <div className={`flex items-center justify-between px-3 py-4 rounded-2xl border transition-all duration-500 ${workflow.is_active ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20'}`}>
               <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/40 italic">Activeness</span>
-                <span className={`text-[11px] font-bold uppercase tracking-tight ${workflow.is_active ? 'text-blue-400' : 'text-white/20'}`}>
-                  {workflow.is_active ? 'Online' : 'Offline'}
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">System Status</span>
+                <span className={`text-[12px] font-black uppercase tracking-tighter ${workflow.is_active ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {workflow.is_active ? '● Online' : '○ Offline'}
                 </span>
               </div>
               <Switch 
                 checked={workflow.is_active} 
                 onCheckedChange={toggleStatus}
-                className="data-[state=checked]:bg-blue-600"
+                className={`transition-colors ${workflow.is_active ? 'data-[state=checked]:bg-emerald-500' : 'data-[state=unchecked]:bg-rose-500/20'}`}
               />
            </div>
 
            <Button 
-             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black h-12 rounded-2xl shadow-2xl shadow-blue-600/10 gap-3 transition-all hover:scale-[1.01] active:scale-[0.99]"
+             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black h-12 rounded-2xl shadow-xl shadow-blue-600/20 gap-3 transition-all active:scale-95 group"
              onClick={saveWorkflow}
              disabled={saving}
            >
-             {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save size={18} />}
-             <span className="uppercase tracking-[0.1em]">Commit Changes</span>
+             {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save size={18} className="group-hover:scale-110 transition-transform" />}
+             <span className="uppercase tracking-widest text-[11px]">Save Logic</span>
            </Button>
-           <p className="text-[9px] text-center text-white/10 font-bold uppercase tracking-widest italic">Manual Save Mode Enabled</p>
+           <p className="text-[9px] text-center text-white/10 font-bold uppercase tracking-widest italic">Performance Optimized</p>
         </div>
       </aside>
 
