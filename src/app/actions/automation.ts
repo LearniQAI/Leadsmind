@@ -126,7 +126,7 @@ export async function deleteWorkflow(id: string) {
     .delete()
     .eq('id', id);
 
-  if (error) throw error;
+  if (error) return { success: false, error: error.message };
   revalidatePath('/automations');
   return { success: true };
 }
