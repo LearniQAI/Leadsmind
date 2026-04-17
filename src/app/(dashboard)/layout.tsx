@@ -8,13 +8,16 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Redirect to /login if not authenticated
-  const authUser = await requireAuth();
+  // 1. Parallelize Auth, Profile, and Workspace fetching to eliminate waterfalls
+  const supabase = await createServerClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) redirect('/login');
+  const authUser = session.user;
 
-  // Fetch profile and workspace — both are resilient (return null on failure)
   const [profile, workspace] = await Promise.all([
-    getCurrentProfile(),
-    getCurrentWorkspace(),
+    getCurrentProfile(authUser),
+    getCurrentWorkspace(authUser),
   ]);
 
   // Build normalized user object for DashboardShell

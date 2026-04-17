@@ -45,8 +45,8 @@ export interface UserProfile {
   createdAt: string;
 }
 
-export async function getCurrentProfile(): Promise<UserProfile | null> {
-  const user = await getUser();
+export async function getCurrentProfile(existingUser?: any): Promise<UserProfile | null> {
+  const user = existingUser || await getUser();
   if (!user) return null;
 
   const supabase = await createServerClient();
@@ -110,8 +110,8 @@ export async function getCurrentWorkspaceId(): Promise<string | null> {
   return cookieStore.get('active_workspace_id')?.value ?? null;
 }
 
-export async function getCurrentWorkspace(): Promise<Workspace | null> {
-  const user = await getUser();
+export async function getCurrentWorkspace(existingUser?: any): Promise<Workspace | null> {
+  const user = existingUser || await getUser();
   if (!user) return null;
 
   const supabase = await createServerClient();
@@ -195,12 +195,9 @@ export async function getUserRole(): Promise<string | null> {
   const user = await getUser();
   if (!user) return null;
 
-  // Prefer cookie for performance; fall back to DB via getCurrentWorkspace
-  // because cookies cannot be set in Server Components (Next.js 15/16),
-  // so active_workspace_id may not be present in the browser cookie jar.
   let workspaceId = await getCurrentWorkspaceId();
   if (!workspaceId) {
-    const workspace = await getCurrentWorkspace();
+    const workspace = await getCurrentWorkspace(user);
     workspaceId = workspace?.id ?? null;
   }
   if (!workspaceId) return null;
