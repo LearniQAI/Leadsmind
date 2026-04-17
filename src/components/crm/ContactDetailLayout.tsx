@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { addTag } from '@/app/actions/contacts';
 import { toast } from 'sonner';
