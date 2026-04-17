@@ -15,7 +15,8 @@ import {
   ChevronDown,
   Play,
   Save,
-  Loader2
+  Loader2,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
