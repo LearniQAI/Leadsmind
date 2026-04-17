@@ -84,10 +84,6 @@ export default async function PipelinesPage({
               <span>Configure</span>
             </Link>
           </Button>
-          <Button className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white h-11 px-5 rounded-xl gap-2 font-bold shadow-lg shadow-[#6c47ff]/20">
-            <Plus className="h-5 w-5" />
-            <span>New Deal</span>
-          </Button>
         </div>
       </div>
 

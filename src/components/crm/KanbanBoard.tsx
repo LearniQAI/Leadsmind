@@ -58,8 +58,8 @@ export function KanbanBoard({ stages, opportunities: initialDeals }: KanbanBoard
     return acc;
   }, {} as Record<string, Opportunity[]>);
 
-  const openNewDeal = (stageId: string) => {
-    setModalState({ isOpen: true, stageId });
+  const openNewDeal = (stageId?: string) => {
+    setModalState({ isOpen: true, stageId: stageId || stages[0]?.id });
   };
 
   const openEditDeal = (deal: Opportunity) => {
@@ -68,14 +68,25 @@ export function KanbanBoard({ stages, opportunities: initialDeals }: KanbanBoard
 
   return (
     <div className="flex flex-col gap-10 h-full relative">
+      {/* Integrated Global Actions */}
+      <div className="flex justify-end mb-4">
+          <Button 
+            onClick={() => openNewDeal()}
+            className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white h-11 px-6 rounded-xl gap-2 font-bold shadow-lg shadow-[#6c47ff]/20 animate-in fade-in slide-in-from-right-4"
+          >
+            <Plus className="h-5 w-5" />
+            <span>New Deal</span>
+          </Button>
+      </div>
+
       {/* Visual Depth Background */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_50%,#6c47ff0a_0%,transparent_50%)] pointer-events-none" />
-      <div className="absolute inset-0 -z-10 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_40%,#6c47ff0a_0%,transparent_50%)] pointer-events-none" />
+      <div className="absolute inset-0 -z-10 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex gap-8 overflow-x-auto pb-10 scrollbar-hide min-h-[calc(100vh-280px)] px-2">
+        <div className="flex gap-6 overflow-x-auto pb-10 scrollbar-hide min-h-[calc(100vh-320px)] px-2">
           {stages.map((stage) => (
-            <div key={stage.id} className="w-[340px] shrink-0 flex flex-col gap-6 group/column">
+            <div key={stage.id} className="w-[300px] shrink-0 flex flex-col gap-5 group/column">
               {/* Column Header - Premium Style */}
               <div className="relative p-5 rounded-[24px] bg-[#0b0b15]/40 border border-white/5 backdrop-blur-xl shadow-xl">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-[2px] bg-[#6c47ff] shadow-[0_0_15px_#6c47ff]" />
