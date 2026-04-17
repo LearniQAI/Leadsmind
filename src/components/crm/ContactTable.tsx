@@ -131,13 +131,13 @@ export function ContactTable({ contacts }: ContactTableProps) {
                 {format(new Date(contact.created_at), 'MMM d, yyyy')}
               </TableCell>
               <TableCell className="text-right">
-                <DropdownMenu dropDownContentProps={{ align: "end", className: "bg-[#0c0c14] border-white/10 text-white min-w-[160px]" }}>
+                <DropdownMenu>
                   <DropdownMenuTrigger render={
                     <Button variant="ghost" className="h-8 w-8 p-0 text-white/10 hover:text-white hover:bg-white/5 rounded-lg transition-all">
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   } />
-                  <DropdownMenuContent>
+                  <DropdownMenuContent align="end" className="bg-[#0c0c14] border-white/10 text-white min-w-[160px]">
                     <DropdownMenuItem>
                         <Link href={`/contacts/${contact.id}`} className="cursor-pointer flex items-center gap-2 w-full">
                             <Users className="h-4 w-4 text-white/40" />
