@@ -18,6 +18,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -29,7 +30,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { updateWorkflow } from '@/app/actions/automation';
+import { updateWorkflow, updateWorkflowStatus } from '@/app/actions/automation';
 import { createClient } from '@/lib/supabase/client';
 
 interface Step {
@@ -59,6 +60,21 @@ export function LinearWorkflowBuilder({ workflowId, initialWorkflow }: { workflo
     
     setSteps(data || []);
     setLoading(false);
+  };
+
+  const toggleStatus = async () => {
+    const newStatus = !workflow.is_active;
+    try {
+      const result = await updateWorkflowStatus(workflowId, newStatus);
+      if (result.success) {
+        setWorkflow({ ...workflow, is_active: newStatus });
+        toast.success(`Workflow ${newStatus ? 'activated' : 'deactivated'}`);
+      } else {
+        toast.error(result.error);
+      }
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
   };
 
   const saveWorkflow = async () => {
@@ -165,7 +181,21 @@ export function LinearWorkflowBuilder({ workflowId, initialWorkflow }: { workflo
           </div>
         </div>
 
-        <div className="mt-auto space-y-4 pt-8 border-t border-white/5">
+        <div className="mt-auto space-y-6 pt-8 border-t border-white/5">
+           <div className="flex items-center justify-between px-2 py-3 rounded-2xl bg-white/[0.02] border border-white/5">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/40 italic">Activeness</span>
+                <span className={`text-[11px] font-bold uppercase tracking-tight ${workflow.is_active ? 'text-blue-400' : 'text-white/20'}`}>
+                  {workflow.is_active ? 'Online' : 'Offline'}
+                </span>
+              </div>
+              <Switch 
+                checked={workflow.is_active} 
+                onCheckedChange={toggleStatus}
+                className="data-[state=checked]:bg-blue-600"
+              />
+           </div>
+
            <Button 
              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black h-12 rounded-2xl shadow-2xl shadow-blue-600/10 gap-3 transition-all hover:scale-[1.01] active:scale-[0.99]"
              onClick={saveWorkflow}
