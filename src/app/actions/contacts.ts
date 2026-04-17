@@ -172,6 +172,10 @@ export async function deleteContact(id: string): Promise<ActionResult> {
   }
 }
 
+export async function addTag(id: string, tag: string): Promise<ActionResult> {
+    return bulkAddTags([id], [tag]);
+}
+
 export async function bulkAddTags(ids: string[], tags: string[]): Promise<ActionResult> {
     const user = await requireAuth();
     const workspaceId = await getCurrentWorkspaceId();

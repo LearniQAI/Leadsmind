@@ -1,30 +1,48 @@
-'use client';
-
-import { Contact } from '@/types/crm.types';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Mail, Phone, MapPin, Tag, Calendar, User, MoreVertical, Zap } from 'lucide-react';
-import { format } from 'date-fns';
-import Link from 'next/link';
-
-interface ContactDetailLayoutProps {
-  contact: Contact;
-  children: React.ReactNode;
-}
+import { useState } from 'react';
+import { addTag } from '@/app/actions/contacts';
+import { toast } from 'sonner';
+import { Plus, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 export function ContactDetailLayout({ contact, children }: ContactDetailLayoutProps) {
-  const initials = `${contact.first_name[0]}${contact.last_name[0]}`;
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newTag, setNewTag] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const initials = `${contact.first_name?.[0] || '?'}${contact.last_name?.[0] || '?'}`;
+
+  const handleAddTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTag.trim()) return;
+
+    setIsLoading(true);
+    try {
+      const res = await addTag(contact.id, newTag.trim());
+      if (res.success) {
+        toast.success(`Tag "${newTag}" added`);
+        setNewTag('');
+        setIsAddingTag(false);
+      } else {
+        toast.error(res.error);
+      }
+    } catch {
+      toast.error("Failed to add tag");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col lg:flex-row gap-8">
       {/* Left Sidebar Profile */}
       <div className="w-full lg:w-[320px] xl:w-[360px] flex-shrink-0 space-y-6">
-        <Card className="bg-[#0b0b10] border-white/5 rounded-[32px] p-6 sm:p-8 lg:sticky lg:top-28 shadow-2xl">
+        <Card className="bg-[#0b0b10] border-white/5 rounded-[32px] p-6 sm:p-8 lg:sticky lg:top-28 shadow-2xl overflow-hidden relative">
+          {/* Subtle Background Glow */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-[#6c47ff]/50 to-transparent" />
+          
           <div className="flex flex-col items-center text-center">
             <Avatar className="h-24 w-24 border-2 border-[#6c47ff]/20 mb-4 ring-4 ring-[#6c47ff]/5">
-              <AvatarFallback className="bg-[#6c47ff]/20 text-[#6c47ff] text-2xl font-bold">
+              <AvatarFallback className="bg-[#6c47ff]/20 text-[#6c47ff] text-2xl font-bold uppercase">
                 {initials}
               </AvatarFallback>
             </Avatar>
@@ -34,7 +52,7 @@ export function ContactDetailLayout({ contact, children }: ContactDetailLayoutPr
             <p className="text-sm text-white/40 font-medium mb-6">Contact Profile</p>
             
             <div className="flex gap-2 mb-6 sm:mb-8">
-               <Button size="sm" className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white rounded-xl px-6 font-bold h-10" asChild>
+               <Button size="sm" className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white rounded-xl px-6 font-bold h-10 shadow-lg shadow-[#6c47ff]/20 transition-all hover:-translate-y-0.5" asChild>
                  <Link href={`/contacts/${contact.id}/edit`}>Edit Profile</Link>
                </Button>
                <Button size="sm" variant="outline" className="border-white/10 hover:bg-white/5 text-white/60 rounded-xl px-3 h-10">
@@ -43,10 +61,10 @@ export function ContactDetailLayout({ contact, children }: ContactDetailLayoutPr
             </div>
 
             {/* AI Lead Score */}
-            <div className="w-full bg-linear-to-br from-[#6c47ff]/10 to-transparent border border-[#6c47ff]/20 rounded-2xl p-4 mb-6 sm:mb-8 transition-all hover:bg-[#6c47ff]/10">
+            <div className="w-full bg-linear-to-br from-[#6c47ff]/10 to-transparent border border-[#6c47ff]/20 rounded-2xl p-4 mb-6 sm:mb-8 transition-all hover:bg-[#6c47ff]/10 group">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-lg bg-[#6c47ff]/20 flex items-center justify-center">
+                  <div className="h-7 w-7 rounded-lg bg-[#6c47ff]/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <Zap className="h-3.5 w-3.5 text-[#6c47ff]" />
                   </div>
                   <span className="text-[10px] font-bold text-white uppercase tracking-[0.15em]">AI Hotness</span>
@@ -113,18 +131,47 @@ export function ContactDetailLayout({ contact, children }: ContactDetailLayoutPr
                </div>
             </div>
 
-            <div className="pt-6 border-t border-white/5 space-y-3">
-               <span className="text-[10px] uppercase tracking-widest text-white/20 font-bold flex items-center gap-2">
-                 <Tag className="h-3 w-3" />
-                 Tags
-               </span>
+            <div className="pt-6 border-t border-white/5 space-y-4">
+               <div className="flex items-center justify-between">
+                 <span className="text-[10px] uppercase tracking-widest text-white/20 font-bold flex items-center gap-2">
+                   <Tag className="h-3 w-3" />
+                   Tags
+                 </span>
+                 <Button 
+                   variant="ghost" 
+                   size="icon" 
+                   className="h-5 w-5 rounded-md hover:bg-white/5 text-white/20 hover:text-[#6c47ff] transition-all"
+                   onClick={() => setIsAddingTag(!isAddingTag)}
+                 >
+                   <Plus className={`h-3 w-3 transition-transform ${isAddingTag ? 'rotate-45 text-[#6c47ff]' : ''}`} />
+                 </Button>
+               </div>
+               
+               {isAddingTag && (
+                 <form onSubmit={handleAddTag} className="animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="relative">
+                      <Input 
+                        autoFocus
+                        placeholder="Type and enter..."
+                        className="h-9 bg-white/5 border-white/5 text-xs pr-8 rounded-xl ring-0 focus:border-[#6c47ff]/50 transition-all font-bold"
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        disabled={isLoading}
+                      />
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        {isLoading && <Loader2 className="h-3 w-3 animate-spin text-[#6c47ff]" />}
+                      </div>
+                    </div>
+                 </form>
+               )}
+
                <div className="flex flex-wrap gap-2">
                  {contact.tags?.map(tag => (
-                   <Badge key={tag} className="bg-white/5 hover:bg-white/10 text-white/60 border-none px-3 py-1 rounded-lg text-xs font-medium transition-colors">
+                   <Badge key={tag} className="bg-white/5 hover:bg-white/10 text-white/60 border border-white/5 px-3 py-1 rounded-sm text-[10px] font-black tracking-wide transition-all hover:text-white uppercase">
                      {tag}
                    </Badge>
                  ))}
-                 {(!contact.tags || contact.tags.length === 0) && <span className="text-xs text-white/20 italic">No tags</span>}
+                 {(!contact.tags || contact.tags.length === 0) && !isAddingTag && <span className="text-xs text-white/20 italic">No tags applied</span>}
                </div>
             </div>
           </div>
