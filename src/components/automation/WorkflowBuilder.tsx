@@ -25,9 +25,10 @@ import { NodesPanel } from "./NodesPanel";
 import { ExecutionLogs } from "./ExecutionLogs";
 import { NodeSettings } from "./NodeSettings";
 import { WorkflowGuide } from "./WorkflowGuide";
+import { TemplateLibrary } from "./TemplateLibrary";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Save, Play, BarChart2, Shield, Plus, Loader2, History, Zap, HelpCircle } from "lucide-react";
+import { Save, Play, BarChart2, Shield, Plus, Loader2, History, Zap, HelpCircle, Sparkles } from "lucide-react";
 import { updateWorkflow } from "@/app/actions/automation";
 import { toast } from "sonner";
 
@@ -59,11 +60,20 @@ export function WorkflowBuilder({
   const [showPanel, setShowPanel] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const selectedNode = nodes.find((n: Node) => n.id === selectedNodeId);
+
+  const handleApplyLibrary = (newNodes: any[], newEdges: any[]) => {
+    if (nodes.length > 0 && !confirm("This will replace your current workflow. Are you sure?")) return;
+    setNodes(newNodes);
+    setEdges(newEdges);
+    setShowLibrary(false);
+    toast.success("Blueprint applied successfully!");
+  };
 
   const onNodeClick = useCallback((_: any, node: Node) => {
     setSelectedNodeId(node.id);
@@ -234,6 +244,16 @@ export function WorkflowBuilder({
             </span>
           </Button>
 
+          <Button 
+            className="bg-primary/10 border border-primary/20 text-primary gap-2 hover:bg-primary/20 rounded-2xl"
+            onClick={() => setShowLibrary(true)}
+          >
+            <Sparkles size={16} />
+            <span className="text-xs font-black uppercase tracking-wider">
+              Blueprints
+            </span>
+          </Button>
+
           {isSaving && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
               <Loader2 className="animate-spin text-white/40" size={12} />
@@ -348,6 +368,37 @@ export function WorkflowBuilder({
           </div>
         )}
       </div>
+      
+      {/* Sidebars & Modals */}
+      <NodesPanel 
+        isOpen={showPanel} 
+        onClose={() => setShowPanel(false)} 
+        onAdd={onAddNode} 
+      />
+      
+      <ExecutionLogs
+        isOpen={showLogs}
+        onClose={() => setShowLogs(false)}
+      />
+
+      <WorkflowGuide
+        isOpen={showGuide}
+        onClose={() => setShowGuide(false)}
+      />
+
+      <TemplateLibrary
+        isOpen={showLibrary}
+        onClose={() => setShowLibrary(false)}
+        onSelect={handleApplyLibrary}
+      />
+
+      {selectedNodeId && selectedNode && (
+        <NodeSettings
+          node={selectedNode}
+          onUpdate={(newData) => updateNodeData(selectedNodeId, newData)}
+          onClose={() => setSelectedNodeId(null)}
+        />
+      )}
     </div>
   );
 }
