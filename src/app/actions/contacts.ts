@@ -44,10 +44,10 @@ export async function createContact(payload: {
           workspace_id: workspaceId,
           first_name: payload.firstName,
           last_name: payload.lastName,
-          email: payload.email,
-          phone: payload.phone,
-          source: payload.source,
-          owner_id: payload.ownerId,
+          email: payload.email || null,
+          phone: payload.phone || null,
+          source: payload.source || null,
+          owner_id: payload.ownerId || null,
           tags: payload.tags || [],
       })
       .select()
@@ -108,10 +108,10 @@ export async function updateContact(id: string, payload: Partial<{
       .update({
           first_name: payload.firstName,
           last_name: payload.lastName,
-          email: payload.email,
-          phone: payload.phone,
-          source: payload.source,
-          owner_id: payload.ownerId,
+          email: payload.email || null,
+          phone: payload.phone || null,
+          source: payload.source || null,
+          owner_id: payload.ownerId || null,
           tags: payload.tags,
       })
       .eq('id', id)
