@@ -1,6 +1,8 @@
-import { requireAuth, getCurrentProfile, getCurrentWorkspace } from '@/lib/auth';
+import { getCurrentProfile, getCurrentWorkspace } from '@/lib/auth';
+import { createServerClient } from '@/lib/supabase/server';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { WorkspaceSync } from '@/components/auth/WorkspaceSync';
+import { redirect } from 'next/navigation';
 import React from 'react';
 
 export default async function DashboardLayout({
