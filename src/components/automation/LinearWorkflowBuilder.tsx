@@ -207,7 +207,6 @@ export function LinearWorkflowBuilder({ workflowId, initialWorkflow }: { workflo
            </Button>
         </div>
       </aside>
-      </aside>
 
       {/* WORKFLOW STEPS (CENTER) */}
       <main className="flex-1 overflow-y-auto p-12 bg-slate-950">
