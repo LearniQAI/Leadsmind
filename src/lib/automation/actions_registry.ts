@@ -104,6 +104,10 @@ export const AutomationActions = {
     if (error) throw error;
   },
 
+  add_tag: async (workspaceId: string, contactId: string, config: any) => {
+    return (AutomationActions as any).apply_tag(workspaceId, contactId, config);
+  },
+
   lead_score: async (workspaceId: string, contactId: string) => {
     await calculateLeadScore(contactId);
   },

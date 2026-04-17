@@ -82,6 +82,25 @@ export async function processNextStep(executionId: string) {
     return;
   }
 
+  // LOGIC FIX: Check if we are resuming from a wait
+  if (step.type === 'wait' && execution.context?.resume_at) {
+    const resumeAt = new Date(execution.context.resume_at);
+    const now = new Date();
+    
+    // If now is past resumeAt, we have finished the wait!
+    if (now >= resumeAt) {
+      // Clear the resume_at and increment step
+      await supabase.from("workflow_executions").update({
+        current_step: currentStepPos + 1,
+        context: { ...execution.context, resume_at: null }
+      }).eq("id", executionId);
+      
+      // Call again to start the next action
+      await processNextStep(executionId);
+      return;
+    }
+  }
+
   // 2. Create Step Log
   const { data: log } = await supabase
     .from("workflow_step_logs")
@@ -98,6 +117,11 @@ export async function processNextStep(executionId: string) {
   try {
     // 3. Execute the Action
     if (step.type === 'wait') {
+      // If we already have a resume_at but we reached here, it means the wait isn't over yet
+      if (execution.context?.resume_at) {
+         return; // Still waiting, don't re-calculate
+      }
+
       const { delayValue = 1, delayUnit = 'minutes' } = step.config;
       const resumeAt = new Date();
       if (delayUnit === 'minutes') resumeAt.setMinutes(resumeAt.getMinutes() + Number(delayValue));
