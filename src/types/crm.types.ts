@@ -82,6 +82,7 @@ export interface Opportunity {
   value: number;
   status: 'open' | 'won' | 'lost';
   owner_id: string | null;
+  tags: string[];
   stage_entered_at: string;
   position: number;
   created_at: string;

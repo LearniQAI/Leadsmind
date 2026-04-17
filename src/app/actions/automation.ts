@@ -3,69 +3,126 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-// --- Workflows ---
+// --- Workflows (Linear) ---
 export async function getWorkflows(workspaceId: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('automation_workflows')
-    .select('*')
+  
+  // Fetch workflows with aggregate counts
+  const { data: workflows, error } = await supabase
+    .from('workflows')
+    .select(`
+      *,
+      steps_count:workflow_steps(count),
+      execution_count:workflow_executions(count),
+      executions:workflow_executions(completed_at)
+    `)
     .eq('workspace_id', workspaceId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data;
+
+  // Format data for the dashboard
+  return workflows.map(wf => ({
+    ...wf,
+    steps_count: wf.steps_count?.[0]?.count || 0,
+    execution_count: wf.execution_count?.[0]?.count || 0,
+    last_run_at: wf.executions?.filter((e: any) => e.completed_at)
+      .sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())[0]?.completed_at
+  }));
 }
 
 export async function createWorkflow(workspaceId: string, name: string) {
   const supabase = await createClient();
   
   const { data, error } = await supabase
-    .from('automation_workflows')
+    .from('workflows')
     .insert({
       workspace_id: workspaceId,
       name,
-      trigger_type: 'manual',
+      trigger_type: 'contact_created',
       trigger_config: {},
-      nodes: [
-        {
-          id: 'trigger-1',
-          type: 'trigger',
-          position: { x: 250, y: 50 },
-          data: { label: 'Manual Trigger', type: 'manual' }
-        }
-      ],
-      edges: [],
-      status: 'draft'
+      is_active: false
     })
     .select('*')
     .single();
 
-  if (error) {
-    console.error("Workflow creation failed:", error);
-    throw new Error(`Execution failed: ${error.message}`);
-  }
+  if (error) throw error;
   
   revalidatePath('/automations');
   return data;
 }
 
+export async function updateWorkflowStatus(id: string, isActive: boolean) {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from('workflows')
+      .update({ is_active: isActive })
+      .eq('id', id);
+  
+    if (error) return { success: false, error: error.message };
+    revalidatePath('/automations');
+    return { success: true };
+}
+
+export async function duplicateWorkflow(id: string) {
+    const supabase = await createClient();
+    
+    // Get source workflow
+    const { data: source } = await supabase.from('workflows').select('*').eq('id', id).single();
+    const { data: steps } = await supabase.from('workflow_steps').select('*').eq('workflow_id', id);
+
+    if (!source) return { success: false, error: "Workflow not found" };
+
+    // Create new workflow
+    const { data: newWf, error: wfErr } = await supabase
+        .from('workflows')
+        .insert({
+            workspace_id: source.workspace_id,
+            name: `${source.name} (Copy)`,
+            trigger_type: source.trigger_type,
+            trigger_config: source.trigger_config,
+            is_active: false
+        })
+        .select()
+        .single();
+
+    if (wfErr) return { success: false, error: wfErr.message };
+
+    // Create steps
+    if (steps && steps.length > 0) {
+        const newSteps = steps.map(s => ({
+            workflow_id: newWf.id,
+            workspace_id: s.workspace_id,
+            position: s.position,
+            type: s.type,
+            config: s.config
+        }));
+        await supabase.from('workflow_steps').insert(newSteps);
+    }
+
+    revalidatePath('/automations');
+    return { success: true };
+}
+
+
 export async function updateWorkflow(id: string, updates: any) {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('automation_workflows')
+    .from('workflows')
     .update(updates)
     .eq('id', id)
     .select()
     .single();
 
   if (error) throw error;
+  revalidatePath('/automations');
   return data;
 }
 
 export async function deleteWorkflow(id: string) {
   const supabase = await createClient();
   const { error } = await supabase
-    .from('automation_workflows')
+    .from('workflows')
     .delete()
     .eq('id', id);
 
@@ -109,39 +166,40 @@ export async function getSmartReplySuggestions(conversationId: string) {
 export async function getAutomationStats(workspaceId: string) {
   const supabase = await createClient();
   
-  // 1. Get paused executions (Current Queue)
-  const { count: pausedCount } = await supabase
-    .from('automation_executions')
+  // 1. Get running/paused executions (Current Queue)
+  const { count: runningCount } = await supabase
+    .from('workflow_executions')
     .select('*', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId)
-    .eq('status', 'paused');
+    .eq('status', 'running');
 
   // 2. Get total executions in last 24h
   const yesterday = new Date();
   yesterday.setHours(yesterday.getHours() - 24);
   
   const { count: totalRecent } = await supabase
-    .from('automation_executions')
+    .from('workflow_executions')
     .select('*', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId)
     .gte('created_at', yesterday.toISOString());
 
   // 3. Get failure count in last 24h
   const { count: failureCount } = await supabase
-    .from('automation_executions')
+    .from('workflow_executions')
     .select('*', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId)
     .eq('status', 'failed')
     .gte('created_at', yesterday.toISOString());
 
-  // 4. Get active workflows count
+  // 4. Get active workflows count (New Table)
   const { count: workflowCount } = await supabase
-    .from('automation_workflows')
+    .from('workflows')
     .select('*', { count: 'exact', head: true })
-    .eq('workspace_id', workspaceId);
+    .eq('workspace_id', workspaceId)
+    .eq('is_active', true);
 
   return {
-    pausedCount: pausedCount || 0,
+    pausedCount: runningCount || 0,
     totalRecent: totalRecent || 0,
     failureCount: failureCount || 0,
     workflowCount: workflowCount || 0,
@@ -151,13 +209,20 @@ export async function getAutomationStats(workspaceId: string) {
 
 export async function getAutomationLogsForContact(contactId: string) {
   const supabase = await createClient();
+  
+  // Correctly fetch logs by joining via workflow_executions
   const { data, error } = await supabase
-    .from('automation_logs')
+    .from('workflow_step_logs')
     .select(`
       *,
-      workflow:automation_workflows(name)
+      execution:workflow_executions!inner(
+        id,
+        contact_id,
+        workflow:workflows(name)
+      ),
+      step:workflow_steps(type)
     `)
-    .eq('contact_id', contactId)
+    .eq('execution.contact_id', contactId)
     .order('created_at', { ascending: false });
 
   if (error) {

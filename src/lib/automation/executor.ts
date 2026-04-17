@@ -1,164 +1,156 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { AutomationActions } from "./actions_registry";
 
+/**
+ * Trigger point for all automations.
+ * Fetches all active linear workflows for the given trigger type.
+ */
 export async function triggerWorkflows(workspaceId: string, triggerType: string, contactId: string) {
   const supabase = await createServerClient();
   
   const { data: workflows } = await supabase
-    .from("automation_workflows")
+    .from("workflows")
     .select("*")
     .eq("workspace_id", workspaceId)
     .eq("trigger_type", triggerType)
-    .eq("status", "active");
+    .eq("is_active", true);
 
   if (!workflows || workflows.length === 0) return;
 
   for (const workflow of workflows) {
-    await executeWorkflow(workflow, contactId);
+    await startWorkflowExecution(workflow, contactId);
   }
 }
 
-async function executeWorkflow(workflow: any, contactId: string) {
-  const { nodes, edges, workspace_id, id: workflowId } = workflow;
+/**
+ * Initializes a new execution record and starts the first step.
+ */
+async function startWorkflowExecution(workflow: any, contactId: string) {
   const supabase = await createServerClient();
 
-  // 1. Find the trigger node
-  const triggerNode = nodes.find((n: any) => n.type === 'trigger');
-  if (!triggerNode) return;
-
-  // 2. Start traversal from the trigger node's outputs
-  const startEdges = edges.filter((e: any) => e.source === triggerNode.id);
-  
-  for (const edge of startEdges) {
-    await processNode(edge.target, nodes, edges, workspace_id, workflowId, contactId, supabase);
-  }
-}
-
-async function processNode(
-  nodeId: string, 
-  nodes: any[], 
-  edges: any[], 
-  workspaceId: string, 
-  workflowId: string, 
-  contactId: string, 
-  supabase: any
-) {
-  const node = nodes.find(n => n.id === nodeId);
-  if (!node) return;
-
-  try {
-    let nextNodeIds: string[] = [];
-
-    // Log start
-    await supabase.from("automation_logs").insert({
-      workspace_id: workspaceId,
-      workflow_id: workflowId,
+  // 1. Create Execution Record
+  const { data: execution, error } = await supabase
+    .from("workflow_executions")
+    .insert({
+      workspace_id: workflow.workspace_id,
+      workflow_id: workflow.id,
       contact_id: contactId,
-      node_id: nodeId,
-      status: 'running'
-    });
-
-    if (node.type === 'action') {
-      const actionType = node.data.actionType;
-      const handler = (AutomationActions as any)[actionType];
-      if (handler) {
-        await handler(workspaceId, contactId, node.data);
-      }
-      nextNodeIds = edges.filter(e => e.source === nodeId).map(e => e.target);
-
-    } else if (node.type === 'condition') {
-      const { data: contact } = await supabase.from("contacts").select("*").eq("id", contactId).single();
-      
-      const { field = 'email', operator = 'contains', value = '' } = node.data;
-      let conditionMet = false;
-
-      const fieldValue = contact[field];
-      
-      if (operator === 'exists') conditionMet = !!fieldValue;
-      else if (operator === 'equals') conditionMet = String(fieldValue) === String(value);
-      else if (operator === 'contains') conditionMet = String(fieldValue).toLowerCase().includes(String(value).toLowerCase());
-      else if (operator === 'greater_than') conditionMet = Number(fieldValue) > Number(value);
-      
-      const edgeId = conditionMet ? 'true' : 'false';
-      nextNodeIds = edges.filter(e => e.source === nodeId && e.sourceHandle === edgeId).map(e => e.target);
-
-    } else if (node.type === 'delay') {
-      const { durationValue = 1, durationUnit = 'hours' } = node.data;
-      
-      const resumeAt = new Date();
-      if (durationUnit === 'minutes') resumeAt.setMinutes(resumeAt.getMinutes() + Number(durationValue));
-      else if (durationUnit === 'hours') resumeAt.setHours(resumeAt.getHours() + Number(durationValue));
-      else if (durationUnit === 'days') resumeAt.setDate(resumeAt.getDate() + Number(durationValue));
-
-      await supabase.from("automation_executions").insert({
-        workspace_id: workspaceId,
-        workflow_id: workflowId,
-        contact_id: contactId,
-        current_node_id: nodeId,
-        status: 'paused',
-        resume_at: resumeAt.toISOString(),
-      });
-
-      // Terminate this branch of execution
-      return;
-    }
-
-    // Update log to success
-    await supabase.from("automation_logs").update({ status: 'success' })
-      .eq("workflow_id", workflowId)
-      .eq("contact_id", contactId)
-      .eq("node_id", nodeId);
-
-    // Recursively process next nodes
-    for (const nextId of nextNodeIds) {
-      await processNode(nextId, nodes, edges, workspaceId, workflowId, contactId, supabase);
-    }
-
-  } catch (error: any) {
-    console.error(`Error in automation node ${nodeId}:`, error);
-    await supabase.from("automation_logs").update({ 
-      status: 'error', 
-      error_message: error.message 
+      status: 'running',
+      current_step: 1
     })
-    .eq("workflow_id", workflowId)
-    .eq("contact_id", contactId)
-    .eq("node_id", nodeId);
-  }
-}
-
-export async function resumeExecution(executionId: string) {
-  const supabase = await createServerClient();
-
-  const { data: execution, error: fetchError } = await supabase
-    .from("automation_executions")
-    .select("*, workflow:automation_workflows(*)")
-    .eq("id", executionId)
+    .select()
     .single();
 
-  if (fetchError || !execution) {
-    console.error("Failed to fetch execution for resumption:", fetchError);
+  if (error) {
+    console.error("[executor] Failed to create execution:", error);
     return;
   }
 
-  const { workflow, contact_id, current_node_id, workspace_id } = execution;
-  const { nodes, edges } = workflow;
+  // 2. Start Sequential Processing
+  await processNextStep(execution.id);
+}
 
-  // Mark running
-  await supabase
-    .from("automation_executions")
-    .update({ status: 'running', updated_at: new Date().toISOString() })
-    .eq("id", executionId);
+/**
+ * Core loop: Fetches current step, executes it, and decides whether to continue.
+ */
+export async function processNextStep(executionId: string) {
+  const supabase = await createServerClient();
 
-  // Find next nodes after the delay
-  const nextNodeIds = edges.filter((e: any) => e.source === current_node_id).map((e: any) => e.target);
+  // 1. Fetch Execution & Current Step
+  const { data: execution } = await supabase
+    .from("workflow_executions")
+    .select("*, workflow:workflows(*)")
+    .eq("id", executionId)
+    .single();
 
-  for (const nextId of nextNodeIds) {
-    await processNode(nextId, nodes, edges, workspace_id, workflow.id, contact_id, supabase);
+  if (!execution || execution.status !== 'running') return;
+
+  const currentStepPos = execution.current_step;
+  const { data: step } = await supabase
+    .from("workflow_steps")
+    .select("*")
+    .eq("workflow_id", execution.workflow_id)
+    .eq("position", currentStepPos)
+    .single();
+
+  // If no more steps, we're done
+  if (!step) {
+    await supabase.from("workflow_executions").update({ 
+      status: 'completed', 
+      completed_at: new Date().toISOString() 
+    }).eq("id", executionId);
+    return;
   }
 
-  // Clear execution state once finished
-  await supabase
-    .from("automation_executions")
-    .update({ status: 'completed', updated_at: new Date().toISOString() })
-    .eq("id", executionId);
+  // 2. Create Step Log
+  const { data: log } = await supabase
+    .from("workflow_step_logs")
+    .insert({
+      execution_id: executionId,
+      workspace_id: execution.workspace_id,
+      step_id: step.id,
+      status: 'running',
+      started_at: new Date().toISOString()
+    })
+    .select()
+    .single();
+
+  try {
+    // 3. Execute the Action
+    if (step.type === 'wait') {
+      const { delayValue = 1, delayUnit = 'minutes' } = step.config;
+      const resumeAt = new Date();
+      if (delayUnit === 'minutes') resumeAt.setMinutes(resumeAt.getMinutes() + Number(delayValue));
+      else if (delayUnit === 'hours') resumeAt.setHours(resumeAt.getHours() + Number(delayValue));
+      else if (delayUnit === 'days') resumeAt.setDate(resumeAt.getDate() + Number(delayValue));
+
+      // Pause execution
+      await supabase.from("workflow_executions").update({ 
+        status: 'running', // Keep running but we wait for cron
+        context: { ...execution.context, resume_at: resumeAt.toISOString() }
+      }).eq("id", executionId);
+
+      await supabase.from("workflow_step_logs").update({ 
+        status: 'completed', 
+        completed_at: new Date().toISOString() 
+      }).eq("id", log.id);
+
+      // Terminate synchronous run (will be resumed by cron/background job)
+      return;
+    }
+
+    // Standard Actions (Email, SMS, Tags, etc)
+    const handler = (AutomationActions as any)[step.type];
+    if (handler) {
+      await handler(execution.workspace_id, execution.contact_id, step.config);
+    }
+
+    // 4. Update Log & Move to Next
+    await supabase.from("workflow_step_logs").update({ 
+      status: 'completed', 
+      completed_at: new Date().toISOString() 
+    }).eq("id", log.id);
+
+    await supabase.from("workflow_executions").update({ 
+      current_step: currentStepPos + 1 
+    }).eq("id", executionId);
+
+    // Continue recursively for synchronous steps
+    await processNextStep(executionId);
+
+  } catch (err: any) {
+    console.error(`[executor] Step failed (${step.type}):`, err);
+    
+    await supabase.from("workflow_step_logs").update({ 
+      status: 'failed', 
+      error_message: err.message,
+      completed_at: new Date().toISOString() 
+    }).eq("id", log.id);
+
+    // Stop execution on failure (or implement retry logic here)
+    await supabase.from("workflow_executions").update({ 
+      status: 'failed', 
+      error_message: `Step ${currentStepPos} failed: ${err.message}` 
+    }).eq("id", executionId);
+  }
 }

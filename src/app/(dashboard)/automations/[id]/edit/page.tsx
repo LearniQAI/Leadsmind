@@ -19,7 +19,7 @@ export default async function EditAutomationPage({ params }: EditAutomationPageP
   if (!user) redirect("/login");
 
   const { data: workflow } = await supabase
-    .from("automation_workflows")
+    .from("workflows")
     .select("*")
     .eq("id", id)
     .single();
@@ -27,41 +27,40 @@ export default async function EditAutomationPage({ params }: EditAutomationPageP
   if (!workflow) notFound();
 
   return (
-    <div className="fixed inset-0 z-[50] flex flex-col bg-[#0b0b15]">
-      {/* Premium Stealth Header */}
-      <header className="flex h-16 items-center justify-between border-b border-white/5 bg-[#050510]/80 px-8 backdrop-blur-md">
+    <div className="fixed inset-0 z-[50] flex flex-col bg-[#05050a]">
+      {/* Professional SaaS Header */}
+      <header className="flex h-16 items-center justify-between border-b border-white/5 bg-[#08080f] px-8">
         <div className="flex items-center gap-6">
           <Link href="/automations">
-            <Button variant="ghost" size="icon" className="text-white/40 hover:text-white">
-              <ArrowLeft size={20} />
+            <Button variant="ghost" size="icon" className="text-white/20 hover:text-white hover:bg-white/5 rounded-lg transition-all">
+              <ArrowLeft size={18} />
             </Button>
           </Link>
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#6c47ff]/10">
-              <Zap className="h-4 w-4 text-[#6c47ff]" />
-            </div>
-            <div>
-              <h1 className="text-sm font-black text-white uppercase tracking-tight">{workflow.name}</h1>
-              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Workflow Builder</p>
+          <div className="flex flex-col">
+            <h1 className="text-sm font-black text-white uppercase tracking-tight italic">
+              {workflow.name}
+            </h1>
+            <div className="flex items-center gap-2">
+               <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Linear Workflow Engine</span>
+               <div className="h-1 w-1 rounded-full bg-white/10" />
+               <span className="text-[9px] font-black text-blue-500/80 uppercase tracking-[0.2em]">{workflow.trigger_type.replace('_', ' ')}</span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 rounded-full bg-white/5 px-4 py-1.5 border border-white/10">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Auto-saved</span>
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/5 border border-blue-500/10">
+            <div className="h-1.5 w-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+            <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">System Online</span>
           </div>
         </div>
       </header>
 
-      {/* Main Canvas Area */}
-      <main className="flex-1 relative overflow-hidden">
-        <WorkflowBuilder 
+      {/* Builder Core */}
+      <main className="flex-1 relative overflow-hidden bg-[#050505]">
+        <LinearWorkflowBuilder 
           workflowId={id}
-          initialNodes={workflow.nodes as any}
-          initialEdges={workflow.edges as any}
-          initialStatus={workflow.status}
+          initialWorkflow={workflow}
         />
       </main>
     </div>

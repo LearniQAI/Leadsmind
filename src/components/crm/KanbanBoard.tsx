@@ -67,40 +67,39 @@ export function KanbanBoard({ stages, opportunities: initialDeals }: KanbanBoard
   };
 
   return (
-    <div className="flex flex-col gap-10 h-full relative">
-      {/* Integrated Global Actions */}
-      <div className="flex justify-end mb-4">
+    <div className="flex flex-col gap-6 h-full relative">
+      {/* Professional Dashboard Actions */}
+      <div className="flex justify-between items-end mb-4 px-2">
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-white uppercase tracking-tight italic">Pipeline Deals</h2>
+            <p className="text-[10px] font-medium text-white/30 uppercase tracking-[0.2em]">Manage your sales opportunities</p>
+          </div>
           <Button 
             onClick={() => openNewDeal()}
-            className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white h-11 px-6 rounded-xl gap-2 font-bold shadow-lg shadow-[#6c47ff]/20 animate-in fade-in slide-in-from-right-4"
+            className="bg-blue-600 hover:bg-blue-700 text-white h-10 px-6 rounded-xl gap-2 font-bold shadow-lg shadow-blue-600/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
             <span>New Deal</span>
           </Button>
       </div>
 
-      {/* Visual Depth Background */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_40%,#6c47ff0a_0%,transparent_50%)] pointer-events-none" />
-      <div className="absolute inset-0 -z-10 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex gap-6 overflow-x-auto pb-10 scrollbar-hide min-h-[calc(100vh-320px)] px-2">
+        <div className="flex gap-4 overflow-x-auto pb-10 scrollbar-thin scrollbar-thumb-white/5 min-h-[calc(100vh-320px)] px-2">
           {stages.map((stage) => (
-            <div key={stage.id} className="w-[300px] shrink-0 flex flex-col gap-5 group/column">
-              {/* Column Header - Premium Style */}
-              <div className="relative p-5 rounded-[24px] bg-[#0b0b15]/40 border border-white/5 backdrop-blur-xl shadow-xl">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-[2px] bg-[#6c47ff] shadow-[0_0_15px_#6c47ff]" />
+            <div key={stage.id} className="w-[320px] shrink-0 flex flex-col gap-4 group/column">
+              {/* Column Header - Clean SaaS Style */}
+              <div className="p-4 rounded-2xl bg-[#0c0c14] border border-white/5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#6c47ff]/10 text-[#6c47ff] text-[10px] font-black border border-[#6c47ff]/20">
+                    <div className="flex items-center justify-center w-5 h-5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-black border border-blue-500/20">
                       {opportunitiesByStage[stage.id]?.length || 0}
                     </div>
-                    <h3 className="text-xs font-black text-white/90 uppercase tracking-[0.2em]">{stage.name}</h3>
+                    <h3 className="text-[11px] font-black text-white/50 uppercase tracking-[0.2em]">{stage.name}</h3>
                   </div>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-8 w-8 text-white/20 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                    className="h-7 w-7 text-white/10 hover:text-white hover:bg-white/5 rounded-lg transition-all"
                     onClick={() => openNewDeal(stage.id)}
                   >
                     <Plus className="h-4 w-4" />
@@ -115,8 +114,8 @@ export function KanbanBoard({ stages, opportunities: initialDeals }: KanbanBoard
                     {...provided.droppableProps}
                     ref={provided.innerRef}
                     className={cn(
-                      "flex-1 flex flex-col gap-4 p-2 rounded-[32px] transition-all duration-300",
-                      snapshot.isDraggingOver ? "bg-[#6c47ff]/5 ring-1 ring-[#6c47ff]/20" : "bg-transparent"
+                      "flex-1 flex flex-col gap-3 p-1 rounded-2xl transition-all duration-300",
+                      snapshot.isDraggingOver ? "bg-white/[0.02]" : "bg-transparent"
                     )}
                   >
                     {opportunitiesByStage[stage.id]?.map((opp, index) => (
@@ -127,38 +126,46 @@ export function KanbanBoard({ stages, opportunities: initialDeals }: KanbanBoard
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                             className={cn(
-                              "relative bg-gradient-to-br from-[#11111d] to-[#080810] border border-white/5 rounded-[22px] p-5 shadow-lg transition-all hover:border-[#6c47ff]/40 hover:-translate-y-1 hover:shadow-2xl group",
-                              snapshot.isDragging && "shadow-[0_20px_50px_rgba(108,71,255,0.3)] border-[#6c47ff]/60 bg-[#161622] scale-[1.02] rotate-1"
+                              "relative bg-[#0c0c14] border border-white/5 rounded-2xl p-4 shadow-xl transition-all hover:border-blue-500/40 group",
+                              snapshot.isDragging && "shadow-2xl border-blue-500/60 bg-[#0e0e1a] scale-[1.02]"
                             )}
                           >
-                            <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[#6c47ff]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                            
-                            <div className="flex flex-col gap-5">
-                              <div className="flex items-start justify-between gap-4">
-                                <span className="text-[13px] font-bold text-white/90 leading-snug tracking-tight group-hover:text-white transition-colors">{opp.title}</span>
+                            <div className="flex flex-col gap-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <span className="text-[13px] font-bold text-white leading-tight tracking-tight">{opp.title}</span>
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 
-                                  className="h-8 w-8 p-0 text-white/10 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                                  className="h-6 w-6 p-0 text-white/5 hover:text-white hover:bg-white/5 rounded-md transition-all shrink-0"
                                   onClick={() => openEditDeal(opp)}
                                 >
-                                  <MoreHorizontal className="h-4 w-4" />
+                                  <MoreHorizontal className="h-3 w-3" />
                                 </Button>
                               </div>
+
+                              {/* TAGS DISPLAY */}
+                              {opp.tags && opp.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {opp.tags.map(tag => (
+                                    <span key={tag} className="px-1.5 py-0.5 rounded-[4px] bg-blue-500/5 border border-blue-500/10 text-[9px] font-bold text-blue-400 capitalize whitespace-nowrap">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                               
-                              <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                              <div className="flex items-center justify-between pt-3 border-t border-white/5">
                                 <div className="flex flex-col">
-                                   <span className="text-[9px] font-black uppercase tracking-widest text-white/20 mb-1">Value</span>
-                                   <div className="flex items-center gap-1.5 text-[#fdab3d]">
+                                   <div className="flex items-center gap-1.5 text-emerald-400/80">
                                       <DollarSign className="h-3 w-3" />
-                                      <span className="text-[13px] font-black tracking-tight">
+                                      <span className="text-[12px] font-black tracking-tight">
                                         {opp.value.toLocaleString()}
                                       </span>
                                    </div>
                                 </div>
                                 <div className="flex items-center">
-                                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-white/10 to-transparent border border-white/10 flex items-center justify-center shadow-lg transition-transform group-hover:scale-110">
-                                     <User className="h-4 w-4 text-white/60" />
+                                  <div className="h-6 w-6 rounded-full bg-white/[0.03] border border-white/5 flex items-center justify-center">
+                                     <User className="h-3 w-3 text-white/20" />
                                   </div>
                                 </div>
                               </div>
@@ -173,12 +180,10 @@ export function KanbanBoard({ stages, opportunities: initialDeals }: KanbanBoard
                     {opportunitiesByStage[stage.id]?.length === 0 && (
                       <button 
                         onClick={() => openNewDeal(stage.id)}
-                        className="group flex flex-col items-center justify-center p-8 border-2 border-dashed border-white/5 rounded-[22px] hover:border-[#6c47ff]/30 hover:bg-[#6c47ff]/5 transition-all animate-in fade-in zoom-in duration-500"
+                        className="group flex flex-col items-center justify-center p-6 border border-dashed border-white/5 rounded-2xl hover:border-blue-500/20 hover:bg-white/[0.01] transition-all"
                       >
-                        <div className="h-10 w-10 rounded-full bg-white/5 flex items-center justify-center mb-3 group-hover:bg-[#6c47ff]/10 group-hover:scale-110 transition-all">
-                          <Plus className="h-5 w-5 text-white/10 group-hover:text-[#6c47ff]" />
-                        </div>
-                        <span className="text-[10px] font-bold text-white/10 uppercase tracking-widest group-hover:text-white/40">New Deal</span>
+                         <Plus className="h-4 w-4 text-white/5 group-hover:text-blue-500/40 mb-2" />
+                         <span className="text-[9px] font-bold text-white/10 uppercase tracking-widest">Add Deal</span>
                       </button>
                     )}
                   </div>
