@@ -264,7 +264,7 @@ function AddStepPopover({ onSelect, isInitial = false }: { onSelect: (type: stri
   const actions = [
     { type: 'send_email', label: 'Send Email', icon: <Mail size={14} /> },
     { type: 'send_sms', label: 'Send SMS', icon: <MessageSquare size={14} /> },
-    { type: 'add_tag', label: 'Add Tag', icon: <TagIcon size={14} /> },
+    { type: 'apply_tag', label: 'Add Tag', icon: <TagIcon size={14} /> },
     { type: 'wait', label: 'Delay', icon: <Clock size={14} /> },
   ];
 
@@ -314,53 +314,65 @@ function renderStepConfig(step: Step, update: (id: string, config: any) => void)
   switch(step.type) {
     case 'send_email':
       return (
-        <div className="space-y-3">
-          <Input 
-            placeholder="Email Subject" 
-            className="h-9 bg-white/[0.03] border-white/5 text-xs rounded-lg"
-            value={step.config.subject || ''}
-            onChange={(e) => update(step.id, { subject: e.target.value })}
-          />
-          <textarea 
-            placeholder="Email Body (Markdown supported)"
-            className="w-full min-h-[100px] bg-white/[0.03] border border-white/5 rounded-lg p-3 text-xs text-white/60 focus:outline-none focus:border-blue-500/50 transition-colors"
-            value={step.config.body || ''}
-            onChange={(e) => update(step.id, { body: e.target.value })}
-          />
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-widest text-white/20 ml-1">Subject Line</label>
+            <Input 
+              placeholder="e.g. Welcome to the team!" 
+              className="h-10 bg-white/[0.03] border-white/5 text-xs rounded-xl focus:border-blue-500/30 transition-all font-medium"
+              value={step.config.subject || ''}
+              onChange={(e) => update(step.id, { subject: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-widest text-white/20 ml-1">Message Body</label>
+            <textarea 
+              placeholder="Write your email content here..."
+              className="w-full min-h-[120px] bg-white/[0.03] border border-white/5 rounded-xl p-4 text-xs text-white/70 focus:outline-none focus:border-blue-500/30 transition-all font-medium resize-none"
+              value={step.config.body || ''}
+              onChange={(e) => update(step.id, { body: e.target.value })}
+            />
+          </div>
         </div>
       );
     case 'wait':
       return (
-        <div className="flex items-center gap-3">
-           <Input 
-             type="number"
-             className="h-9 w-20 bg-white/[0.03] border-white/5 text-xs rounded-lg"
-             value={step.config.delayValue || 1}
-             onChange={(e) => update(step.id, { delayValue: e.target.value })}
-           />
-           <Select 
-             value={step.config.delayUnit || 'minutes'}
-             onValueChange={(v) => update(step.id, { delayUnit: v })}
-           >
-             <SelectTrigger className="h-9 bg-white/[0.03] border-white/5 text-xs rounded-lg">
-               <SelectValue />
-             </SelectTrigger>
-             <SelectContent className="bg-[#0c0c14] border-white/10 text-white">
-               <SelectItem value="minutes">Minutes</SelectItem>
-               <SelectItem value="hours">Hours</SelectItem>
-               <SelectItem value="days">Days</SelectItem>
-             </SelectContent>
-           </Select>
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-widest text-white/20 ml-1">Delay Duration</label>
+          <div className="flex items-center gap-2">
+            <Input 
+              type="number"
+              className="h-10 w-24 bg-white/[0.03] border-white/5 text-xs rounded-xl font-bold"
+              value={step.config.delayValue || 1}
+              onChange={(e) => update(step.id, { delayValue: e.target.value })}
+            />
+            <Select 
+              value={step.config.delayUnit || 'minutes'}
+              onValueChange={(v) => update(step.id, { delayUnit: v })}
+            >
+              <SelectTrigger className="h-10 flex-1 bg-white/[0.03] border-white/5 text-xs rounded-xl font-bold">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#0c0c14] border-white/10 text-white">
+                <SelectItem value="minutes">Minutes</SelectItem>
+                <SelectItem value="hours">Hours</SelectItem>
+                <SelectItem value="days">Days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       );
-    case 'add_tag':
+    case 'apply_tag':
       return (
-        <Input 
-          placeholder="Tag name to add" 
-          className="h-9 bg-white/[0.03] border-white/5 text-xs rounded-lg"
-          value={step.config.tag || ''}
-          onChange={(e) => update(step.id, { tag: e.target.value })}
-        />
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-widest text-white/20 ml-1">Tag Identifier</label>
+          <Input 
+            placeholder="e.g. newsletter_joined" 
+            className="h-10 bg-white/[0.03] border-white/5 text-xs rounded-xl font-bold"
+            value={step.config.tag || ''}
+            onChange={(e) => update(step.id, { tag: e.target.value })}
+          />
+        </div>
       );
     default:
       return <p className="text-[10px] text-white/20">No configuration required.</p>;
