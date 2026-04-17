@@ -15,23 +15,31 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 
-export function WorkflowGuide({ onClose }: { onClose: () => void }) {
+export function WorkflowGuide({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   return (
-    <div className="absolute inset-y-0 right-0 w-[400px] bg-[#0b0b15]/95 backdrop-blur-3xl border-l border-white/10 z-[100] p-8 shadow-2xl animate-in slide-in-from-right duration-300">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-[#6c47ff]/20 rounded-lg">
-            <Lightbulb className="w-5 h-5 text-[#6c47ff]" />
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent side="right" className="w-[420px] p-0 bg-[#050510]/95 border-l border-white/5 backdrop-blur-3xl">
+        <SheetHeader className="p-8 border-b border-white/5 bg-[#0b0b15]/50">
+          <div className="flex items-center gap-3 mb-1">
+             <div className="p-2 bg-[#6c47ff]/20 rounded-xl">
+                <Lightbulb className="w-5 h-5 text-[#6c47ff]" />
+             </div>
+             <SheetTitle className="text-xl font-black uppercase tracking-tight text-white">How it Works</SheetTitle>
           </div>
-          <h2 className="text-lg font-bold text-white tracking-tight">How it Works</h2>
-        </div>
-        <Button variant="ghost" size="icon" onClick={onClose} className="text-white/20 hover:text-white hover:bg-white/5">
-          <X size={20} />
-        </Button>
-      </div>
+          <SheetDescription className="text-[11px] text-white/30 font-bold uppercase tracking-widest mt-2">
+            Master the Leadsmind Automation Engine
+          </SheetDescription>
+        </SheetHeader>
 
-      <div className="space-y-8 overflow-y-auto max-h-[calc(100vh-160px)] pr-2 scrollbar-none">
+        <div className="p-8 space-y-8 overflow-y-auto max-h-[calc(100vh-140px)] scrollbar-none">
         {/* Core Concept */}
         <section className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6c47ff]">The Core Loop</h3>
@@ -106,8 +114,9 @@ export function WorkflowGuide({ onClose }: { onClose: () => void }) {
             Got it, let's build!
           </Button>
         </div>
-      </div>
-    </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 

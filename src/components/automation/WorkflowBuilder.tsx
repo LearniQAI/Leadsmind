@@ -305,16 +305,7 @@ export function WorkflowBuilder({
         </div>
       </div>
 
-      {showPanel && <NodesPanel onAddNode={onAddNode} />}
-      {showLogs && workflowId && <ExecutionLogs workflowId={workflowId} />}
-      {showGuide && <WorkflowGuide onClose={() => setShowGuide(false)} />}
-      {selectedNode && (
-        <NodeSettings 
-          node={selectedNode} 
-          onUpdate={(newData) => updateNodeData(selectedNode.id, newData)}
-          onClose={() => setSelectedNodeId(null)}
-        />
-      )}
+
 
       <div className="h-full w-full relative overflow-hidden">
         {/* Subtle Depth Layers */}

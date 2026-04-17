@@ -13,12 +13,21 @@ import {
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 
 interface ExecutionLogsProps {
   workflowId: string;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function ExecutionLogs({ workflowId }: ExecutionLogsProps) {
+export function ExecutionLogs({ workflowId, isOpen, onClose }: ExecutionLogsProps) {
   const [logs, setLogs] = useState<any[]>([]);
   const supabase = createClient();
 
