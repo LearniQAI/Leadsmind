@@ -39,13 +39,16 @@ export function StageManager({ pipelineId, initialStages }: StageManagerProps) {
     setIsLoading(true);
     try {
       const result = await addPipelineStage(pipelineId, newName);
-      if (result.success && result.data) {
+      if (!result.success) {
+        toast.error(result.error || 'Failed to add stage');
+        return;
+      }
+      
+      if (result.data) {
         setStages([...stages, result.data]);
         setNewName('');
         setIsAdding(false);
         toast.success('Stage added');
-      } else {
-        toast.error(result.error || 'Failed to add stage');
       }
     } catch (err) {
       toast.error('Error adding stage');
@@ -59,7 +62,12 @@ export function StageManager({ pipelineId, initialStages }: StageManagerProps) {
     setIsLoading(true);
     try {
       const result = await updatePipelineStage(id, pipelineId, editName);
-      if (result.success && result.data) {
+      if (!result.success) {
+        toast.error(result.error || 'Failed to update stage');
+        return;
+      }
+
+      if (result.data) {
         setStages(stages.map(s => s.id === id ? result.data! : s));
         setEditingId(null);
         toast.success('Stage updated');
@@ -76,10 +84,13 @@ export function StageManager({ pipelineId, initialStages }: StageManagerProps) {
     setIsLoading(true);
     try {
       const result = await removePipelineStage(id, pipelineId);
-      if (result.success) {
-        setStages(stages.filter(s => s.id !== id));
-        toast.success('Stage removed');
+      if (!result.success) {
+        toast.error(result.error || 'Failed to remove stage');
+        return;
       }
+      
+      setStages(stages.filter(s => s.id !== id));
+      toast.success('Stage removed');
     } catch (err) {
       toast.error('Error removing stage');
     } finally {
