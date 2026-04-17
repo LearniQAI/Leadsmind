@@ -135,12 +135,16 @@ export function WorkflowsTable({ workflows }: WorkflowsTableProps) {
                 </div>
               </TableCell>
               <TableCell className="text-center">
-                <div className="flex justify-center">
+                <div className="flex flex-col items-center gap-1.5">
                   <Switch 
                     checked={wf.is_active} 
                     onCheckedChange={() => handleStatusToggle(wf.id, wf.is_active)}
                     disabled={loadingId === wf.id}
+                    className={`transition-colors ${wf.is_active ? 'data-[state=checked]:bg-emerald-500' : 'data-[state=unchecked]:bg-rose-500/20'}`}
                   />
+                  <span className={`text-[9px] font-black uppercase tracking-tighter ${wf.is_active ? 'text-emerald-400' : 'text-rose-400/40'}`}>
+                    {wf.is_active ? 'Online' : 'Offline'}
+                  </span>
                 </div>
               </TableCell>
               <TableCell className="text-center">
