@@ -113,9 +113,92 @@ export async function getPipelineStages(pipelineId: string): Promise<ActionResul
       .order('position', { ascending: true });
 
     if (error) return { success: false, error: 'Failed to fetch stages' };
-    return { success: true, data };
+    return { success: true, data: data };
   } catch (err) {
     return { success: false, error: 'Server error' };
+  }
+}
+
+export async function addPipelineStage(pipelineId: string, name: string): Promise<ActionResult<PipelineStage>> {
+  await requireAuth();
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, error: 'No active workspace' };
+
+  const supabase = await createServerClient();
+
+  try {
+    // Get max position
+    const { data: stages } = await supabase
+      .from('pipeline_stages')
+      .select('position')
+      .eq('pipeline_id', pipelineId)
+      .order('position', { ascending: false })
+      .limit(1);
+
+    const position = (stages?.[0]?.position ?? -1) + 1;
+
+    const { data, error } = await supabase
+      .from('pipeline_stages')
+      .insert({
+        workspace_id: workspaceId,
+        pipeline_id: pipelineId,
+        name,
+        position
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    revalidatePath(`/pipelines/${pipelineId}/stages`);
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function updatePipelineStage(id: string, pipelineId: string, name: string): Promise<ActionResult<PipelineStage>> {
+  await requireAuth();
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, error: 'No active workspace' };
+
+  const supabase = await createServerClient();
+
+  try {
+    const { data, error } = await supabase
+      .from('pipeline_stages')
+      .update({ name })
+      .eq('id', id)
+      .eq('workspace_id', workspaceId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    revalidatePath(`/pipelines/${pipelineId}/stages`);
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function removePipelineStage(id: string, pipelineId: string): Promise<ActionResult> {
+  await requireAuth();
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, error: 'No active workspace' };
+
+  const supabase = await createServerClient();
+
+  try {
+    const { error } = await supabase
+      .from('pipeline_stages')
+      .delete()
+      .eq('id', id)
+      .eq('workspace_id', workspaceId);
+
+    if (error) throw error;
+    revalidatePath(`/pipelines/${pipelineId}/stages`);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
   }
 }
 

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { StageManager } from '@/components/crm/StageManager';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,43 +50,7 @@ export default async function PipelineStagesPage({
       </div>
 
       <div className="bg-[#0b0b10] border border-white/5 rounded-3xl p-8 md:p-10 shadow-2xl space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">Pipeline Flow</h2>
-          <Button className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white rounded-xl gap-2 font-bold px-4">
-            <Plus className="h-4 w-4" />
-            <span>Add Stage</span>
-          </Button>
-        </div>
-
-        <div className="space-y-3">
-          {stages.map((stage, index) => (
-            <div 
-              key={stage.id} 
-              className="flex items-center justify-between p-5 rounded-2xl bg-white/2 border border-white/5 hover:border-white/10 transition-all group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-xs font-bold text-white/20 group-hover:text-[#6c47ff] transition-colors">
-                  {index + 1}
-                </div>
-                <span className="text-base font-semibold text-white/80 group-hover:text-white transition-colors">
-                  {stage.name}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" className="text-white/20 hover:text-white/60 text-xs">Edit</Button>
-                <div className="h-4 w-px bg-white/5" />
-                <Button variant="ghost" size="sm" className="text-red-400/40 hover:text-red-400 text-xs">Remove</Button>
-              </div>
-            </div>
-          ))}
-
-          {stages.length === 0 && (
-            <div className="h-40 flex flex-col items-center justify-center text-center space-y-2 border-2 border-dashed border-white/5 rounded-2xl">
-              <p className="text-sm text-white/20">No stages defined for this pipeline</p>
-              <Button variant="link" className="text-[#6c47ff] font-bold">Create first stage</Button>
-            </div>
-          )}
-        </div>
+        <StageManager pipelineId={id} initialStages={stages} />
       </div>
 
       <div className="p-6 rounded-2xl bg-[#6c47ff]/5 border border-[#6c47ff]/20">
