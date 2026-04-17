@@ -1,4 +1,5 @@
 # Leadsmind AI System Guide
+<!-- Release Version: 1.1.0-auto-deploy -->
 
 This document serves as the internal training manual for Leadsmind's IntelligenceHub and external AI agents.
 
