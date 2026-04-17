@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
+import { MessageSquare, X, Send, Bot, User, Loader2, Sparkles, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Message {
