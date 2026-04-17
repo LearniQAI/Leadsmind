@@ -9,7 +9,8 @@ import {
   Mail, 
   UserPlus, 
   Tag,
-  ArrowRight
+  ArrowRight,
+  Share2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -58,13 +59,13 @@ export function NodesPanel({ onAddNode }: NodesPanelProps) {
       
       <ScrollArea className="h-[500px] px-2 py-2">
         <div className="space-y-6">
-          {NODE_CATEGORIES.map((category) => (
+          {NODE_CATEGORIES.map((category: any) => (
             <div key={category.title} className="space-y-2">
               <h3 className="px-2 text-[9px] font-bold uppercase tracking-widest text-white/20">
                 {category.title}
               </h3>
               <div className="grid gap-1">
-                {category.items.map((item) => (
+                {category.items.map((item: any) => (
                   <button
                     key={item.label}
                     onClick={() => onAddNode(item.type, item)}

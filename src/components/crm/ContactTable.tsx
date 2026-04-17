@@ -87,7 +87,7 @@ export function ContactTable({ contacts }: ContactTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {contacts.map((contact) => (
+          {contacts?.map((contact) => (
             <TableRow key={contact.id} className="border-white/5 hover:bg-white/4 transition-colors group">
               <TableCell>
                 <Checkbox 
@@ -99,7 +99,7 @@ export function ContactTable({ contacts }: ContactTableProps) {
                 <Link href={`/contacts/${contact.id}`} className="flex items-center gap-3">
                   <Avatar className="h-9 w-9 border border-white/10">
                     <AvatarFallback className="bg-[#6c47ff]/20 text-[#6c47ff] text-xs font-bold">
-                      {contact.first_name[0]}{contact.last_name[0]}
+                      {contact.first_name?.[0]}{contact.last_name?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
@@ -117,13 +117,13 @@ export function ContactTable({ contacts }: ContactTableProps) {
               </TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1.5">
-                  {contact.tags.slice(0, 3).map(tag => (
+                  {contact.tags?.slice(0, 3).map(tag => (
                     <Badge key={tag} variant="secondary" className="bg-white/5 text-white/50 border-none text-[10px] px-2 py-0">
                       {tag}
                     </Badge>
                   ))}
-                  {contact.tags.length > 3 && (
-                    <span className="text-[10px] text-white/20 font-medium">+{contact.tags.length - 3}</span>
+                  {(contact.tags?.length || 0) > 3 && (
+                    <span className="text-[10px] text-white/20 font-medium">+{(contact.tags?.length || 0) - 3}</span>
                   )}
                 </div>
               </TableCell>

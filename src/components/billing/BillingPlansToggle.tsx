@@ -60,7 +60,7 @@ export function BillingPlansToggle({
 
       {/* Plan Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {tiers.map((tier) => {
+        {tiers?.map((tier) => {
           const isFeatured = tier.id === featuredTier;
           const isCurrentPlan =
             currentPlanTier === tier.id ||
@@ -124,7 +124,7 @@ export function BillingPlansToggle({
 
               <CardContent className="flex-1 pb-2">
                 <ul className="space-y-3">
-                  {tier.features.map((feat, i) => (
+                  {tier.features?.map((feat, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-white/60">
                       <CheckCircle2 className={cn("h-4 w-4 mt-0.5 shrink-0", isFeatured ? "text-[#6c47ff]" : "text-white/30")} />
                       <span>{feat}</span>

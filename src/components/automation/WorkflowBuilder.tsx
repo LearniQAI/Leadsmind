@@ -63,15 +63,15 @@ export function WorkflowBuilder({
   
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const selectedNode = nodes.find(n => n.id === selectedNodeId);
+  const selectedNode = nodes.find((n: Node) => n.id === selectedNodeId);
 
   const onNodeClick = useCallback((_: any, node: Node) => {
     setSelectedNodeId(node.id);
   }, []);
 
   const updateNodeData = useCallback((nodeId: string, newData: any) => {
-    setNodes((nds) =>
-      nds.map((node) => {
+    setNodes((nds: Node[]) =>
+      nds.map((node: Node) => {
         if (node.id === nodeId) {
           return { ...node, data: newData };
         }
@@ -106,7 +106,7 @@ export function WorkflowBuilder({
 
   const onConnect = useCallback(
     (params: Connection) => {
-      setEdges((eds) =>
+      setEdges((eds: Edge[]) =>
         addEdge(
           {
             ...params,
@@ -308,7 +308,7 @@ export function WorkflowBuilder({
             nodeStrokeWidth={3} 
             maskColor="rgba(0, 0, 0, 0.7)" 
             className="!bg-[#0b0b15] !border-white/5 !rounded-3xl !mb-6 !mr-6"
-            nodeColor={(n) => {
+            nodeColor={(n: Node) => {
               if (n.type === 'trigger') return '#10b981';
               if (n.type === 'action') return '#6c47ff';
               if (n.type === 'condition') return '#f59e0b';
