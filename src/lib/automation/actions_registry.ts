@@ -198,5 +198,32 @@ export const AutomationActions = {
       type: type,
       link: `/contacts/${contactId}`
     });
+  },
+
+  send_webhook: async (workspaceId: string, contactId: string, config: any) => {
+    const { url, method = 'POST' } = config;
+    if (!url) return;
+
+    const supabase = await createServerClient();
+    const { data: contact } = await supabase
+      .from("contacts")
+      .select("*")
+      .eq("id", contactId)
+      .single();
+
+    try {
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: "automation_webhook",
+          workspace_id: workspaceId,
+          contact: contact,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (err) {
+      console.error("[executor] Webhook failed:", err);
+    }
   }
 };

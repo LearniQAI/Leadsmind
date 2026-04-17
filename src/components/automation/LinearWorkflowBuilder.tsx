@@ -139,40 +139,42 @@ export function LinearWorkflowBuilder({ workflowId, initialWorkflow }: { workflo
   );
 
   return (
-    <div className="flex h-full bg-[#050505] text-white font-sans selection:bg-white/10">
-      {/* TRIGGER PANEL (LEFT) - Industrial Sidebar */}
-      <aside className="w-80 border-r border-white/5 bg-[#08080f] p-8 flex flex-col gap-10">
-        <div className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="h-1.5 w-1.5 rounded-full bg-white/20" />
-             <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-white/50 italic">Workflow Trigger</h3>
+    <div className="flex h-full bg-black text-slate-200">
+      {/* TRIGGER PANEL (LEFT) */}
+      <aside className="w-72 border-r border-slate-800 bg-slate-900/50 p-6 flex flex-col gap-8">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-slate-700" />
+            <h3 className="text-xs font-semibold text-slate-400">Trigger</h3>
           </div>
           
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-white/20 uppercase tracking-widest pl-1">Input Source</label>
+              <label className="text-[10px] font-medium text-slate-500">Source</label>
               <Select 
                 value={workflow.trigger_type} 
                 onValueChange={(v) => setWorkflow({ ...workflow, trigger_type: v })}
               >
-                <SelectTrigger className="bg-white/[0.02] border-white/5 h-11 text-[11px] rounded-xl font-bold hover:bg-white/5 transition-all">
+                <SelectTrigger className="bg-slate-950 border-slate-800 h-10 text-xs rounded-md">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-[#0c0c14] border-white/10 text-white">
-                  <SelectItem value="contact_created">New Lead Created</SelectItem>
+                <SelectContent className="bg-slate-900 border-slate-800 text-slate-200">
+                  <SelectItem value="contact_created">Contact Created</SelectItem>
                   <SelectItem value="tag_added">Tag Applied</SelectItem>
-                  <SelectItem value="stage_changed">Logic Variable Change</SelectItem>
-                  <SelectItem value="form_submitted">Capture Form Submit</SelectItem>
+                  <SelectItem value="stage_changed">Stage Changed</SelectItem>
+                  <SelectItem value="form_submitted">Form Submitted</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {workflow.trigger_type === 'tag_added' && (
-              <div className="space-y-2 animate-in slide-in-from-top-4 duration-500">
-                 <label className="text-[10px] font-black text-white/20 uppercase tracking-widest pl-1">Observation Tag</label>
+            {(workflow.trigger_type === 'tag_added' || workflow.trigger_type === 'form_submitted') && (
+              <div className="space-y-2">
+                 <label className="text-[10px] font-medium text-slate-500 text-slate-500">
+                   {workflow.trigger_type === 'form_submitted' ? 'Form ID' : 'Tag Name'}
+                 </label>
                  <Input 
-                   placeholder="Enter identifier..." 
-                   className="bg-white/[0.02] border-white/5 h-11 text-[11px] rounded-xl font-bold focus:border-white/20"
+                   placeholder="Enter ID..." 
+                   className="bg-slate-950 border-slate-800 h-10 text-xs rounded-md"
                    value={workflow.trigger_config.tag || ''}
                    onChange={(e) => setWorkflow({...workflow, trigger_config: { ...workflow.trigger_config, tag: e.target.value }})}
                  />
@@ -181,107 +183,93 @@ export function LinearWorkflowBuilder({ workflowId, initialWorkflow }: { workflo
           </div>
         </div>
 
-        <div className="mt-auto space-y-6 pt-8 border-t border-white/5">
-           <div className={`flex items-center justify-between px-3 py-4 rounded-2xl border transition-all duration-500 ${workflow.is_active ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20'}`}>
+        <div className="mt-auto space-y-4 pt-6 border-t border-slate-800">
+           <div className={`flex items-center justify-between px-3 py-3 rounded-md border ${workflow.is_active ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-slate-800 border-slate-700'}`}>
               <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">System Status</span>
-                <span className={`text-[12px] font-black uppercase tracking-tighter ${workflow.is_active ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {workflow.is_active ? '● Online' : '○ Offline'}
+                <span className="text-[10px] font-medium text-slate-500">Status</span>
+                <span className={`text-[11px] font-semibold ${workflow.is_active ? 'text-emerald-500' : 'text-slate-400'}`}>
+                  {workflow.is_active ? 'Online' : 'Offline'}
                 </span>
               </div>
               <Switch 
                 checked={workflow.is_active} 
                 onCheckedChange={toggleStatus}
-                className={`transition-colors ${workflow.is_active ? 'data-[state=checked]:bg-emerald-500' : 'data-[state=unchecked]:bg-rose-500/20'}`}
               />
            </div>
 
            <Button 
-             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black h-12 rounded-2xl shadow-xl shadow-blue-600/20 gap-3 transition-all active:scale-95 group"
+             className="w-full bg-slate-200 hover:bg-white text-black font-semibold h-10 rounded-md gap-2 transition-colors"
              onClick={saveWorkflow}
              disabled={saving}
            >
-             {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save size={18} className="group-hover:scale-110 transition-transform" />}
-             <span className="uppercase tracking-widest text-[11px]">Save Logic</span>
+             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save size={16} />}
+             <span className="text-xs">Save Changes</span>
            </Button>
-           <p className="text-[9px] text-center text-white/10 font-bold uppercase tracking-widest italic">Performance Optimized</p>
         </div>
       </aside>
+      </aside>
 
-      {/* WORKFLOW STEPS (CENTER) - Clean Logic List */}
-      <main className="flex-1 overflow-y-auto p-16 scrollbar-thin scrollbar-thumb-white/5">
+      {/* WORKFLOW STEPS (CENTER) */}
+      <main className="flex-1 overflow-y-auto p-12 bg-slate-950">
         <div className="max-w-xl mx-auto flex flex-col items-center">
             
             {/* START INDICATOR */}
-            <div className="flex flex-col items-center gap-4 mb-10">
-              <div className="h-12 w-12 rounded-[20px] bg-white/[0.02] border border-white/5 flex items-center justify-center text-white/20 shadow-xl group-hover:text-white transition-colors">
-                <Play size={18} fill="currentColor" className="opacity-40" />
+            <div className="flex flex-col items-center gap-2 mb-8">
+              <div className="h-10 w-10 rounded-md border border-slate-800 flex items-center justify-center text-slate-600">
+                <Play size={16} />
               </div>
-              <div className="h-10 w-px bg-white/5" />
+              <div className="h-8 w-px bg-slate-800" />
             </div>
 
             {/* STEPS LIST */}
-            <div className="w-full space-y-4">
+            <div className="w-full space-y-px bg-slate-800 border border-slate-800 rounded-md overflow-hidden">
               {steps.length === 0 && (
-                <div className="py-24 text-center border border-dashed border-white/5 rounded-[40px] flex flex-col items-center gap-6 bg-white/[0.01]">
-                   <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5">
-                      <Plus className="text-white/5" size={40} />
+                <div className="py-16 text-center bg-slate-900 flex flex-col items-center gap-4">
+                   <div className="p-4 rounded-md border border-slate-800">
+                      <Plus className="text-slate-700" size={24} />
                    </div>
                    <div className="space-y-1">
-                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 italic">Logic Engine Idle</p>
-                     <p className="text-[9px] font-bold text-white/10 uppercase tracking-widest">Append an instruction to begin</p>
+                     <p className="text-xs font-semibold text-slate-400">No steps defined</p>
+                     <p className="text-[10px] text-slate-500 line-clamp-1">Click the + button below to add your first action</p>
                    </div>
                 </div>
               )}
 
               {steps.map((step, index) => (
-                <div key={step.id} className="group relative">
-                  <Card className="bg-[#0c0c14] border-white/5 hover:border-white/10 transition-all p-8 rounded-[32px] shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-white/[0.02]" />
-                    
-                    <div className="flex items-center justify-between gap-6 mb-6">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center grayscale opacity-60 group-hover:opacity-100 group-hover:grayscale-0 transition-all">
-                           {getIconForStep(step.type)}
-                        </div>
-                        <div className="flex flex-col">
-                           <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20 italic">Instruction Point {index + 1}</span>
-                           <h4 className="text-base font-black text-white uppercase tracking-tight italic">{step.type.replace('_', ' ')}</h4>
-                        </div>
+                <div key={step.id} className="group relative bg-slate-900 p-6 border-b border-slate-800 last:border-b-0">
+                  <div className="flex items-center justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-400">
+                         {getIconForStep(step.type)}
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => removeStep(step.id)} className="h-9 w-9 text-white/5 hover:text-rose-500 hover:bg-rose-500/5 transition-all">
-                        <Trash2 size={16} />
-                      </Button>
+                      <div className="flex flex-col">
+                         <span className="text-[10px] font-medium text-slate-500">Step {index + 1}</span>
+                         <h4 className="text-xs font-semibold text-slate-200 capitalize">{step.type.replace('_', ' ')}</h4>
+                      </div>
                     </div>
+                    <Button variant="ghost" size="icon" onClick={() => removeStep(step.id)} className="h-8 w-8 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10">
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
 
-                    <div className="grid grid-cols-1 gap-6 px-1">
-                        {renderStepConfig(step, updateStepConfig)}
-                    </div>
-                  </Card>
+                  <div className="grid grid-cols-1 gap-4">
+                      {renderStepConfig(step, updateStepConfig)}
+                  </div>
 
-                  {/* Connector and Add Button */}
-                  <div className="flex justify-center -mb-4 pt-6 pb-6">
-                    <div className="h-16 w-px bg-white/5 group-hover:bg-white/10 transition-colors relative">
-                        <AddStepPopover onSelect={(type) => addStep(type, index + 1)} />
-                    </div>
+                  {/* Add Button Below */}
+                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-10">
+                      <AddStepPopover onSelect={(type) => addStep(type, index + 1)} />
                   </div>
                 </div>
               ))}
-
-              {steps.length > 0 && (
-                <div className="flex flex-col items-center pt-6">
-                    <div className="h-12 w-px bg-gradient-to-b from-white/5 to-transparent" />
-                    <div className="h-2 w-2 rounded-full border border-white/10 mt-4 animate-pulse" />
-                </div>
-              )}
-
-              {/* Initial Add Button if list is empty */}
-              {steps.length === 0 && (
-                   <div className="flex justify-center pt-8">
-                     <AddStepPopover onSelect={(type) => addStep(type, 0)} isInitial />
-                   </div>
-              )}
             </div>
+
+            {/* Initial Add Button if list is empty */}
+            {steps.length === 0 && (
+                 <div className="flex justify-center pt-8">
+                   <AddStepPopover onSelect={(type) => addStep(type, 0)} isInitial />
+                 </div>
+            )}
         </div>
       </main>
     </div>
@@ -291,38 +279,60 @@ export function LinearWorkflowBuilder({ workflowId, initialWorkflow }: { workflo
 function AddStepPopover({ onSelect, isInitial = false }: { onSelect: (type: string) => void, isInitial?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const actions = [
-    { type: 'send_email', label: 'Send Email', icon: <Mail size={14} /> },
-    { type: 'send_sms', label: 'Send SMS', icon: <MessageSquare size={14} /> },
-    { type: 'apply_tag', label: 'Add Tag', icon: <TagIcon size={14} /> },
-    { type: 'wait', label: 'Delay', icon: <Clock size={14} /> },
+  const actionCategories = [
+    {
+      name: "Communication",
+      actions: [
+        { type: 'send_email', label: 'Email', icon: <Mail size={12} /> },
+        { type: 'send_sms', label: 'SMS', icon: <MessageSquare size={12} /> },
+        { type: 'notify_team', label: 'Alert', icon: <Play size={12} /> },
+      ]
+    },
+    {
+      name: "CRM",
+      actions: [
+        { type: 'apply_tag', label: 'Tag', icon: <TagIcon size={12} /> },
+        { type: 'move_to_stage', label: 'Stage', icon: <ArrowRight size={12} /> },
+        { type: 'wait', label: 'Delay', icon: <Clock size={12} /> },
+      ]
+    },
+    {
+      name: "More",
+      actions: [
+        { type: 'social_post', label: 'Social', icon: <Zap size={12} /> },
+        { type: 'lms_enroll', label: 'LMS', icon: <UserPlus size={12} /> },
+        { type: 'send_webhook', label: 'Webhook', icon: <Play size={12} /> },
+      ]
+    }
   ];
 
   return (
-    <div className={`relative ${isInitial ? '' : 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'}`}>
+    <div className={`relative ${isInitial ? '' : ''}`}>
       <Button 
         variant="outline" 
         size="icon" 
-        className={`h-7 w-7 rounded-full bg-[#0c0c12] border-white/10 hover:border-white/40 hover:text-white transition-all z-10`}
+        className={`h-6 w-6 rounded-md bg-slate-900 border-slate-800 hover:border-slate-600 transition-colors z-10`}
         onClick={() => setIsOpen(!isOpen)}
       >
         <Plus size={14} className={isOpen ? 'rotate-45' : ''} />
       </Button>
 
       {isOpen && (
-        <div className="absolute left-1/2 -translate-x-1/2 top-10 w-48 bg-[#0c0c14] border border-white/10 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in duration-200">
-           <div className="text-[9px] font-black uppercase tracking-widest text-white/10 px-3 py-2 mb-1">Logic Instructions</div>
-           {actions.map(action => (
-             <button
-               key={action.type}
-               onClick={() => { onSelect(action.type); setIsOpen(false); }}
-               className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 text-left transition-colors group/item"
-             >
-               <div className="p-1.5 rounded-lg bg-white/[0.02] border border-white/5 text-white/40 group-hover/item:text-white group-hover/item:border-white/10 transition-all">
-                 {action.icon}
-               </div>
-               <span className="text-[11px] font-bold text-white/60 group-hover/item:text-white transition-colors uppercase tracking-tight italic">{action.label}</span>
-             </button>
+        <div className="absolute left-1/2 -translate-x-1/2 top-8 w-48 bg-slate-900 border border-slate-800 rounded-md shadow-xl p-2 z-50">
+           {actionCategories.map((category, idx) => (
+             <div key={idx} className="mb-2 last:mb-0">
+               <div className="text-[9px] font-semibold text-slate-500 px-2 py-1 uppercase">{category.name}</div>
+               {category.actions.map(action => (
+                 <button
+                   key={action.type}
+                   onClick={() => { onSelect(action.type); setIsOpen(false); }}
+                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-slate-800 text-left transition-colors"
+                 >
+                   <span className="text-slate-500">{action.icon}</span>
+                   <span className="text-[11px] text-slate-300">{action.label}</span>
+                 </button>
+               ))}
+             </div>
            ))}
         </div>
       )}
@@ -331,12 +341,18 @@ function AddStepPopover({ onSelect, isInitial = false }: { onSelect: (type: stri
 }
 
 function getIconForStep(type: string) {
+  const cls = "text-slate-400";
   switch(type) {
-    case 'send_email': return <Mail size={16} className="text-blue-400" />;
-    case 'send_sms': return <MessageSquare size={16} className="text-emerald-400" />;
-    case 'add_tag': return <TagIcon size={16} className="text-orange-400" />;
-    case 'wait': return <Clock size={16} className="text-yellow-400" />;
-    default: return <Settings size={16} className="text-white/40" />;
+    case 'send_email': return <Mail size={14} className={cls} />;
+    case 'send_sms': return <MessageSquare size={14} className={cls} />;
+    case 'apply_tag': return <TagIcon size={14} className={cls} />;
+    case 'social_post': return <Zap size={14} className={cls} />;
+    case 'move_to_stage': return <ArrowRight size={14} className={cls} />;
+    case 'notify_team': return <Play size={14} className={cls} />;
+    case 'lms_enroll': return <UserPlus size={14} className={cls} />;
+    case 'send_webhook': return <Play size={14} className={cls} />;
+    case 'wait': return <Clock size={14} className={cls} />;
+    default: return <Settings size={14} className={cls} />;
   }
 }
 
@@ -392,6 +408,88 @@ function renderStepConfig(step: Step, update: (id: string, config: any) => void)
           </div>
         </div>
       );
+    case 'send_sms':
+      return (
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-widest text-white/20 ml-1">SMS Message</label>
+          <textarea 
+            placeholder="Hi {first_name}, thanks for joining us!"
+            className="w-full min-h-[80px] bg-white/[0.03] border border-white/5 rounded-xl p-4 text-xs text-white/70 focus:outline-none focus:border-emerald-500/30 transition-all font-medium resize-none shadow-inner"
+            value={step.config.message || ''}
+            onChange={(e) => update(step.id, { message: e.target.value })}
+          />
+        </div>
+      );
+    case 'social_post':
+      return (
+        <div className="space-y-4">
+           <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-widest text-white/20 ml-1">Caption / Content</label>
+            <textarea 
+              placeholder="What should the post say?"
+              className="w-full min-h-[80px] bg-white/[0.03] border border-white/5 rounded-xl p-4 text-xs text-white/70 focus:outline-none focus:border-cyan-500/30 transition-all font-medium resize-none shadow-inner"
+              value={step.config.content || ''}
+              onChange={(e) => update(step.id, { content: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-widest text-white/20 ml-1">Publish On</label>
+            <div className="flex gap-2">
+               {['Instagram', 'Facebook', 'X'].map(p => (
+                 <button 
+                   key={p}
+                   className={`px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all ${step.config.platforms?.includes(p.toLowerCase()) ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400' : 'bg-white/[0.02] border-white/5 text-white/20'}`}
+                   onClick={() => {
+                     const current = step.config.platforms || [];
+                     const updated = current.includes(p.toLowerCase()) 
+                       ? current.filter((i: string) => i !== p.toLowerCase()) 
+                       : [...current, p.toLowerCase()];
+                     update(step.id, { platforms: updated });
+                   }}
+                 >
+                   {p}
+                 </button>
+               ))}
+            </div>
+          </div>
+        </div>
+      );
+    case 'move_to_stage':
+      return (
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-widest text-white/20 ml-1">Target Stage ID</label>
+          <Input 
+            placeholder="e.g. stage_v12_closed_won" 
+            className="h-10 bg-white/[0.03] border-white/5 text-xs rounded-xl font-bold"
+            value={step.config.stageId || ''}
+            onChange={(e) => update(step.id, { stageId: e.target.value })}
+          />
+        </div>
+      );
+    case 'notify_team':
+      return (
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-widest text-white/20 ml-1">Alert Message</label>
+          <Input 
+            placeholder="e.g. {contact_name} just signed up!" 
+            className="h-10 bg-white/[0.03] border-white/5 text-xs rounded-xl font-bold"
+            value={step.config.message || ''}
+            onChange={(e) => update(step.id, { message: e.target.value })}
+          />
+        </div>
+      );
+    case 'lms_enroll':
+      return (
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-widest text-white/20 ml-1">Course ID</label>
+          <Input 
+            placeholder="e.g. mastering_leadsmind_101" 
+            className="h-10 bg-white/[0.03] border-white/5 text-xs rounded-xl font-bold"
+            value={step.config.courseId || ''}
+            onChange={(e) => update(step.id, { courseId: e.target.value })}
+          />
+        </div>
+      );
     case 'apply_tag':
       return (
         <div className="space-y-1.5">
@@ -401,6 +499,18 @@ function renderStepConfig(step: Step, update: (id: string, config: any) => void)
             className="h-10 bg-white/[0.03] border-white/5 text-xs rounded-xl font-bold"
             value={step.config.tag || ''}
             onChange={(e) => update(step.id, { tag: e.target.value })}
+          />
+        </div>
+      );
+    case 'send_webhook':
+      return (
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-medium text-slate-500 ml-1">Webhook URL</label>
+          <Input 
+            placeholder="https://hooks.zapier.com/..." 
+            className="h-10 bg-slate-950 border-slate-800 text-xs rounded-md"
+            value={step.config.url || ''}
+            onChange={(e) => update(step.id, { url: e.target.value })}
           />
         </div>
       );

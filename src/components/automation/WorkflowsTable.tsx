@@ -126,10 +126,10 @@ export function WorkflowsTable({ workflows }: WorkflowsTableProps) {
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                    <Zap size={12} className="text-blue-400" />
+                  <div className="p-1 rounded bg-slate-800 border border-slate-700">
+                    <Zap size={10} className="text-slate-400" />
                   </div>
-                  <span className="text-[11px] font-bold text-white/60 uppercase tracking-tight">
+                  <span className="text-xs font-medium text-slate-300 capitalize">
                     {wf.trigger_type.replace('_', ' ')}
                   </span>
                 </div>
@@ -140,25 +140,24 @@ export function WorkflowsTable({ workflows }: WorkflowsTableProps) {
                     checked={wf.is_active} 
                     onCheckedChange={() => handleStatusToggle(wf.id, wf.is_active)}
                     disabled={loadingId === wf.id}
-                    className={`transition-colors ${wf.is_active ? 'data-[state=checked]:bg-emerald-500' : 'data-[state=unchecked]:bg-rose-500/20'}`}
                   />
-                  <span className={`text-[9px] font-black uppercase tracking-tighter ${wf.is_active ? 'text-emerald-400' : 'text-rose-400/40'}`}>
+                  <span className={`text-[10px] font-medium ${wf.is_active ? 'text-emerald-500' : 'text-slate-500'}`}>
                     {wf.is_active ? 'Online' : 'Offline'}
                   </span>
                 </div>
               </TableCell>
               <TableCell className="text-center">
-                <Badge variant="outline" className="bg-white/5 border-white/5 text-[10px] font-bold">
+                <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-medium text-slate-400">
                   {wf.steps_count || 0}
-                </Badge>
+                </span>
               </TableCell>
               <TableCell className="text-center">
-                <span className="text-xs font-medium text-white/40">
+                <span className="text-xs font-medium text-slate-500">
                   {wf.execution_count || 0}
                 </span>
               </TableCell>
               <TableCell>
-                <span className="text-xs text-white/40 font-medium">
+                <span className="text-xs text-slate-500 font-medium">
                   {wf.last_run_at ? format(new Date(wf.last_run_at), 'MMM d, HH:mm') : 'Never'}
                 </span>
               </TableCell>
