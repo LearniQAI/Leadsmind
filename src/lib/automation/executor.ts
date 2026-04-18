@@ -135,14 +135,26 @@ export async function processNextStep(executionId: string) {
     
     // If now is past resumeAt, we have finished the wait!
     if (now >= resumeAt) {
-      // Clear the resume_at and increment step
+      // Find next step via edges
+      const { data: nextEdge } = await supabase
+        .from('workflow_edges')
+        .select('target_step_id')
+        .eq('source_step_id', step.id)
+        .limit(1)
+        .single();
+
+      // Clear the resume_at and move to next step id
       await supabase.from("workflow_executions").update({
-        current_step: currentStepPos + 1,
+        current_step_id: nextEdge?.target_step_id || null, 
+        status: nextEdge?.target_step_id ? 'running' : 'completed',
+        completed_at: nextEdge?.target_step_id ? null : new Date().toISOString(),
         context: { ...execution.context, resume_at: null }
       }).eq("id", executionId);
       
-      // Call again to start the next action
-      await processNextStep(executionId);
+      // Call again to start the next action if it exists
+      if (nextEdge?.target_step_id) {
+        await processNextStep(executionId);
+      }
       return;
     }
   }
@@ -326,7 +338,7 @@ export async function processNextStep(executionId: string) {
     // Stop execution on failure (or implement retry logic here)
     await supabase.from("workflow_executions").update({ 
       status: 'failed', 
-      error_message: `Step ${currentStepPos} failed: ${err.message}` 
+      error_message: `Step ${step?.type || 'unknown'} failed: ${err.message}` 
     }).eq("id", executionId);
   }
 }
