@@ -100,13 +100,13 @@ async function runRouterAudit() {
       .eq('contact_id', contact.id)
       .single();
 
-    const chosenBranch = execution.logs[0]?.metadata?.chosen_branch;
-    const hasTag = updatedContact.tags?.includes(tc.expectedTag);
+    const chosenBranch = (execution as any)?.logs?.[0]?.metadata?.chosen_branch;
+    const hasTag = (updatedContact as any)?.tags?.includes(tc.expectedTag);
 
     if (hasTag && chosenBranch === tc.expectedBranch) {
       console.log(`✅ MATCHED: ${chosenBranch} (Tag: ${tc.expectedTag})`);
     } else {
-      console.error(`❌ FAILED: Wanted ${tc.expectedBranch}/${tc.expectedTag}, got ${chosenBranch}/${updatedContact.tags}`);
+      console.error(`❌ FAILED: Wanted ${tc.expectedBranch}/${tc.expectedTag}, got ${chosenBranch}/${(updatedContact as any)?.tags}`);
     }
   }
 
