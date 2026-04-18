@@ -330,12 +330,49 @@ export async function checkGoalAchieved(workflow: any, contactId: string): Promi
       return false;
   }
 }
-undefined && contactValue !== '';
-      case 'gt': return Number(contactValue) > Number(targetValue);
-      case 'lt': return Number(contactValue) < Number(targetValue);
-      case 'gte': return Number(contactValue) >= Number(targetValue);
-      case 'lte': return Number(contactValue) <= Number(targetValue);
-      default: return false;
-    }
-  });
+/**
+ * Event-driven goal checker. 
+ * Should be called whenever a "conversion" event happens in the system.
+ * Terminates any active workflows for the contact that have this goal type.
+ */
+export async function checkActiveWorkflowGoals(workspaceId: string, contactId: string, eventType: string) {
+  const supabase = await createServerClient();
+
+  // Find all ACTIVE executions for this contact in this workspace that have this goal type
+  const { data: executions } = await supabase
+    .from("workflow_executions")
+    .select(`
+      *,
+      workflow:workflows!inner(*)
+    `)
+    .eq("workspace_id", workspaceId)
+    .eq("contact_id", contactId)
+    .eq("status", "running")
+    .eq("workflow.goal_event_type", eventType);
+
+  if (!executions || executions.length === 0) return;
+
+  for (const execution of executions) {
+    // Terminate the workflow
+    await supabase.from("workflow_executions").update({
+      status: "completed",
+      context: { 
+        ...execution.context, 
+        terminated_due_to_goal: true, 
+        goal_type: eventType,
+        terminated_at: new Date().toISOString()
+      },
+      completed_at: new Date().toISOString()
+    }).eq("id", execution.id);
+
+    // Log the termination in step logs for visibility
+    await supabase.from("workflow_step_logs").insert({
+      execution_id: execution.id,
+      workspace_id: workspaceId,
+      status: "skipped",
+      error_message: `Workflow terminated: Goal '${eventType}' met.`,
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString()
+    });
+  }
 }
