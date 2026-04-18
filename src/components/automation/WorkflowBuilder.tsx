@@ -176,6 +176,7 @@ export function WorkflowBuilder({
       position,
       data: { 
         ...serializableData,
+        workflowId: workflowId,
         analytics: isAnalyticsMode ? { count: 0, status: 'idle' } : undefined
       },
     };
@@ -405,6 +406,7 @@ export function WorkflowBuilder({
 
       {selectedNodeId && selectedNode && (
         <NodeSettings
+          workflowId={workflowId}
           node={selectedNode}
           onUpdate={(newData) => updateNodeData(selectedNodeId, newData)}
           onClose={() => setSelectedNodeId(null)}

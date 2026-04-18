@@ -1,6 +1,7 @@
 "use client";
 
-import { X, Save, AlertCircle, Zap, Sparkles, Plus, Trash2, GitBranch } from "lucide-react";
+import { X, Save, AlertCircle, Zap, Sparkles, Plus, Trash2, GitBranch, Copy, Check, Link, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,15 +13,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import React, { useState } from "react";
 
 interface NodeSettingsProps {
+  workflowId?: string;
   node: any;
   onUpdate: (data: any) => void;
   onClose: () => void;
 }
 
-export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
+export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettingsProps) {
   const { type, data } = node;
+  const [newKey, setNewKey] = useState("");
+  const [newField, setNewField] = useState("email");
 
   const handleChange = (key: string, value: any) => {
     onUpdate({ ...data, [key]: value });
@@ -56,6 +61,19 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
     handleChange('branches', newBranches);
   };
 
+  const addMapping = () => {
+    if (!newKey) return;
+    const mapping = data.webhook_mapping || {};
+    handleChange('webhook_mapping', { ...mapping, [newKey]: newField });
+    setNewKey("");
+  };
+
+  const removeMapping = (targetKey: string) => {
+    const mapping = { ...data.webhook_mapping };
+    delete mapping[targetKey];
+    handleChange('webhook_mapping', mapping);
+  };
+
   return (
     <div className="absolute top-0 right-0 bottom-0 z-30 w-80 translate-x-0 bg-[#050510]/95 border-l border-white/5 backdrop-blur-3xl transition-transform duration-500 ease-out">
       <div className="flex flex-col h-full">
@@ -73,7 +91,7 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
         {/* Helpful Intro for Non-Techies */}
         <div className="px-6 py-4 bg-primary/5 border-b border-white/5 flex gap-3">
           <div className="p-2 bg-primary/10 rounded-lg shrink-0 h-fit">
-             <Zap className="w-3 h-3 text-primary" />
+            <Zap className="w-3 h-3 text-primary" />
           </div>
           <p className="text-[10px] text-white/50 leading-relaxed italic">
             {type === 'trigger' && "This is how your automation starts. When this happens, the following steps will run."}
@@ -85,25 +103,25 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
 
         {/* Form Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
-          
+
           {/* Step Name (Renaming) */}
           <div className="space-y-2 p-4 rounded-2xl bg-white/5 border border-white/10">
             <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Display name</label>
-            <Input 
-              value={data.label || ""} 
+            <Input
+              value={data.label || ""}
               onChange={(e) => handleChange('label', e.target.value)}
               className="bg-transparent border-none text-white font-bold p-0 h-auto focus-visible:ring-0 text-base"
               placeholder="Give this step a name..."
             />
           </div>
-          
+
           {/* Email Settings */}
           {data.actionType === 'email' && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Email Subject</label>
-                <Input 
-                  value={data.subject || ""} 
+                <Input
+                  value={data.subject || ""}
                   onChange={(e) => handleChange('subject', e.target.value)}
                   className="bg-white/5 border-white/10 text-white"
                   placeholder="Welcome to Leadsmind!"
@@ -111,8 +129,8 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Email Body</label>
-                <Textarea 
-                  value={data.body || ""} 
+                <Textarea
+                  value={data.body || ""}
                   onChange={(e) => handleChange('body', e.target.value)}
                   className="bg-white/5 border-white/10 text-white min-h-[150px]"
                   placeholder="Hey there, thanks for signing up..."
@@ -126,115 +144,11 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">SMS Message</label>
-                <Textarea 
-                  value={data.message || ""} 
+                <Textarea
+                  value={data.message || ""}
                   onChange={(e) => handleChange('message', e.target.value)}
                   className="bg-white/5 border-white/10 text-white min-h-[100px]"
                   placeholder="Your automated SMS text here..."
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Social Settings */}
-          {data.actionType === 'social_post' && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Platform</label>
-                <div className="grid grid-cols-2 gap-2">
-                   <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => {
-                      const platforms = data.platforms || [];
-                      const next = platforms.includes('facebook') ? platforms.filter((p: string) => p !== 'facebook') : [...platforms, 'facebook'];
-                      handleChange('platforms', next);
-                    }}
-                    className={cn("bg-white/5 border-white/10 text-[10px]", (data.platforms || []).includes('facebook') && "bg-[#6c47ff]/20 border-[#6c47ff]/50 text-white")}
-                   >
-                     Facebook
-                   </Button>
-                   <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => {
-                      const platforms = data.platforms || [];
-                      const next = platforms.includes('linkedin') ? platforms.filter((p: string) => p !== 'linkedin') : [...platforms, 'linkedin'];
-                      handleChange('platforms', next);
-                    }}
-                    className={cn("bg-white/5 border-white/10 text-[10px]", (data.platforms || []).includes('linkedin') && "bg-[#6c47ff]/20 border-[#6c47ff]/50 text-white")}
-                   >
-                     LinkedIn
-                   </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Post Content</label>
-                <Textarea 
-                  value={data.content || ""} 
-                  onChange={(e) => handleChange('content', e.target.value)}
-                  className="bg-white/5 border-white/10 text-white min-h-[100px]"
-                  placeholder="What would you like to share?"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* CRM: Update Field */}
-          {data.actionType === 'update_field' && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Select Field</label>
-                <Select value={data.field || ""} onValueChange={(val) => handleChange('field', val)}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                    <SelectValue placeholder="Choose a contact field..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
-                    <SelectItem value="first_name">First Name</SelectItem>
-                    <SelectItem value="last_name">Last Name</SelectItem>
-                    <SelectItem value="tags">Tags</SelectItem>
-                    <SelectItem value="phone">Phone Number</SelectItem>
-                    <SelectItem value="lead_score">Lead Score</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">New Value</label>
-                <Input 
-                  value={data.value || ""} 
-                  onChange={(e) => handleChange('value', e.target.value)}
-                  className="bg-white/5 border-white/10 text-white"
-                  placeholder="Enter new value..."
-                />
-              </div>
-            </div>
-          )}
-
-          {/* CRM: Move to Stage */}
-          {data.actionType === 'move_to_stage' && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Target Stage ID</label>
-                <Input 
-                  value={data.stageId || ""} 
-                  onChange={(e) => handleChange('stageId', e.target.value)}
-                  className="bg-white/5 border-white/10 text-white"
-                  placeholder="Enter Stage UUID"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* CRM: Notify Team */}
-          {data.actionType === 'notify_team' && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Alert Message</label>
-                <Textarea 
-                  value={data.message || ""} 
-                  onChange={(e) => handleChange('message', e.target.value)}
-                  className="bg-white/5 border-white/10 text-white min-h-[100px]"
-                  placeholder="e.g. {contact_name} just entered the Hot Leads stage!"
                 />
               </div>
             </div>
@@ -246,13 +160,13 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed">Wait for how long?</label>
                 <div className="grid grid-cols-2 gap-2">
-                  <Input 
+                  <Input
                     type="number"
-                    value={data.durationValue || 1} 
+                    value={data.durationValue || 1}
                     onChange={(e) => handleChange('durationValue', parseInt(e.target.value))}
                     className="bg-white/5 border-white/10 text-white h-12"
                   />
-                  <Select value={data.durationUnit || "hours"} onValueChange={(val) => handleChange('durationUnit', val)}>
+                  <Select value={data.durationUnit || "minutes"} onValueChange={(val) => handleChange('durationUnit', val)}>
                     <SelectTrigger className="bg-white/5 border-white/10 text-white h-12">
                       <SelectValue />
                     </SelectTrigger>
@@ -263,12 +177,11 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
                     </SelectContent>
                   </Select>
                 </div>
-                <p className="text-[9px] text-white/20 italic">Tip: Setting this to 1 hour gives you time to manually check high-value leads.</p>
               </div>
             </div>
           )}
 
-          {/* Logic: Condition Settings (Simple Yes/No) */}
+          {/* Logic: Condition Settings */}
           {type === 'condition' && (
             <div className="space-y-6">
               <div className="space-y-2">
@@ -302,8 +215,8 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
               {data.operator !== 'exists' && (
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed">3. Match this text/value:</label>
-                  <Input 
-                    value={data.value || ""} 
+                  <Input
+                    value={data.value || ""}
                     onChange={(e) => handleChange('value', e.target.value)}
                     className="bg-white/5 border-white/10 text-white h-12"
                     placeholder="Enter value here..."
@@ -324,13 +237,13 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
                   </Button>
                 )}
               </div>
-              
+
               <div className="space-y-4">
                 {branches.map((branch: any, bIdx: number) => (
                   <div key={bIdx} className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4 relative group/branch">
                     <div className="flex items-center justify-between gap-4">
-                      <Input 
-                        value={branch.name} 
+                      <Input
+                        value={branch.name}
                         onChange={(e) => updateBranch(bIdx, 'name', e.target.value)}
                         className="bg-transparent border-none text-white font-black p-0 h-auto focus-visible:ring-0 text-[11px] uppercase tracking-wider"
                       />
@@ -352,24 +265,24 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
                               <SelectItem value="lead_score">Lead Score</SelectItem>
                             </SelectContent>
                           </Select>
-                          
+
                           <div className="grid grid-cols-2 gap-2">
-                             <Select value={cond.operator || "equals"} onValueChange={(val) => updateBranchCondition(bIdx, cIdx, 'operator', val)}>
-                                <SelectTrigger className="bg-slate-900 border-white/5 h-8 text-[10px] text-white/70">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
-                                  <SelectItem value="equals">Equals</SelectItem>
-                                  <SelectItem value="contains">Contains</SelectItem>
-                                  <SelectItem value="gt">Greater Than</SelectItem>
-                                </SelectContent>
-                             </Select>
-                             <Input 
-                                value={cond.value || ""} 
-                                onChange={(e) => updateBranchCondition(bIdx, cIdx, 'value', e.target.value)}
-                                className="bg-slate-900 border-white/5 h-8 text-[10px] text-white"
-                                placeholder="Value..."
-                             />
+                            <Select value={cond.operator || "equals"} onValueChange={(val) => updateBranchCondition(bIdx, cIdx, 'operator', val)}>
+                              <SelectTrigger className="bg-slate-900 border-white/5 h-8 text-[10px] text-white/70">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
+                                <SelectItem value="equals">Equals</SelectItem>
+                                <SelectItem value="contains">Contains</SelectItem>
+                                <SelectItem value="gt">Greater Than</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              value={cond.value || ""}
+                              onChange={(e) => updateBranchCondition(bIdx, cIdx, 'value', e.target.value)}
+                              className="bg-slate-900 border-white/5 h-8 text-[10px] text-white"
+                              placeholder="Value..."
+                            />
                           </div>
                         </div>
                       ))}
@@ -387,30 +300,30 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
 
           {/* Conversion Goal Settings */}
           {type === 'goal' && (
-             <div className="space-y-6">
-               <div className="p-4 rounded-2xl bg-[#06b6d4]/5 border border-[#06b6d4]/20 space-y-2">
-                  <div className="flex items-center gap-2 text-[#06b6d4]">
-                     <Sparkles size={14} className="fill-[#06b6d4]" />
-                     <span className="text-[10px] font-black uppercase tracking-widest text-[#06b6d4]">Goal Objective</span>
-                  </div>
-                  <p className="text-[10px] text-[#06b6d4]/60 italic leading-relaxed">
-                    Set a target for this workflow. When reached, the contact is marked as "Converted".
-                  </p>
-               </div>
-               
-               <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Goal Event</label>
-                  <Select value={data.goal_event_type || "appointment_booked"} onValueChange={(val) => handleChange('goal_event_type', val)}>
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white h-12">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
-                      <SelectItem value="appointment_booked">Appointment Booked</SelectItem>
-                      <SelectItem value="invoice_paid">Invoice Paid</SelectItem>
-                    </SelectContent>
-                  </Select>
-               </div>
-             </div>
+            <div className="space-y-6">
+              <div className="p-4 rounded-2xl bg-[#06b6d4]/5 border border-[#06b6d4]/20 space-y-2">
+                <div className="flex items-center gap-2 text-[#06b6d4]">
+                  <Sparkles size={14} className="fill-[#06b6d4]" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#06b6d4]">Goal Objective</span>
+                </div>
+                <p className="text-[10px] text-[#06b6d4]/60 italic leading-relaxed">
+                  Set a target for this workflow. When reached, the contact is marked as "Converted".
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Goal Event</label>
+                <Select value={data.goal_event_type || "appointment_booked"} onValueChange={(val) => handleChange('goal_event_type', val)}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white h-12">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
+                    <SelectItem value="appointment_booked">Appointment Booked</SelectItem>
+                    <SelectItem value="invoice_paid">Invoice Paid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           )}
 
           {/* TRIGGER GLOBAL GOAL SETTINGS */}
@@ -435,32 +348,156 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
                   </SelectContent>
                 </Select>
                 <div className="mt-2 p-3 rounded-xl bg-white/5 border border-white/5">
-                   <p className="text-[9px] text-white/30 leading-snug">
-                     <span className="text-emerald-400 font-bold uppercase tracking-tighter mr-1">Pro Tip:</span> 
-                     This prevents "embarrassing" automation by stopping follow-ups once they convert.
-                   </p>
+                  <p className="text-[9px] text-white/30 leading-snug">
+                    <span className="text-emerald-400 font-bold uppercase tracking-tighter mr-1">Pro Tip:</span>
+                    This prevents "embarrassing" automation by stopping follow-ups once they convert.
+                  </p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Trigger Details */}
-          {type === 'trigger' && (
-            <div className="p-4 rounded-2xl bg-[#6c47ff]/5 border border-[#6c47ff]/20">
-              <div className="flex gap-3 text-[#6c47ff]">
-                <AlertCircle size={16} className="shrink-0" />
-                <p className="text-[11px] leading-relaxed">
-                  This workflow will run every time a <strong>{data.label}</strong> event occurs.
+          {/* TRIGGER: Webhook Settings */}
+          {type === 'trigger' && data.triggerType === 'webhook' && (
+            <div className="space-y-6">
+              <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-blue-400">
+                    <Link size={14} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Your Endpoint</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-blue-400 hover:bg-blue-400/10"
+                    onClick={() => {
+                      const url = `${window.location.origin}/api/webhooks/workflow/${workflowId || 'ID'}`;
+                      navigator.clipboard.writeText(url);
+                      toast.success("URL copied to clipboard!");
+                    }}
+                  >
+                    <Copy size={12} />
+                  </Button>
+                </div>
+                <code className="block text-[10px] bg-black/40 p-2 rounded border border-white/5 text-white/60 break-all leading-relaxed">
+                  {window.location.origin}/api/webhooks/workflow/{workflowId || '...'}
+                </code>
+                <p className="text-[9px] text-white/30 italic">
+                  Send POST requests here with JSON body to trigger this flow.
                 </p>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-white/30 uppercase tracking-widest">Data Mapping</label>
+                <div className="space-y-3">
+                  {Object.entries(data.webhook_mapping || {}).map(([key, field]: [string, any], idx) => (
+                    <div key={idx} className="flex items-center gap-2 group/map">
+                      <div className="flex-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-[10px] text-white/70 font-mono">
+                        {key}
+                      </div>
+                      <ArrowRight size={12} className="text-white/20" />
+                      <div className="flex-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-400 font-bold uppercase tracking-tight">
+                        {field}
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => removeMapping(key)} className="h-6 w-6 text-white/10 hover:text-rose-500 opacity-0 group-hover/map:opacity-100 transition-opacity">
+                        <Trash2 size={10} />
+                      </Button>
+                    </div>
+                  ))}
+
+                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-bold text-white/20 uppercase">JSON Key</label>
+                        <Input 
+                          placeholder="e.g. user_email"
+                          value={newKey}
+                          onChange={(e) => setNewKey(e.target.value)}
+                          className="bg-black/20 border-white/5 h-8 text-[10px]"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-bold text-white/20 uppercase">CRM Field</label>
+                        <Select value={newField} onValueChange={(val) => { if (val) setNewField(val); }}>
+                           <SelectTrigger className="bg-black/20 border-white/5 h-8 text-[10px]">
+                              <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
+                              <SelectItem value="email">Email</SelectItem>
+                              <SelectItem value="first_name">First Name</SelectItem>
+                              <SelectItem value="last_name">Last Name</SelectItem>
+                              <SelectItem value="phone">Phone</SelectItem>
+                              <SelectItem value="lead_score">Lead Score</SelectItem>
+                           </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <Button onClick={addMapping} className="w-full h-8 bg-blue-500 hover:bg-blue-600 text-[10px] font-bold uppercase tracking-wider gap-2">
+                       <Plus size={12} /> Add Mapping
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
+          {/* ACTION: Send Webhook Settings */}
+          {data.actionType === 'send_webhook' && (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Destination URL</label>
+                <Input
+                  placeholder="https://hooks.zapier.com/..."
+                  value={data.url || ""}
+                  onChange={(e) => handleChange('url', e.target.value)}
+                  className="bg-white/5 border-white/10 text-white h-12"
+                />
+                <p className="text-[9px] text-white/20">Supports tokens like {"{{contact.email}}"}</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Method</label>
+                <Select value={data.method || "POST"} onValueChange={(val) => handleChange('method', val)}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white h-12">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
+                    <SelectItem value="POST">POST</SelectItem>
+                    <SelectItem value="PUT">PUT</SelectItem>
+                    <SelectItem value="PATCH">PATCH</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">JSON Body Template</label>
+                  <Button variant="ghost" size="sm" className="h-6 text-[9px] uppercase tracking-tighter" onClick={() => handleChange('bodyTemplate', '{\n  "email": "{{contact.email}}",\n  "name": "{{contact.first_name}}"\n}')}>
+                    Load Example
+                  </Button>
+                </div>
+                <Textarea
+                  value={data.bodyTemplate || ""}
+                  onChange={(e) => handleChange('bodyTemplate', e.target.value)}
+                  rows={8}
+                  className="bg-white/5 border-white/10 text-white font-mono text-[10px]"
+                  placeholder='{ "key": "value" }'
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="p-4 rounded-2xl bg-[#6c47ff]/5 border border-[#6c47ff]/20 flex gap-3">
+             <AlertCircle size={16} className="shrink-0 text-[#6c47ff]" />
+             <p className="text-[11px] leading-relaxed text-white/70">
+               This workflow will run every time a <strong>{data.label}</strong> event occurs.
+             </p>
+          </div>
         </div>
 
         {/* Footer */}
         <div className="p-6 border-t border-white/5 bg-[#0b0b15]/50">
-          <Button 
+          <Button
             className="w-full h-12 bg-[#6c47ff] hover:bg-[#5b3ce0] text-white font-bold rounded-2xl shadow-lg shadow-[#6c47ff]/20 gap-2"
             onClick={onClose}
           >

@@ -201,7 +201,7 @@ export const AutomationActions = {
   },
 
   send_webhook: async (workspaceId: string, contactId: string, config: any) => {
-    const { url, method = 'POST' } = config;
+    const { url, method = 'POST', bodyTemplate } = config;
     if (!url) return;
 
     const supabase = await createServerClient();
@@ -211,17 +211,45 @@ export const AutomationActions = {
       .eq("id", contactId)
       .single();
 
+    if (!contact) return;
+
+    // Helper for Liquid-style token replacement: {{contact.first_name}}
+    const replaceTokens = (str: string) => {
+      return str.replace(/\{\{contact\.([^}]+)\}\}/g, (_, field) => {
+        return contact[field] || "";
+      });
+    };
+
+    const finalUrl = replaceTokens(url);
+    let finalBody = {};
+
+    if (bodyTemplate) {
+      try {
+        const bodyStr = replaceTokens(bodyTemplate);
+        finalBody = JSON.parse(bodyStr);
+      } catch (e) {
+        console.warn("[executor] Webhook bodyTemplate is not valid JSON, sending default payload.");
+        finalBody = { contact, event: "automation_webhook" };
+      }
+    } else {
+      finalBody = {
+        event: "automation_webhook",
+        workspace_id: workspaceId,
+        contact: contact,
+        timestamp: new Date().toISOString()
+      };
+    }
+
     try {
-      await fetch(url, {
+      const response = await fetch(finalUrl, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: "automation_webhook",
-          workspace_id: workspaceId,
-          contact: contact,
-          timestamp: new Date().toISOString()
-        })
+        body: JSON.stringify(finalBody)
       });
+      
+      if (!response.ok) {
+        console.error(`[executor] Webhook failed with status ${response.status}`);
+      }
     } catch (err) {
       console.error("[executor] Webhook failed:", err);
     }
