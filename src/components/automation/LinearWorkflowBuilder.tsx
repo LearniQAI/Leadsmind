@@ -20,6 +20,7 @@ import {
   Bell,
   X,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -129,7 +130,9 @@ export function LinearWorkflowBuilder({ workflowId, initialWorkflow }: { workflo
     try {
       await updateWorkflow(workflowId, {
         trigger_type: workflow.trigger_type,
-        trigger_config: workflow.trigger_config
+        trigger_config: workflow.trigger_config,
+        goal_event_type: workflow.goal_event_type,
+        goal_event_config: workflow.goal_event_config || {}
       });
       await supabase.from('workflow_steps').delete().eq('workflow_id', workflowId);
       const stepsToInsert = steps.map((s, idx) => ({
@@ -223,6 +226,32 @@ export function LinearWorkflowBuilder({ workflowId, initialWorkflow }: { workflo
                 />
               </div>
             )}
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-slate-800/50 space-y-3">
+             <div className="flex items-center gap-2">
+                <Sparkles size={11} className="text-blue-400 fill-blue-400/20" />
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sequence Goal</p>
+             </div>
+             <p className="text-[9px] text-slate-500 italic leading-snug">Stop this flow automatically if the contact:</p>
+             <Select
+                value={workflow.goal_event_type || 'none'}
+                onValueChange={(v) => setWorkflow({ ...workflow, goal_event_type: v === 'none' ? null : v })}
+             >
+                <SelectTrigger className="bg-slate-900 border-slate-700 h-9 text-xs text-slate-200 rounded">
+                  <SelectValue placeholder="No goal set" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
+                  <SelectItem value="none">No goal (run to end)</SelectItem>
+                  <SelectItem value="appointment_booked">Books an Appointment</SelectItem>
+                  <SelectItem value="invoice_paid">Pays an Invoice</SelectItem>
+                </SelectContent>
+             </Select>
+             <div className="p-2 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                <p className="text-[9px] text-blue-400/60 leading-tight">
+                  Prevents "embarrassing" follow-ups after they convert.
+                </p>
+             </div>
           </div>
         </div>
 

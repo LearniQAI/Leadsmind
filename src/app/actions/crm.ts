@@ -244,3 +244,46 @@ export async function getContactTasks(contactId: string): Promise<ActionResult<C
         return { success: true, data };
     } catch (err) { return { success: false, error: 'Error' }; }
 }
+
+export async function createAppointment(payload: {
+  contactId: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+}) {
+  const user = await requireAuth();
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, error: "No active workspace" };
+
+  const supabase = await createServerClient();
+
+  try {
+    const { data: appointment, error } = await supabase
+      .from("appointments")
+      .insert({
+        workspace_id: workspaceId,
+        contact_id: payload.contactId,
+        title: payload.title,
+        start_time: payload.startTime,
+        end_time: payload.endTime,
+        created_by: user.id
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Trigger Goal Check
+    try {
+      const { checkActiveWorkflowGoals } = await import('@/lib/automation/executor');
+      await checkActiveWorkflowGoals(workspaceId, payload.contactId, 'appointment_booked');
+    } catch (err) {
+      console.error("[crm-action] Failed to trigger goal check:", err);
+    }
+
+    revalidatePath(`/contacts/${payload.contactId}`);
+    return { success: true, data: appointment };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}

@@ -243,6 +243,38 @@ export async function createInvoice(invoiceData: any) {
   return data;
 }
 
+export async function markInvoicePaid(invoiceId: string) {
+  const supabase = await createClient();
+  
+  // 1. Fetch invoice to get workspace and contact info
+  const { data: invoice } = await supabase
+    .from('invoices')
+    .select('workspace_id, contact_id')
+    .eq('id', invoiceId)
+    .single();
+
+  if (!invoice) throw new Error("Invoice not found");
+
+  // 2. Update status
+  const { error } = await supabase
+    .from('invoices')
+    .update({ status: 'paid', paid_at: new Date().toISOString() })
+    .eq('id', invoiceId);
+
+  if (error) throw error;
+
+  // 3. Trigger Goal Check
+  try {
+    const { checkActiveWorkflowGoals } = await import('@/lib/automation/executor');
+    await checkActiveWorkflowGoals(invoice.workspace_id, invoice.contact_id, 'invoice_paid');
+  } catch (err) {
+    console.error("[finance-action] Failed to trigger goal check:", err);
+  }
+
+  revalidatePath('/settings/billing');
+  return { success: true };
+}
+
 export async function getContactsForInvoicing(workspaceId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase

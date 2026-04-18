@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Save, AlertCircle, Zap } from "lucide-react";
+import { X, Save, AlertCircle, Zap, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -280,6 +280,37 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
                   />
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TRIGGER GLOBAL GOAL SETTINGS */}
+          {type === 'trigger' && (
+            <div className="space-y-6 pt-4 border-t border-white/5">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-[#6c47ff] uppercase tracking-widest flex items-center gap-2">
+                  <Sparkles size={12} className="fill-[#6c47ff]" />
+                  Sequence Goal (Optional)
+                </label>
+                <p className="text-[10px] text-white/40 italic mb-2">
+                  Stop this workflow automatically if the contact:
+                </p>
+                <Select value={data.goal_event_type || "none"} onValueChange={(val) => handleChange('goal_event_type', val)}>
+                  <SelectTrigger className="mt-1 bg-white/5 border-white/10 text-white h-12">
+                    <SelectValue placeholder="No goal set" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
+                    <SelectItem value="none">Keep running until end</SelectItem>
+                    <SelectItem value="appointment_booked">Books an Appointment</SelectItem>
+                    <SelectItem value="invoice_paid">Pays an Invoice</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="mt-2 p-3 rounded-xl bg-white/5 border border-white/5">
+                   <p className="text-[9px] text-white/30 leading-snug">
+                     <span className="text-emerald-400 font-bold uppercase tracking-tighter mr-1">Pro Tip:</span> 
+                     This prevents "embarrassing" automation by stopping follow-ups once they convert.
+                   </p>
+                </div>
+              </div>
             </div>
           )}
 

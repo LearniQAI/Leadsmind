@@ -65,6 +65,19 @@ export async function processNextStep(executionId: string) {
 
   if (!execution || execution.status !== 'running') return;
 
+  // 1.5 Goal Check: Stop sequence if contact conversion goal is met
+  const isGoalAchieved = await checkGoalAchieved(execution.workflow, execution.contact_id);
+  if (isGoalAchieved) {
+    await supabase.from("workflow_executions").update({ 
+      status: 'completed', 
+      completed_at: new Date().toISOString(),
+      context: { ...execution.context, termination_reason: 'goal_achieved' }
+    }).eq("id", executionId);
+    
+    console.log(`[executor] Termination: Contact ${execution.contact_id} met goal for workflow ${execution.workflow_id}`);
+    return;
+  }
+
   const currentStepPos = execution.current_step;
   const { data: step } = await supabase
     .from("workflow_steps")
@@ -176,5 +189,85 @@ export async function processNextStep(executionId: string) {
       status: 'failed', 
       error_message: `Step ${currentStepPos} failed: ${err.message}` 
     }).eq("id", executionId);
+  }
+}
+
+/**
+ * Utility to check if a specific goal has been met by a contact.
+ */
+export async function checkGoalAchieved(workflow: any, contactId: string): Promise<boolean> {
+  if (!workflow?.goal_event_type) return false;
+
+  const supabase = await createServerClient();
+
+  switch (workflow.goal_event_type) {
+    case 'appointment_booked':
+      // Goal met if contact has any appointments
+      const { data: appointments } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('contact_id', contactId)
+        .limit(1);
+      return (appointments?.length ?? 0) > 0;
+
+    case 'invoice_paid':
+      // Goal met if contact has any paid invoices
+      const { data: invoices } = await supabase
+        .from('invoices')
+        .select('id')
+        .eq('contact_id', contactId)
+        .eq('status', 'paid')
+        .limit(1);
+      return (invoices?.length ?? 0) > 0;
+
+    default:
+      return false;
+  }
+}
+
+/**
+ * Event-driven goal checker. 
+ * Should be called whenever a "conversion" event happens in the system.
+ * Terminates any active workflows for the contact that have this goal type.
+ */
+export async function checkActiveWorkflowGoals(workspaceId: string, contactId: string, eventType: string) {
+  const supabase = await createServerClient();
+
+  // Find all ACTIVE executions for this contact in this workspace that have this goal type
+  const { data: executions } = await supabase
+    .from('workflow_executions')
+    .select(`
+      *,
+      workflow:workflows!inner(*)
+    `)
+    .eq('workspace_id', workspaceId)
+    .eq('contact_id', contactId)
+    .eq('status', 'running')
+    .eq('workflow.goal_event_type', eventType);
+
+  if (!executions || executions.length === 0) return;
+
+  for (const execution of executions) {
+    // Terminate the workflow
+    await supabase.from('workflow_executions').update({
+      status: 'completed',
+      context: { 
+        ...execution.context, 
+        terminated_due_to_goal: true,
+        goal_type: eventType,
+        terminated_at: new Date().toISOString()
+      },
+      completed_at: new Date().toISOString()
+    }).eq('id', execution.id);
+
+    // Log the termination in step logs for visibility
+    await supabase.from('workflow_step_logs').insert({
+      execution_id: execution.id,
+      workspace_id: workspaceId,
+      status: 'skipped',
+      error_message: `Workflow terminated: Goal '${eventType}' met.`,
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString()
+    });
   }
 }

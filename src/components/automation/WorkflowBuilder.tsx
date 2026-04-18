@@ -101,7 +101,20 @@ export function WorkflowBuilder({
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         setIsSaving(true);
-        await updateWorkflow(workflowId, { nodes, edges });
+        
+        // Extract goal from trigger node if present
+        const triggerNode = nodes.find(n => n.type === 'trigger');
+        const goalUpdates: any = {};
+        if (triggerNode?.data?.goal_event_type) {
+          goalUpdates.goal_event_type = triggerNode.data.goal_event_type;
+          goalUpdates.goal_event_config = triggerNode.data.goal_event_config || {};
+        }
+
+        await updateWorkflow(workflowId!, { 
+          nodes, 
+          edges,
+          ...goalUpdates
+        });
       } catch (error) {
         console.error("Failed to auto-save:", error);
       } finally {
