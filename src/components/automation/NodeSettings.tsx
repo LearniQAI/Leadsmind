@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
 
@@ -35,9 +36,9 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
 
   const addBranch = () => {
     if (branches.length >= 6) return;
-    const newBranch = { 
-      name: `Branch ${branches.length + 1}`, 
-      conditions: [{ field: 'email', operator: 'contains', value: '' }] 
+    const newBranch = {
+      name: `Branch ${branches.length + 1}`,
+      conditions: [{ field: 'email', operator: 'contains', value: '' }]
     };
     handleChange('branches', [...branches, newBranch]);
   };
@@ -136,6 +137,43 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
                   placeholder="Hey there, thanks for signing up..."
                 />
               </div>
+
+              {/* Business Hours Window */}
+              <div className="pt-4 border-t border-white/5 space-y-4 text-left">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-white tracking-tight">Business Hours Window</span>
+                    <span className="text-[9px] text-white/30 italic">Only send during specific hours</span>
+                  </div>
+                  <Switch
+                    checked={data.business_hours?.enabled || false}
+                    onCheckedChange={(checked) => handleChange('business_hours', { ...(data.business_hours || {}), enabled: checked })}
+                  />
+                </div>
+
+                {data.business_hours?.enabled && (
+                  <div className="space-y-4 p-4 rounded-xl bg-white/5 border border-white/5">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">Start Time</label>
+                      <Input
+                        type="time"
+                        value={data.business_hours?.start_time || "08:00"}
+                        onChange={(e) => handleChange('business_hours', { ...data.business_hours, start_time: e.target.value })}
+                        className="bg-white/5 border-white/10 text-white h-9"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">End Time</label>
+                      <Input
+                        type="time"
+                        value={data.business_hours?.end_time || "17:00"}
+                        onChange={(e) => handleChange('business_hours', { ...data.business_hours, end_time: e.target.value })}
+                        className="bg-white/5 border-white/10 text-white h-9"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -150,6 +188,43 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
                   className="bg-white/5 border-white/10 text-white min-h-[100px]"
                   placeholder="Your automated SMS text here..."
                 />
+              </div>
+
+              {/* Business Hours Window */}
+              <div className="pt-4 border-t border-white/5 space-y-4 text-left">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-white tracking-tight">Business Hours Window</span>
+                    <span className="text-[9px] text-white/30 italic">Only send during specific hours</span>
+                  </div>
+                  <Switch
+                    checked={data.business_hours?.enabled || false}
+                    onCheckedChange={(checked) => handleChange('business_hours', { ...(data.business_hours || {}), enabled: checked })}
+                  />
+                </div>
+
+                {data.business_hours?.enabled && (
+                  <div className="space-y-4 p-4 rounded-xl bg-white/5 border border-white/5">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">Start Time</label>
+                      <Input
+                        type="time"
+                        value={data.business_hours?.start_time || "08:00"}
+                        onChange={(e) => handleChange('business_hours', { ...data.business_hours, start_time: e.target.value })}
+                        className="bg-white/5 border-white/10 text-white h-9"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">End Time</label>
+                      <Input
+                        type="time"
+                        value={data.business_hours?.end_time || "17:00"}
+                        onChange={(e) => handleChange('business_hours', { ...data.business_hours, end_time: e.target.value })}
+                        className="bg-white/5 border-white/10 text-white h-9"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -273,8 +348,13 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
                               </SelectTrigger>
                               <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
                                 <SelectItem value="equals">Equals</SelectItem>
+                                <SelectItem value="not_equals">Not Equals</SelectItem>
                                 <SelectItem value="contains">Contains</SelectItem>
+                                <SelectItem value="not_contains">Not Contains</SelectItem>
+                                <SelectItem value="exists">Exists</SelectItem>
+                                <SelectItem value="not_exists">Not Exists</SelectItem>
                                 <SelectItem value="gt">Greater Than</SelectItem>
+                                <SelectItem value="lt">Less Than</SelectItem>
                               </SelectContent>
                             </Select>
                             <Input
@@ -409,7 +489,7 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <label className="text-[8px] font-bold text-white/20 uppercase">JSON Key</label>
-                        <Input 
+                        <Input
                           placeholder="e.g. user_email"
                           value={newKey}
                           onChange={(e) => setNewKey(e.target.value)}
@@ -419,21 +499,21 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
                       <div className="space-y-1">
                         <label className="text-[8px] font-bold text-white/20 uppercase">CRM Field</label>
                         <Select value={newField} onValueChange={(val) => { if (val) setNewField(val); }}>
-                           <SelectTrigger className="bg-black/20 border-white/5 h-8 text-[10px]">
-                              <SelectValue />
-                           </SelectTrigger>
-                           <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
-                              <SelectItem value="email">Email</SelectItem>
-                              <SelectItem value="first_name">First Name</SelectItem>
-                              <SelectItem value="last_name">Last Name</SelectItem>
-                              <SelectItem value="phone">Phone</SelectItem>
-                              <SelectItem value="lead_score">Lead Score</SelectItem>
-                           </SelectContent>
+                          <SelectTrigger className="bg-black/20 border-white/5 h-8 text-[10px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
+                            <SelectItem value="email">Email</SelectItem>
+                            <SelectItem value="first_name">First Name</SelectItem>
+                            <SelectItem value="last_name">Last Name</SelectItem>
+                            <SelectItem value="phone">Phone</SelectItem>
+                            <SelectItem value="lead_score">Lead Score</SelectItem>
+                          </SelectContent>
                         </Select>
                       </div>
                     </div>
                     <Button onClick={addMapping} className="w-full h-8 bg-blue-500 hover:bg-blue-600 text-[10px] font-bold uppercase tracking-wider gap-2">
-                       <Plus size={12} /> Add Mapping
+                      <Plus size={12} /> Add Mapping
                     </Button>
                   </div>
                 </div>
@@ -488,10 +568,10 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
           )}
 
           <div className="p-4 rounded-2xl bg-[#6c47ff]/5 border border-[#6c47ff]/20 flex gap-3">
-             <AlertCircle size={16} className="shrink-0 text-[#6c47ff]" />
-             <p className="text-[11px] leading-relaxed text-white/70">
-               This workflow will run every time a <strong>{data.label}</strong> event occurs.
-             </p>
+            <AlertCircle size={16} className="shrink-0 text-[#6c47ff]" />
+            <p className="text-[11px] leading-relaxed text-white/70">
+              This workflow will run every time a <strong>{data.label}</strong> event occurs.
+            </p>
           </div>
         </div>
 

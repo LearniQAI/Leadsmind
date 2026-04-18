@@ -94,12 +94,12 @@ async function runAudit() {
     return;
   }
 
-  console.log(`✅ Execution Found: Status = ${execution.status}`);
-  console.log(`✅ Current Step: ${execution.current_step}`);
-  console.log(`📊 Steps Logged: ${execution.logs.length}`);
+  console.log(`✅ Execution Found: Status = ${(execution as any).status}`);
+  console.log(`✅ Current Step: ${(execution as any).current_step_id || (execution as any).current_step}`);
+  console.log(`📊 Steps Logged: ${(execution as any).logs.length}`);
 
   // Check logs
-  const logs = execution.logs.sort((a: any, b: any) => a.created_at.localeCompare(b.created_at));
+  const logs = (execution as any).logs.sort((a: any, b: any) => a.created_at.localeCompare(b.created_at));
   
   if (logs[0]?.status === 'completed') {
     console.log("✅ STEP 1 (Add Tag): PASSED");
@@ -107,8 +107,8 @@ async function runAudit() {
     console.error("❌ STEP 1 (Add Tag): FAILED or STUCK", logs[0]);
   }
 
-  if (execution.status === 'running' && execution.context?.resume_at) {
-    console.log(`✅ STEP 2 (Wait): CORRECTLY PAUSED. Resumes at: ${execution.context.resume_at}`);
+  if ((execution as any).status === 'running' && (execution as any).context?.resume_at) {
+    console.log(`✅ STEP 2 (Wait): CORRECTLY PAUSED. Resumes at: ${(execution as any).context.resume_at}`);
   } else {
     console.error("❌ STEP 2 (Wait): Execution should be paused with resume_at context", execution);
   }
