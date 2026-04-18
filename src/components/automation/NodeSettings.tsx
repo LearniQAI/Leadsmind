@@ -378,6 +378,36 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
             </div>
           )}
 
+          {/* Action: Update Record Settings */}
+          {data.actionType === 'update_field' && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed">Update which field?</label>
+                <Select value={data.updateField || "lead_score"} onValueChange={(val) => { if (val) handleChange('updateField', val); }}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white h-12">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
+                    <SelectItem value="email">Email Address</SelectItem>
+                    <SelectItem value="first_name">First Name</SelectItem>
+                    <SelectItem value="last_name">Last Name</SelectItem>
+                    <SelectItem value="lead_score">Lead Score</SelectItem>
+                    <SelectItem value="phone">Phone Number</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed">To what value?</label>
+                <Input
+                  value={data.updateValue || ""}
+                  onChange={(e) => handleChange('updateValue', e.target.value)}
+                  className="bg-white/5 border-white/10 text-white h-12"
+                  placeholder="Enter new value..."
+                />
+              </div>
+            </div>
+          )}
+
           {/* Conversion Goal Settings */}
           {type === 'goal' && (
             <div className="space-y-6">
