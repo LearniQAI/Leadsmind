@@ -1,5 +1,6 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { AutomationActions } from "./actions_registry";
+import { isWithinBusinessHours, nextWindowOpen, BusinessHoursConfig } from "./business_hours";
 
 /**
  * Trigger point for all automations.
@@ -41,7 +42,7 @@ async function startWorkflowExecution(workflow: any, contactId: string) {
     .select()
     .single();
 
-  if (error) {
+  if (error || !execution) {
     console.error("[executor] Failed to create execution:", error);
     return;
   }
@@ -95,7 +96,22 @@ export async function processNextStep(executionId: string) {
     return;
   }
 
-  // LOGIC FIX: Check if we are resuming from a wait
+  // ── LOGIC: Check if we are resuming from a business-hours hold ──────────────
+  if (execution.context?.held_until) {
+    const heldUntil = new Date(execution.context.held_until);
+    const now = new Date();
+    if (now < heldUntil) {
+      // Not yet time — leave the hold in place, the cron will retry
+      return;
+    }
+    // Clear held_until before executing the step
+    await supabase.from("workflow_executions").update({
+      context: { ...execution.context, held_until: null }
+    }).eq("id", executionId);
+    // Re-read fresh context (optimistic: proceed directly)
+  }
+
+  // ── LOGIC: Check if we are resuming from a wait ──────────────────────────────
   if (step.type === 'wait' && execution.context?.resume_at) {
     const resumeAt = new Date(execution.context.resume_at);
     const now = new Date();
@@ -127,6 +143,11 @@ export async function processNextStep(executionId: string) {
     .select()
     .single();
 
+  // Safe helper — avoids crashing on log.id if the insert returned null
+  const logId: string | null = log?.id ?? null;
+  const updateLog = (patch: Record<string, unknown>) =>
+    logId ? supabase.from("workflow_step_logs").update(patch).eq("id", logId) : Promise.resolve();
+
   try {
     // 3. Execute the Action
     if (step.type === 'wait') {
@@ -147,14 +168,56 @@ export async function processNextStep(executionId: string) {
         context: { ...execution.context, resume_at: resumeAt.toISOString() }
       }).eq("id", executionId);
 
-      await supabase.from("workflow_step_logs").update({ 
-        status: 'completed', 
-        completed_at: new Date().toISOString() 
-      }).eq("id", log.id);
+      await updateLog({ status: 'completed', completed_at: new Date().toISOString() });
 
       // Terminate synchronous run (will be resumed by cron/background job)
       return;
     }
+
+    // ── BUSINESS HOURS CHECK (send_email / send_sms only) ────────────────────
+    if (step.type === 'send_email' || step.type === 'send_sms') {
+      const bhConfig: BusinessHoursConfig | null = step.business_hours ?? null;
+
+      if (bhConfig?.enabled) {
+        // Fetch the contact's timezone
+        const { data: contactRow } = await supabase
+          .from("contacts")
+          .select("timezone")
+          .eq("id", execution.contact_id)
+          .single();
+
+        const contactTimezone: string | null = contactRow?.timezone ?? null;
+
+        if (!isWithinBusinessHours(bhConfig, contactTimezone)) {
+          // Outside window — hold and reschedule
+          const nextOpen = nextWindowOpen(bhConfig, contactTimezone);
+
+          console.log(
+            `[executor] Step ${step.type} held until ${nextOpen.toISOString()} ` +
+            `for contact ${execution.contact_id}`
+          );
+
+          // Log the step as 'held'
+          await updateLog({
+            status: 'held',
+            completed_at: new Date().toISOString(),
+            error_message: `Outside business hours. Scheduled for ${nextOpen.toISOString()}`
+          });
+
+          // Store held_until in the execution context; cron will wake it later
+          await supabase.from("workflow_executions").update({
+            context: {
+              ...execution.context,
+              held_until: nextOpen.toISOString()
+            }
+          }).eq("id", executionId);
+
+          // Stop synchronous processing — poll route will resume
+          return;
+        }
+      }
+    }
+    // ── END BUSINESS HOURS CHECK ─────────────────────────────────────────────
 
     // Standard Actions (Email, SMS, Tags, etc)
     const handler = (AutomationActions as any)[step.type];
@@ -163,10 +226,7 @@ export async function processNextStep(executionId: string) {
     }
 
     // 4. Update Log & Move to Next
-    await supabase.from("workflow_step_logs").update({ 
-      status: 'completed', 
-      completed_at: new Date().toISOString() 
-    }).eq("id", log.id);
+    await updateLog({ status: 'completed', completed_at: new Date().toISOString() });
 
     await supabase.from("workflow_executions").update({ 
       current_step: currentStepPos + 1 
@@ -178,11 +238,7 @@ export async function processNextStep(executionId: string) {
   } catch (err: any) {
     console.error(`[executor] Step failed (${step.type}):`, err);
     
-    await supabase.from("workflow_step_logs").update({ 
-      status: 'failed', 
-      error_message: err.message,
-      completed_at: new Date().toISOString() 
-    }).eq("id", log.id);
+    await updateLog({ status: 'failed', error_message: err.message, completed_at: new Date().toISOString() });
 
     // Stop execution on failure (or implement retry logic here)
     await supabase.from("workflow_executions").update({ 
