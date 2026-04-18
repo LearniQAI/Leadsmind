@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 interface NodeSettingsProps {
@@ -118,6 +119,43 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
                   placeholder="Hey there, thanks for signing up..."
                 />
               </div>
+
+              {/* Business Hours Window */}
+              <div className="pt-4 border-t border-white/5 space-y-4 text-left">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-white tracking-tight">Business Hours Window</span>
+                    <span className="text-[9px] text-white/30 italic">Only send during specific hours</span>
+                  </div>
+                  <Switch 
+                    checked={data.business_hours?.enabled || false}
+                    onCheckedChange={(checked) => handleChange('business_hours', { ...(data.business_hours || {}), enabled: checked })}
+                  />
+                </div>
+
+                {data.business_hours?.enabled && (
+                  <div className="space-y-4 p-4 rounded-xl bg-white/5 border border-white/5">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">Start Time</label>
+                      <Input 
+                        type="time" 
+                        value={data.business_hours?.start_time || "08:00"}
+                        onChange={(e) => handleChange('business_hours', { ...data.business_hours, start_time: e.target.value })}
+                        className="bg-white/5 border-white/10 text-white h-9"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                    <label className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">End Time</label>
+                      <Input 
+                        type="time" 
+                        value={data.business_hours?.end_time || "17:00"}
+                        onChange={(e) => handleChange('business_hours', { ...data.business_hours, end_time: e.target.value })}
+                        className="bg-white/5 border-white/10 text-white h-9"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -132,6 +170,43 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
                   className="bg-white/5 border-white/10 text-white min-h-[100px]"
                   placeholder="Your automated SMS text here..."
                 />
+              </div>
+
+              {/* Business Hours Window */}
+              <div className="pt-4 border-t border-white/5 space-y-4 text-left">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-white tracking-tight">Business Hours Window</span>
+                    <span className="text-[9px] text-white/30 italic">Only send during specific hours</span>
+                  </div>
+                  <Switch 
+                    checked={data.business_hours?.enabled || false}
+                    onCheckedChange={(checked) => handleChange('business_hours', { ...(data.business_hours || {}), enabled: checked })}
+                  />
+                </div>
+
+                {data.business_hours?.enabled && (
+                   <div className="space-y-4 p-4 rounded-xl bg-white/5 border border-white/5">
+                   <div className="space-y-2">
+                     <label className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">Start Time</label>
+                     <Input 
+                       type="time" 
+                       value={data.business_hours?.start_time || "08:00"}
+                       onChange={(e) => handleChange('business_hours', { ...data.business_hours, start_time: e.target.value })}
+                       className="bg-white/5 border-white/10 text-white h-9"
+                     />
+                   </div>
+                   <div className="space-y-2">
+                   <label className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">End Time</label>
+                     <Input 
+                       type="time" 
+                       value={data.business_hours?.end_time || "17:00"}
+                       onChange={(e) => handleChange('business_hours', { ...data.business_hours, end_time: e.target.value })}
+                       className="bg-white/5 border-white/10 text-white h-9"
+                     />
+                   </div>
+                 </div>
+                )}
               </div>
             </div>
           )}
@@ -360,8 +435,13 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
                                 </SelectTrigger>
                                 <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
                                   <SelectItem value="equals">Equals</SelectItem>
+                                  <SelectItem value="not_equals">Not Equals</SelectItem>
                                   <SelectItem value="contains">Contains</SelectItem>
+                                  <SelectItem value="not_contains">Not Contains</SelectItem>
+                                  <SelectItem value="exists">Exists</SelectItem>
+                                  <SelectItem value="not_exists">Not Exists</SelectItem>
                                   <SelectItem value="gt">Greater Than</SelectItem>
+                                  <SelectItem value="lt">Less Than</SelectItem>
                                 </SelectContent>
                              </Select>
                              <Input 

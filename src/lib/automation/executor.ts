@@ -1,10 +1,11 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { AutomationActions } from "./actions_registry";
 import { isWithinBusinessHours, nextWindowOpen, BusinessHoursConfig } from "./business_hours";
+import { resolveWinningBranch } from "./condition_evaluator";
 
 /**
  * Trigger point for all automations.
- * Fetches all active linear workflows for the given trigger type.
+ * Fetches all active workflows for the given trigger type.
  */
 export async function triggerWorkflows(workspaceId: string, triggerType: string, contactId: string) {
   const supabase = await createServerClient();
@@ -29,7 +30,8 @@ export async function triggerWorkflows(workspaceId: string, triggerType: string,
 async function startWorkflowExecution(workflow: any, contactId: string) {
   const supabase = await createServerClient();
 
-  // 1. Create Execution Record
+  // 1. Fetch the absolute first step (order is only for migration; usually edges handle this)
+  // But we need a starting point for the graph
   const { data: step1 } = await supabase
     .from("workflow_steps")
     .select("id")
@@ -45,7 +47,7 @@ async function startWorkflowExecution(workflow: any, contactId: string) {
       workflow_id: workflow.id,
       contact_id: contactId,
       status: 'running',
-      current_step_id: step1?.id // Store the actual step ID
+      current_step_id: step1?.id // Source of truth in the new graph architecture
     })
     .select()
     .single();
@@ -90,7 +92,7 @@ export async function processNextStep(executionId: string) {
   const currentStepId = execution.current_step_id;
   
   if (!currentStepId) {
-    // Fallback for old executions or if no steps exist
+    // If no current_step_id, the workflow is finished
     await supabase.from("workflow_executions").update({ 
       status: 'completed', 
       completed_at: new Date().toISOString() 
@@ -104,7 +106,7 @@ export async function processNextStep(executionId: string) {
     .eq("id", currentStepId)
     .single();
 
-  // If no more steps, we're done
+  // If node doesn't exist, terminate
   if (!step) {
     await supabase.from("workflow_executions").update({ 
       status: 'completed', 
@@ -118,14 +120,12 @@ export async function processNextStep(executionId: string) {
     const heldUntil = new Date(execution.context.held_until);
     const now = new Date();
     if (now < heldUntil) {
-      // Not yet time — leave the hold in place, the cron will retry
-      return;
+      return; // Not yet time
     }
-    // Clear held_until before executing the step
+    // Clear and proceed
     await supabase.from("workflow_executions").update({
       context: { ...execution.context, held_until: null }
     }).eq("id", executionId);
-    // Re-read fresh context (optimistic: proceed directly)
   }
 
   // ── LOGIC: Check if we are resuming from a wait ──────────────────────────────
@@ -133,7 +133,6 @@ export async function processNextStep(executionId: string) {
     const resumeAt = new Date(execution.context.resume_at);
     const now = new Date();
     
-    // If now is past resumeAt, we have finished the wait!
     if (now >= resumeAt) {
       // Find next step via edges
       const { data: nextEdge } = await supabase
@@ -143,7 +142,6 @@ export async function processNextStep(executionId: string) {
         .limit(1)
         .single();
 
-      // Clear the resume_at and move to next step id
       await supabase.from("workflow_executions").update({
         current_step_id: nextEdge?.target_step_id || null, 
         status: nextEdge?.target_step_id ? 'running' : 'completed',
@@ -151,12 +149,12 @@ export async function processNextStep(executionId: string) {
         context: { ...execution.context, resume_at: null }
       }).eq("id", executionId);
       
-      // Call again to start the next action if it exists
       if (nextEdge?.target_step_id) {
         await processNextStep(executionId);
       }
       return;
     }
+    return; // Still waiting
   }
 
   // 2. Create Step Log
@@ -172,43 +170,16 @@ export async function processNextStep(executionId: string) {
     .select()
     .single();
 
-  // Safe helper — avoids crashing on log.id if the insert returned null
   const logId: string | null = log?.id ?? null;
   const updateLog = (patch: Record<string, unknown>) =>
     logId ? supabase.from("workflow_step_logs").update(patch).eq("id", logId) : Promise.resolve();
 
   try {
-    // 3. Execute the Action
-    if (step.type === 'wait') {
-      // If we already have a resume_at but we reached here, it means the wait isn't over yet
-      if (execution.context?.resume_at) {
-         return; // Still waiting, don't re-calculate
-      }
-
-      const { delayValue = 1, delayUnit = 'minutes' } = step.config;
-      const resumeAt = new Date();
-      if (delayUnit === 'minutes') resumeAt.setMinutes(resumeAt.getMinutes() + Number(delayValue));
-      else if (delayUnit === 'hours') resumeAt.setHours(resumeAt.getHours() + Number(delayValue));
-      else if (delayUnit === 'days') resumeAt.setDate(resumeAt.getDate() + Number(delayValue));
-
-      // Pause execution
-      await supabase.from("workflow_executions").update({ 
-        status: 'running', // Keep running but we wait for cron
-        context: { ...execution.context, resume_at: resumeAt.toISOString() }
-      }).eq("id", executionId);
-
-      await updateLog({ status: 'completed', completed_at: new Date().toISOString() });
-
-      // Terminate synchronous run (will be resumed by cron/background job)
-      return;
-    }
-
     // ── BUSINESS HOURS CHECK (send_email / send_sms only) ────────────────────
     if (step.type === 'send_email' || step.type === 'send_sms') {
       const bhConfig: BusinessHoursConfig | null = step.business_hours ?? null;
 
       if (bhConfig?.enabled) {
-        // Fetch the contact's timezone
         const { data: contactRow } = await supabase
           .from("contacts")
           .select("timezone")
@@ -218,98 +189,92 @@ export async function processNextStep(executionId: string) {
         const contactTimezone: string | null = contactRow?.timezone ?? null;
 
         if (!isWithinBusinessHours(bhConfig, contactTimezone)) {
-          // Outside window — hold and reschedule
           const nextOpen = nextWindowOpen(bhConfig, contactTimezone);
-
-          console.log(
-            `[executor] Step ${step.type} held until ${nextOpen.toISOString()} ` +
-            `for contact ${execution.contact_id}`
-          );
-
-          // Log the step as 'held'
+          
           await updateLog({
             status: 'held',
             completed_at: new Date().toISOString(),
             error_message: `Outside business hours. Scheduled for ${nextOpen.toISOString()}`
           });
 
-          // Store held_until in the execution context; cron will wake it later
           await supabase.from("workflow_executions").update({
-            context: {
-              ...execution.context,
-              held_until: nextOpen.toISOString()
-            }
+            context: { ...execution.context, held_until: nextOpen.toISOString() }
           }).eq("id", executionId);
 
-          // Stop synchronous processing — poll route will resume
           return;
         }
       }
     }
-    // ── END BUSINESS HOURS CHECK ─────────────────────────────────────────────
 
-    // ── ROUTE LOGIC ──────────────────────────────────────────────────────────
+    // ── EXECUTE ACTION ───────────────────────────────────────────────────────
+    
+    if (step.type === 'wait') {
+      if (execution.context?.resume_at) return;
+
+      const { delayValue = 1, delayUnit = 'minutes' } = step.config;
+      const resumeAt = new Date();
+      if (delayUnit === 'minutes') resumeAt.setMinutes(resumeAt.getMinutes() + Number(delayValue));
+      else if (delayUnit === 'hours') resumeAt.setHours(resumeAt.getHours() + Number(delayValue));
+      else if (delayUnit === 'days') resumeAt.setDate(resumeAt.getDate() + Number(delayValue));
+
+      await supabase.from("workflow_executions").update({ 
+        context: { ...execution.context, resume_at: resumeAt.toISOString() }
+      }).eq("id", executionId);
+
+      await updateLog({ status: 'completed', completed_at: new Date().toISOString() });
+      return;
+    }
+
     if (step.type === 'route') {
-      const { branches = [], default_branch_name = 'Default' } = step.config;
-      let matchedBranch = null;
+      const branches = step.config?.branches ?? [];
       
-      // Fetch contact data for condition evaluation
-      const { data: contact } = await supabase
+      const { data: contactData } = await supabase
         .from('contacts')
         .select('*')
         .eq('id', execution.contact_id)
         .single();
 
-      for (const branch of branches) {
-        if (evaluateBranch(branch, contact)) {
-          matchedBranch = branch.name;
-          break;
-        }
-      }
+      const contact = contactData ?? {};
+      const winner = resolveWinningBranch(branches, contact);
+      const chosenBranch = winner?.name ?? 'Default';
 
-      if (!matchedBranch) matchedBranch = default_branch_name;
-
-      console.log(`[executor] Route matched branch: ${matchedBranch} for contact ${execution.contact_id}`);
+      console.log(`[executor] Route matched branch: ${chosenBranch} for contact ${execution.contact_id}`);
       
-      // Update log with chosen branch
       await updateLog({ 
         status: 'completed', 
         completed_at: new Date().toISOString(),
-        metadata: { chosen_branch: matchedBranch } 
+        metadata: { 
+          chosen_branch: chosenBranch,
+          evaluated_branches: branches.filter((b: any) => !b.is_default).length
+        } 
       });
 
-      // Find the next step based on the matched branch handle
+      // Find edge for this specific branch
       const { data: edge } = await supabase
         .from('workflow_edges')
         .select('target_step_id')
         .eq('source_step_id', step.id)
-        .eq('source_handle', matchedBranch === default_branch_name ? 'default' : matchedBranch)
+        .eq('source_handle', winner?.is_default ? 'default' : chosenBranch)
         .single();
 
       if (edge?.target_step_id) {
-        await supabase.from("workflow_executions").update({ 
-          current_step_id: edge.target_step_id 
-        }).eq("id", executionId);
+        await supabase.from("workflow_executions").update({ current_step_id: edge.target_step_id }).eq("id", executionId);
         await processNextStep(executionId);
       } else {
-        await supabase.from("workflow_executions").update({ 
-          status: 'completed', 
-          completed_at: new Date().toISOString() 
-        }).eq("id", executionId);
+        await supabase.from("workflow_executions").update({ status: 'completed', completed_at: new Date().toISOString() }).eq("id", executionId);
       }
       return;
     }
 
-    // Standard Actions (Email, SMS, Tags, etc)
+    // Standard Actions
     const handler = (AutomationActions as any)[step.type];
     if (handler) {
       await handler(execution.workspace_id, execution.contact_id, step.config);
     }
 
-    // 4. Update Log & Move to Next
+    // ── PROGRESSION ──────────────────────────────────────────────────────────
     await updateLog({ status: 'completed', completed_at: new Date().toISOString() });
 
-    // Find next step via edges
     const { data: nextEdge } = await supabase
       .from('workflow_edges')
       .select('target_step_id')
@@ -318,24 +283,16 @@ export async function processNextStep(executionId: string) {
       .single();
 
     if (nextEdge?.target_step_id) {
-      await supabase.from("workflow_executions").update({ 
-        current_step_id: nextEdge.target_step_id 
-      }).eq("id", executionId);
+      await supabase.from("workflow_executions").update({ current_step_id: nextEdge.target_step_id }).eq("id", executionId);
       await processNextStep(executionId);
     } else {
-      // No more edges, workflow finished
-      await supabase.from("workflow_executions").update({ 
-        status: 'completed', 
-        completed_at: new Date().toISOString() 
-      }).eq("id", executionId);
+      await supabase.from("workflow_executions").update({ status: 'completed', completed_at: new Date().toISOString() }).eq("id", executionId);
     }
 
   } catch (err: any) {
     console.error(`[executor] Step failed (${step.type}):`, err);
-    
     await updateLog({ status: 'failed', error_message: err.message, completed_at: new Date().toISOString() });
 
-    // Stop execution on failure (or implement retry logic here)
     await supabase.from("workflow_executions").update({ 
       status: 'failed', 
       error_message: `Step ${step?.type || 'unknown'} failed: ${err.message}` 
@@ -347,13 +304,12 @@ export async function processNextStep(executionId: string) {
  * Utility to check if a specific goal has been met by a contact.
  */
 export async function checkGoalAchieved(workflow: any, contactId: string): Promise<boolean> {
-  if (!workflow?.goal_event_type) return false;
+  if (!workflow?.goal_event_type || workflow.goal_event_type === 'none') return false;
 
   const supabase = await createServerClient();
 
   switch (workflow.goal_event_type) {
     case 'appointment_booked':
-      // Goal met if contact has any appointments
       const { data: appointments } = await supabase
         .from('appointments')
         .select('id')
@@ -362,7 +318,6 @@ export async function checkGoalAchieved(workflow: any, contactId: string): Promi
       return (appointments?.length ?? 0) > 0;
 
     case 'invoice_paid':
-      // Goal met if contact has any paid invoices
       const { data: invoices } = await supabase
         .from('invoices')
         .select('id')
@@ -375,69 +330,7 @@ export async function checkGoalAchieved(workflow: any, contactId: string): Promi
       return false;
   }
 }
-
-/**
- * Event-driven goal checker. 
- * Should be called whenever a "conversion" event happens in the system.
- * Terminates any active workflows for the contact that have this goal type.
- */
-export async function checkActiveWorkflowGoals(workspaceId: string, contactId: string, eventType: string) {
-  const supabase = await createServerClient();
-
-  // Find all ACTIVE executions for this contact in this workspace that have this goal type
-  const { data: executions } = await supabase
-    .from('workflow_executions')
-    .select(`
-      *,
-      workflow:workflows!inner(*)
-    `)
-    .eq('workspace_id', workspaceId)
-    .eq('contact_id', contactId)
-    .eq('status', 'running')
-    .eq('workflow.goal_event_type', eventType);
-
-  if (!executions || executions.length === 0) return;
-
-  for (const execution of executions) {
-    // Terminate the workflow
-    await supabase.from('workflow_executions').update({
-      status: 'completed',
-      context: { 
-        ...execution.context, 
-        terminated_due_to_goal: true,
-        goal_type: eventType,
-        terminated_at: new Date().toISOString()
-      },
-      completed_at: new Date().toISOString()
-    }).eq('id', execution.id);
-
-    // Log the termination in step logs for visibility
-    await supabase.from('workflow_step_logs').insert({
-      execution_id: execution.id,
-      workspace_id: workspaceId,
-      status: 'skipped',
-      error_message: `Workflow terminated: Goal '${eventType}' met.`,
-      started_at: new Date().toISOString(),
-      completed_at: new Date().toISOString()
-    });
-  }
-}
-
-/**
- * Evaluates a set of conditions against a contact record.
- */
-function evaluateBranch(branch: any, contact: any): boolean {
-  if (!branch.conditions || branch.conditions.length === 0) return false;
-  
-  // All conditions must be true (AND logic by default)
-  return branch.conditions.every((condition: any) => {
-    const contactValue = contact[condition.field];
-    const targetValue = condition.value;
-
-    switch (condition.op) {
-      case 'equals': return String(contactValue) === String(targetValue);
-      case 'contains': return String(contactValue).toLowerCase().includes(String(targetValue).toLowerCase());
-      case 'exists': return contactValue !== null && contactValue !== undefined && contactValue !== '';
+undefined && contactValue !== '';
       case 'gt': return Number(contactValue) > Number(targetValue);
       case 'lt': return Number(contactValue) < Number(targetValue);
       case 'gte': return Number(contactValue) >= Number(targetValue);
