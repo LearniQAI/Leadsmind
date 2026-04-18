@@ -21,6 +21,8 @@ import { TriggerNode } from "./nodes/TriggerNode";
 import { ActionNode } from "./nodes/ActionNode";
 import { ConditionNode } from "./nodes/ConditionNode";
 import { DelayNode } from "./nodes/DelayNode";
+import { RouteNode } from "./nodes/RouteNode";
+import { GoalNode } from "./nodes/GoalNode";
 import { NodesPanel } from "./NodesPanel";
 import { ExecutionLogs } from "./ExecutionLogs";
 import { NodeSettings } from "./NodeSettings";
@@ -29,7 +31,7 @@ import { TemplateLibrary } from "./TemplateLibrary";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Save, Play, BarChart2, Shield, Plus, Loader2, History, Zap, HelpCircle, Sparkles } from "lucide-react";
-import { updateWorkflow } from "@/app/actions/automation";
+import { updateWorkflow, syncWorkflowCanvas } from "@/app/actions/automation";
 import { toast } from "sonner";
 
 const nodeTypes = {
@@ -37,6 +39,8 @@ const nodeTypes = {
   action: ActionNode,
   condition: ConditionNode,
   delay: DelayNode,
+  route: RouteNode,
+  goal: GoalNode,
 };
 
 interface WorkflowBuilderProps {
@@ -110,11 +114,11 @@ export function WorkflowBuilder({
           goalUpdates.goal_event_config = triggerNode.data.goal_event_config || {};
         }
 
-        await updateWorkflow(workflowId!, { 
-          nodes, 
-          edges,
-          ...goalUpdates
-        });
+        await syncWorkflowCanvas(workflowId!, nodes, edges);
+        
+        if (Object.keys(goalUpdates).length > 0) {
+          await updateWorkflow(workflowId!, goalUpdates);
+        }
       } catch (error) {
         console.error("Failed to auto-save:", error);
       } finally {

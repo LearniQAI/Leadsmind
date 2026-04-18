@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Save, AlertCircle, Zap, Sparkles } from "lucide-react";
+import { X, Save, AlertCircle, Zap, Sparkles, Plus, Trash2, GitBranch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +24,36 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
 
   const handleChange = (key: string, value: any) => {
     onUpdate({ ...data, [key]: value });
+  };
+
+  const branches = data.branches || [];
+
+  const addBranch = () => {
+    if (branches.length >= 6) return;
+    const newBranch = { 
+      name: `Branch ${branches.length + 1}`, 
+      conditions: [{ field: 'email', operator: 'contains', value: '' }] 
+    };
+    handleChange('branches', [...branches, newBranch]);
+  };
+
+  const updateBranch = (index: number, key: string, val: any) => {
+    const newBranches = [...branches];
+    newBranches[index] = { ...newBranches[index], [key]: val };
+    handleChange('branches', newBranches);
+  };
+
+  const removeBranch = (index: number) => {
+    const newBranches = branches.filter((_: any, i: number) => i !== index);
+    handleChange('branches', newBranches);
+  };
+
+  const updateBranchCondition = (bIdx: number, cIdx: number, key: string, val: any) => {
+    const newBranches = [...branches];
+    const newConditions = [...newBranches[bIdx].conditions];
+    newConditions[cIdx] = { ...newConditions[cIdx], [key]: val };
+    newBranches[bIdx].conditions = newConditions;
+    handleChange('branches', newBranches);
   };
 
   return (
@@ -238,7 +268,7 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
             </div>
           )}
 
-          {/* Logic: Condition Settings */}
+          {/* Logic: Condition Settings (Simple Yes/No) */}
           {type === 'condition' && (
             <div className="space-y-6">
               <div className="space-y-2">
@@ -281,6 +311,106 @@ export function NodeSettings({ node, onUpdate, onClose }: NodeSettingsProps) {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Logic: Multi-Branch Router */}
+          {type === 'route' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">Branches ({branches.length}/6)</label>
+                {branches.length < 6 && (
+                  <Button variant="ghost" size="sm" onClick={addBranch} className="h-7 text-[9px] text-blue-400 hover:text-blue-300 gap-1 bg-blue-500/5">
+                    <Plus size={10} /> Add Path
+                  </Button>
+                )}
+              </div>
+              
+              <div className="space-y-4">
+                {branches.map((branch: any, bIdx: number) => (
+                  <div key={bIdx} className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4 relative group/branch">
+                    <div className="flex items-center justify-between gap-4">
+                      <Input 
+                        value={branch.name} 
+                        onChange={(e) => updateBranch(bIdx, 'name', e.target.value)}
+                        className="bg-transparent border-none text-white font-black p-0 h-auto focus-visible:ring-0 text-[11px] uppercase tracking-wider"
+                      />
+                      <Button variant="ghost" size="icon" onClick={() => removeBranch(bIdx)} className="h-6 w-6 text-white/10 hover:text-rose-500 hover:bg-rose-500/10">
+                        <Trash2 size={12} />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {branch.conditions.map((cond: any, cIdx: number) => (
+                        <div key={cIdx} className="space-y-2">
+                          <Select value={cond.field || "email"} onValueChange={(val) => updateBranchCondition(bIdx, cIdx, 'field', val)}>
+                            <SelectTrigger className="bg-slate-900 border-white/5 h-8 text-[10px] text-white/70">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
+                              <SelectItem value="email">Email</SelectItem>
+                              <SelectItem value="first_name">First Name</SelectItem>
+                              <SelectItem value="lead_score">Lead Score</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          
+                          <div className="grid grid-cols-2 gap-2">
+                             <Select value={cond.operator || "equals"} onValueChange={(val) => updateBranchCondition(bIdx, cIdx, 'operator', val)}>
+                                <SelectTrigger className="bg-slate-900 border-white/5 h-8 text-[10px] text-white/70">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
+                                  <SelectItem value="equals">Equals</SelectItem>
+                                  <SelectItem value="contains">Contains</SelectItem>
+                                  <SelectItem value="gt">Greater Than</SelectItem>
+                                </SelectContent>
+                             </Select>
+                             <Input 
+                                value={cond.value || ""} 
+                                onChange={(e) => updateBranchCondition(bIdx, cIdx, 'value', e.target.value)}
+                                className="bg-slate-900 border-white/5 h-8 text-[10px] text-white"
+                                placeholder="Value..."
+                             />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/10 flex items-center justify-between">
+                  <span className="text-[10px] font-black text-white/20 uppercase tracking-widest italic">Default Fallback</span>
+                  <div className="px-2 py-0.5 rounded-full bg-white/5 text-[8px] font-bold text-white/30 uppercase">Always Wins Last</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Conversion Goal Settings */}
+          {type === 'goal' && (
+             <div className="space-y-6">
+               <div className="p-4 rounded-2xl bg-[#06b6d4]/5 border border-[#06b6d4]/20 space-y-2">
+                  <div className="flex items-center gap-2 text-[#06b6d4]">
+                     <Sparkles size={14} className="fill-[#06b6d4]" />
+                     <span className="text-[10px] font-black uppercase tracking-widest text-[#06b6d4]">Goal Objective</span>
+                  </div>
+                  <p className="text-[10px] text-[#06b6d4]/60 italic leading-relaxed">
+                    Set a target for this workflow. When reached, the contact is marked as "Converted".
+                  </p>
+               </div>
+               
+               <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Goal Event</label>
+                  <Select value={data.goal_event_type || "appointment_booked"} onValueChange={(val) => handleChange('goal_event_type', val)}>
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white h-12">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
+                      <SelectItem value="appointment_booked">Appointment Booked</SelectItem>
+                      <SelectItem value="invoice_paid">Invoice Paid</SelectItem>
+                    </SelectContent>
+                  </Select>
+               </div>
+             </div>
           )}
 
           {/* TRIGGER GLOBAL GOAL SETTINGS */}

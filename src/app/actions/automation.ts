@@ -107,9 +107,13 @@ export async function duplicateWorkflow(id: string) {
 
 export async function updateWorkflow(id: string, updates: any) {
   const supabase = await createClient();
+  
+  // Strip out nodes/edges if they are sent here (they should go to syncWorkflowCanvas)
+  const { nodes, edges, ...cleanUpdates } = updates;
+
   const { data, error } = await supabase
     .from('workflows')
-    .update(updates)
+    .update(cleanUpdates)
     .eq('id', id)
     .select()
     .single();
@@ -117,6 +121,66 @@ export async function updateWorkflow(id: string, updates: any) {
   if (error) throw error;
   revalidatePath('/automations');
   return data;
+}
+
+export async function syncWorkflowCanvas(workflowId: string, nodes: any[], edges: any[]) {
+  const supabase = await createClient();
+
+  // 1. Sync Steps (Nodes)
+  // Convert React Flow nodes to DB steps
+  const steps = nodes.map((node: any, index: number) => ({
+    id: node.id.includes('-') ? undefined : node.id, // Only use existing UUIDs
+    workflow_id: workflowId,
+    type: node.type,
+    config: node.data || {},
+    position: index + 1, // Traditional position fallback
+    canvas_x: node.position.x,
+    canvas_y: node.position.y,
+  }));
+
+  // We delete and re-insert or upsert. Given the complexity of graph, 
+  // managed upsert is better if we have IDs.
+  // For simplicity in this engine, we'll clear and rebuild for now OR use upsert.
+  // Let's use a transaction-like approach.
+
+  // Get current workspace_id
+  const { data: wf } = await supabase.from('workflows').select('workspace_id').eq('id', workflowId).single();
+  if (!wf) throw new Error("Workflow not found");
+
+  // Delete existing steps and edges (Clean Slate)
+  await supabase.from('workflow_edges').delete().eq('workflow_id', workflowId);
+  await supabase.from('workflow_steps').delete().eq('workflow_id', workflowId);
+
+  // Insert Steps
+  const { data: insertedSteps, error: stepErr } = await supabase
+    .from('workflow_steps')
+    .insert(steps.map(s => ({ ...s, workspace_id: wf.workspace_id })))
+    .select();
+
+  if (stepErr) throw stepErr;
+
+  // Map step IDs (React Flow IDs to DB UUIDs)
+  const idMap: Record<string, string> = {};
+  nodes.forEach((node, i) => {
+    idMap[node.id] = insertedSteps[i].id;
+  });
+
+  // 2. Sync Edges
+  const dbEdges = edges.map(edge => ({
+    workflow_id: workflowId,
+    source_step_id: idMap[edge.source],
+    target_step_id: idMap[edge.target],
+    source_handle: edge.sourceHandle || 'default',
+    target_handle: edge.targetHandle || 'default'
+  }));
+
+  if (dbEdges.length > 0) {
+    const { error: edgeErr } = await supabase.from('workflow_edges').insert(dbEdges);
+    if (edgeErr) throw edgeErr;
+  }
+
+  revalidatePath(`/automations/${workflowId}/edit`);
+  return { success: true };
 }
 
 export async function deleteWorkflow(id: string) {

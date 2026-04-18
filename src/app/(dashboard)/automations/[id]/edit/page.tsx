@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
-import { LinearWorkflowBuilder } from "@/components/automation/LinearWorkflowBuilder";
+import { WorkflowBuilder } from "@/components/automation/WorkflowBuilder";
 import { ArrowLeft, Zap } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,57 @@ export default async function EditAutomationPage({ params }: EditAutomationPageP
 
   if (!workflow) notFound();
 
+  // Fetch Steps and Edges
+  const { data: steps = [] } = await supabase
+    .from("workflow_steps")
+    .select("*")
+    .eq("workflow_id", id)
+    .order("position", { ascending: true });
+
+  const { data: dbEdges = [] } = await supabase
+    .from("workflow_edges")
+    .select("*")
+    .eq("workflow_id", id);
+
+  // MIGRATION / CONVERSION to React Flow
+  const nodes = (steps || []).map((s, i) => ({
+    id: s.id,
+    type: s.type,
+    position: { x: s.canvas_x || 250, y: s.canvas_y || (i + 1) * 200 },
+    data: { ...s.config, label: s.type.replace('_', ' ') }
+  }));
+
+  // Ensure Trigger node exists
+  const triggerNode = {
+    id: 'trigger-root', // Special ID for the root trigger
+    type: 'trigger',
+    position: { x: 250, y: 0 },
+    data: { label: workflow.trigger_type.replace('_', ' '), triggerType: workflow.trigger_type }
+  };
+
+  const finalNodes = [triggerNode, ...nodes];
+
+  // Convert Edges or create default linear ones if none exist in workflow_edges
+  let finalEdges = (dbEdges || []).map(e => ({
+    id: e.id,
+    source: e.source_step_id || 'trigger-root',
+    target: e.target_step_id,
+    sourceHandle: e.source_handle,
+    targetHandle: e.target_handle
+  }));
+
+  if (finalEdges.length === 0 && steps.length > 0) {
+    // Migrate linear connections
+    finalEdges = [
+        { id: 'e-t-s1', source: 'trigger-root', target: steps[0].id },
+        ...steps.slice(0, -1).map((s, i) => ({
+            id: `e-${s.id}-${steps[i+1].id}`,
+            source: s.id,
+            target: steps[i+1].id
+        }))
+    ];
+  }
+
   return (
     <div className="fixed inset-0 z-[50] flex flex-col bg-[#05050a]">
       {/* Professional SaaS Header */}
@@ -41,7 +92,7 @@ export default async function EditAutomationPage({ params }: EditAutomationPageP
               {workflow.name}
             </h1>
             <div className="flex items-center gap-2">
-               <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Linear Workflow Engine</span>
+               <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Visual Canvas Editor</span>
                <div className="h-1 w-1 rounded-full bg-white/10" />
                <span className="text-[9px] font-black text-blue-500/80 uppercase tracking-[0.2em]">{workflow.trigger_type.replace('_', ' ')}</span>
             </div>
@@ -58,9 +109,11 @@ export default async function EditAutomationPage({ params }: EditAutomationPageP
 
       {/* Builder Core */}
       <main className="flex-1 relative overflow-hidden bg-[#050505]">
-        <LinearWorkflowBuilder 
+        <WorkflowBuilder 
           workflowId={id}
-          initialWorkflow={workflow}
+          initialNodes={finalNodes as any}
+          initialEdges={finalEdges as any}
+          initialStatus={workflow.is_active ? 'active' : 'draft'}
         />
       </main>
     </div>

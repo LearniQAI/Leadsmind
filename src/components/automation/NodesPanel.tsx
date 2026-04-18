@@ -27,23 +27,28 @@ const NODE_CATEGORIES = [
     items: [
       { type: "trigger", triggerType: "contact_created", label: "New Contact", icon: UserPlus, color: "#10b981", description: "Start when someone new is added" },
       { type: "trigger", triggerType: "form_submitted", label: "Form Filled Out", icon: Mail, color: "#10b981", description: "Start when a website form is submitted" },
-      { type: "trigger", triggerType: "webhook", label: "Website Sync", icon: Share2, color: "#10b981", description: "Sync data from your own website" }
     ]
   },
   {
-    title: "2. Add a decision or a wait",
+    title: "2. Decision & Logic",
     items: [
-      { type: "condition", label: "Add a Decision", icon: GitBranch, color: "#f59e0b", description: "Split the flow (e.g. Yes/No)" },
-      { type: "delay", label: "Wait a while", icon: Clock, color: "#0ea5e9", description: "Pause before the next step" }
+      { type: "route", label: "Multi-Branch Router", icon: GitBranch, color: "#f59e0b", description: "Route to up to 6 different paths" },
+      { type: "condition", label: "Yes/No Decision", icon: GitBranch, color: "#f59e0b", description: "Split the flow into two paths" },
+      { type: "delay", label: "Wait a while", icon: Clock, color: "#6366f1", description: "Pause before the next step" }
     ]
   },
   {
     title: "3. Perform an Auto-Action",
     items: [
-      { type: "action", actionType: "send_notif", label: "Send Notification", icon: MessageSquare, color: "#6366f1", description: "Email your team or the lead" },
-      { type: "action", actionType: "create_deal", label: "Create a Deal", icon: Database, color: "#6366f1", description: "Automatically add to pipeline" },
-      { type: "action", actionType: "update_contact", label: "Update Record", icon: LayoutGrid, color: "#6366f1", description: "Change status or add tags" },
-      { type: "action", actionType: "trigger_alert", label: "System Alert", icon: BellRing, color: "#6366f1", description: "Internal urgent notification" }
+      { type: "action", actionType: "email", label: "Send Email", icon: Mail, color: "#6366f1", description: "Send an automated email" },
+      { type: "action", actionType: "sms", label: "Send Text", icon: MessageSquare, color: "#6366f1", description: "Send an automated SMS" },
+      { type: "action", actionType: "update_field", label: "Update Record", icon: LayoutGrid, color: "#6366f1", description: "Change status or add tags" },
+    ]
+  },
+  {
+    title: "4. Conversion Goals",
+    items: [
+      { type: "goal", label: "Set Goal Indicator", icon: Zap, color: "#06b6d4", description: "Mark a primary objective for this flow" }
     ]
   }
 ];

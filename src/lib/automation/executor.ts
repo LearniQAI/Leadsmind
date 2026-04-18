@@ -30,6 +30,14 @@ async function startWorkflowExecution(workflow: any, contactId: string) {
   const supabase = await createServerClient();
 
   // 1. Create Execution Record
+  const { data: step1 } = await supabase
+    .from("workflow_steps")
+    .select("id")
+    .eq("workflow_id", workflow.id)
+    .order("position", { ascending: true })
+    .limit(1)
+    .single();
+
   const { data: execution, error } = await supabase
     .from("workflow_executions")
     .insert({
@@ -37,7 +45,7 @@ async function startWorkflowExecution(workflow: any, contactId: string) {
       workflow_id: workflow.id,
       contact_id: contactId,
       status: 'running',
-      current_step: 1
+      current_step_id: step1?.id // Store the actual step ID
     })
     .select()
     .single();
@@ -79,12 +87,21 @@ export async function processNextStep(executionId: string) {
     return;
   }
 
-  const currentStepPos = execution.current_step;
+  const currentStepId = execution.current_step_id;
+  
+  if (!currentStepId) {
+    // Fallback for old executions or if no steps exist
+    await supabase.from("workflow_executions").update({ 
+      status: 'completed', 
+      completed_at: new Date().toISOString() 
+    }).eq("id", executionId);
+    return;
+  }
+
   const { data: step } = await supabase
     .from("workflow_steps")
     .select("*")
-    .eq("workflow_id", execution.workflow_id)
-    .eq("position", currentStepPos)
+    .eq("id", currentStepId)
     .single();
 
   // If no more steps, we're done
@@ -219,6 +236,58 @@ export async function processNextStep(executionId: string) {
     }
     // ── END BUSINESS HOURS CHECK ─────────────────────────────────────────────
 
+    // ── ROUTE LOGIC ──────────────────────────────────────────────────────────
+    if (step.type === 'route') {
+      const { branches = [], default_branch_name = 'Default' } = step.config;
+      let matchedBranch = null;
+      
+      // Fetch contact data for condition evaluation
+      const { data: contact } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('id', execution.contact_id)
+        .single();
+
+      for (const branch of branches) {
+        if (evaluateBranch(branch, contact)) {
+          matchedBranch = branch.name;
+          break;
+        }
+      }
+
+      if (!matchedBranch) matchedBranch = default_branch_name;
+
+      console.log(`[executor] Route matched branch: ${matchedBranch} for contact ${execution.contact_id}`);
+      
+      // Update log with chosen branch
+      await updateLog({ 
+        status: 'completed', 
+        completed_at: new Date().toISOString(),
+        metadata: { chosen_branch: matchedBranch } 
+      });
+
+      // Find the next step based on the matched branch handle
+      const { data: edge } = await supabase
+        .from('workflow_edges')
+        .select('target_step_id')
+        .eq('source_step_id', step.id)
+        .eq('source_handle', matchedBranch === default_branch_name ? 'default' : matchedBranch)
+        .single();
+
+      if (edge?.target_step_id) {
+        await supabase.from("workflow_executions").update({ 
+          current_step_id: edge.target_step_id 
+        }).eq("id", executionId);
+        await processNextStep(executionId);
+      } else {
+        await supabase.from("workflow_executions").update({ 
+          status: 'completed', 
+          completed_at: new Date().toISOString() 
+        }).eq("id", executionId);
+      }
+      return;
+    }
+
     // Standard Actions (Email, SMS, Tags, etc)
     const handler = (AutomationActions as any)[step.type];
     if (handler) {
@@ -228,12 +297,26 @@ export async function processNextStep(executionId: string) {
     // 4. Update Log & Move to Next
     await updateLog({ status: 'completed', completed_at: new Date().toISOString() });
 
-    await supabase.from("workflow_executions").update({ 
-      current_step: currentStepPos + 1 
-    }).eq("id", executionId);
+    // Find next step via edges
+    const { data: nextEdge } = await supabase
+      .from('workflow_edges')
+      .select('target_step_id')
+      .eq('source_step_id', step.id)
+      .limit(1)
+      .single();
 
-    // Continue recursively for synchronous steps
-    await processNextStep(executionId);
+    if (nextEdge?.target_step_id) {
+      await supabase.from("workflow_executions").update({ 
+        current_step_id: nextEdge.target_step_id 
+      }).eq("id", executionId);
+      await processNextStep(executionId);
+    } else {
+      // No more edges, workflow finished
+      await supabase.from("workflow_executions").update({ 
+        status: 'completed', 
+        completed_at: new Date().toISOString() 
+      }).eq("id", executionId);
+    }
 
   } catch (err: any) {
     console.error(`[executor] Step failed (${step.type}):`, err);
@@ -326,4 +409,28 @@ export async function checkActiveWorkflowGoals(workspaceId: string, contactId: s
       completed_at: new Date().toISOString()
     });
   }
+}
+
+/**
+ * Evaluates a set of conditions against a contact record.
+ */
+function evaluateBranch(branch: any, contact: any): boolean {
+  if (!branch.conditions || branch.conditions.length === 0) return false;
+  
+  // All conditions must be true (AND logic by default)
+  return branch.conditions.every((condition: any) => {
+    const contactValue = contact[condition.field];
+    const targetValue = condition.value;
+
+    switch (condition.op) {
+      case 'equals': return String(contactValue) === String(targetValue);
+      case 'contains': return String(contactValue).toLowerCase().includes(String(targetValue).toLowerCase());
+      case 'exists': return contactValue !== null && contactValue !== undefined && contactValue !== '';
+      case 'gt': return Number(contactValue) > Number(targetValue);
+      case 'lt': return Number(contactValue) < Number(targetValue);
+      case 'gte': return Number(contactValue) >= Number(targetValue);
+      case 'lte': return Number(contactValue) <= Number(targetValue);
+      default: return false;
+    }
+  });
 }
