@@ -27,19 +27,23 @@ export default async function EditAutomationPage({ params }: EditAutomationPageP
   if (!workflow) notFound();
 
   // Fetch Steps and Edges
-  const { data: steps = [] } = await supabase
+  const { data: rawSteps } = await supabase
     .from("workflow_steps")
     .select("*")
     .eq("workflow_id", id)
     .order("position", { ascending: true });
+    
+  const steps = rawSteps || [];
 
-  const { data: dbEdges = [] } = await supabase
+  const { data: rawEdges } = await supabase
     .from("workflow_edges")
     .select("*")
     .eq("workflow_id", id);
+    
+  const dbEdges = rawEdges || [];
 
   // MIGRATION / CONVERSION to React Flow
-  const nodes = (steps || []).map((s, i) => ({
+  const nodes = steps.map((s, i) => ({
     id: s.id,
     type: s.type,
     position: { x: s.canvas_x || 250, y: s.canvas_y || (i + 1) * 200 },
@@ -68,11 +72,19 @@ export default async function EditAutomationPage({ params }: EditAutomationPageP
   if (finalEdges.length === 0 && steps.length > 0) {
     // Migrate linear connections
     finalEdges = [
-        { id: 'e-t-s1', source: 'trigger-root', target: steps[0].id },
+        { 
+          id: 'e-t-s1', 
+          source: 'trigger-root', 
+          target: steps[0]?.id, 
+          sourceHandle: 'default', 
+          targetHandle: 'default' 
+        },
         ...steps.slice(0, -1).map((s, i) => ({
-            id: `e-${s.id}-${steps[i+1].id}`,
+            id: `e-${s.id}-${steps[i+1]?.id}`,
             source: s.id,
-            target: steps[i+1].id
+            target: steps[i+1]?.id,
+            sourceHandle: 'default',
+            targetHandle: 'default'
         }))
     ];
   }
