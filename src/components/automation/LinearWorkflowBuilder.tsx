@@ -20,6 +20,7 @@ import {
   Bell,
   X,
   ChevronRight,
+  CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -409,14 +410,18 @@ function StepConfig({ step, update }: { step: Step; update: (id: string, patch: 
           <Field label="Email body">
             <textarea placeholder="Write your email..." rows={5} className={textareaCls} value={cfg.body || ''} onChange={e => set({ body: e.target.value })} />
           </Field>
+          <BusinessHoursPanel bh={cfg.business_hours} onChange={bh => set({ business_hours: bh })} />
         </div>
       );
 
     case 'send_sms':
       return (
-        <Field label="SMS message">
-          <textarea placeholder="Hi {first_name}, ..." rows={4} className={textareaCls} value={cfg.message || ''} onChange={e => set({ message: e.target.value })} />
-        </Field>
+        <div className="space-y-4">
+          <Field label="SMS message">
+            <textarea placeholder="Hi {first_name}, ..." rows={4} className={textareaCls} value={cfg.message || ''} onChange={e => set({ message: e.target.value })} />
+          </Field>
+          <BusinessHoursPanel bh={cfg.business_hours} onChange={bh => set({ business_hours: bh })} />
+        </div>
       );
 
     case 'notify_team':
@@ -530,3 +535,162 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const inputCls = "bg-slate-900 border-slate-700 h-9 text-xs text-slate-200 rounded w-full focus:border-slate-500";
 const textareaCls = "w-full bg-slate-900 border border-slate-700 rounded p-3 text-xs text-slate-200 resize-none focus:outline-none focus:border-slate-500 placeholder:text-slate-600";
+
+// ─── Business Hours Panel ──────────────────────────────────────────────────────
+
+interface BHConfig {
+  enabled: boolean;
+  timezone_source: 'contact' | 'fixed';
+  timezone: string;
+  allowed_days: number[];
+  start_time: string;
+  end_time: string;
+}
+
+const DEFAULT_BH: BHConfig = {
+  enabled: false,
+  timezone_source: 'contact',
+  timezone: '',
+  allowed_days: [1, 2, 3, 4, 5],
+  start_time: '08:00',
+  end_time: '17:00',
+};
+
+const DAY_LABELS: { value: number; label: string }[] = [
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+  { value: 0, label: 'Sun' },
+];
+
+function BusinessHoursPanel({
+  bh,
+  onChange,
+}: {
+  bh?: BHConfig | null;
+  onChange: (bh: BHConfig) => void;
+}) {
+  const cfg: BHConfig = { ...DEFAULT_BH, ...(bh ?? {}) };
+
+  const patch = (updates: Partial<BHConfig>) => onChange({ ...cfg, ...updates });
+
+  const toggleDay = (day: number) => {
+    const days = cfg.allowed_days.includes(day)
+      ? cfg.allowed_days.filter((d) => d !== day)
+      : [...cfg.allowed_days, day];
+    patch({ allowed_days: days });
+  };
+
+  return (
+    <div className="mt-2 border border-slate-700 rounded-lg overflow-hidden">
+      {/* Header / Toggle row */}
+      <div className="flex items-center justify-between px-3 py-2.5 bg-slate-800/60">
+        <div className="flex items-center gap-2">
+          <CalendarDays size={13} className="text-slate-400" />
+          <span className="text-[11px] font-semibold text-slate-300">Business Hours</span>
+        </div>
+        <Switch
+          checked={cfg.enabled}
+          onCheckedChange={(v) => patch({ enabled: v })}
+          id="bh-enabled"
+        />
+      </div>
+
+      {/* Body — only shown when enabled */}
+      {cfg.enabled && (
+        <div className="p-3 space-y-3 bg-slate-900/60">
+          {/* Allowed days */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">
+              Allowed days
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {DAY_LABELS.map(({ value, label }) => {
+                const active = cfg.allowed_days.includes(value);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => toggleDay(value)}
+                    className={`px-2.5 py-1 rounded text-[10px] font-medium border transition-all ${
+                      active
+                        ? 'bg-blue-500/15 border-blue-500/40 text-blue-400'
+                        : 'bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Time range */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-500 uppercase tracking-widest">Start time</label>
+              <input
+                type="time"
+                value={cfg.start_time}
+                onChange={(e) => patch({ start_time: e.target.value })}
+                className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-500 uppercase tracking-widest">End time</label>
+              <input
+                type="time"
+                value={cfg.end_time}
+                onChange={(e) => patch({ end_time: e.target.value })}
+                className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500"
+              />
+            </div>
+          </div>
+
+          {/* Timezone source */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">
+              Timezone
+            </label>
+            <Select
+              value={cfg.timezone_source}
+              onValueChange={(v) => patch({ timezone_source: v as 'contact' | 'fixed' })}
+            >
+              <SelectTrigger className="bg-slate-800 border-slate-700 h-9 text-xs text-slate-200 rounded w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-900 border-slate-700 text-slate-200">
+                <SelectItem value="contact">Contact&apos;s timezone</SelectItem>
+                <SelectItem value="fixed">Fixed timezone</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Fixed timezone input — only when source = fixed */}
+          {cfg.timezone_source === 'fixed' && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">
+                IANA timezone (e.g. Europe/London)
+              </label>
+              <Input
+                placeholder="America/New_York"
+                className={inputCls}
+                value={cfg.timezone}
+                onChange={(e) => patch({ timezone: e.target.value })}
+              />
+            </div>
+          )}
+
+          {/* Info strip */}
+          <p className="text-[10px] text-slate-600 leading-relaxed">
+            If this step runs outside these hours, it will be held and automatically
+            retried at the next window opening.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
