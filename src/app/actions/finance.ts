@@ -32,16 +32,67 @@ export async function createProduct(productData: any) {
 }
 
 // --- Invoices ---
-export async function getInvoices(workspaceId: string) {
+export async function getInvoices(workspaceId: string, contactId?: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('invoices')
     .select(`
       *,
+      items:invoice_items(*),
       contact:contacts(first_name, last_name, email)
     `)
+    .eq('workspace_id', workspaceId);
+
+  if (contactId) {
+    query = query.eq('contact_id', contactId);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getQuotes(workspaceId: string, contactId?: string) {
+  const supabase = await createClient();
+  let query = supabase
+    .from('quotes')
+    .select(`
+      *,
+      items:invoice_items(*),
+      contact:contacts(first_name, last_name, email)
+    `)
+    .eq('workspace_id', workspaceId);
+
+  if (contactId) {
+    query = query.eq('contact_id', contactId);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getInvoiceSettings(workspaceId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('invoice_settings')
+    .select('*')
     .eq('workspace_id', workspaceId)
-    .order('created_at', { ascending: false });
+    .single();
+
+  if (error && error.code !== 'PGRST116') throw error;
+  return data;
+}
+
+export async function upsertInvoiceSettings(settingsData: any) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('invoice_settings')
+    .upsert(settingsData)
+    .select()
+    .single();
 
   if (error) throw error;
   return data;
@@ -230,17 +281,64 @@ export async function deleteProduct(productId: string) {
   revalidatePath('/settings/billing');
 }
 
-export async function createInvoice(invoiceData: any) {
+export async function saveInvoice(invoiceData: any, items: any[]) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const workspaceId = invoiceData.workspace_id;
+
+  // 1. Insert Invoice
+  const { data: invoice, error: invError } = await supabase
     .from('invoices')
     .insert(invoiceData)
     .select()
     .single();
 
-  if (error) throw error;
-  revalidatePath('/settings/billing');
-  return data;
+  if (invError) throw invError;
+
+  // 2. Insert Items
+  const itemsWithInvoiceId = items.map(item => ({
+    ...item,
+    invoice_id: invoice.id,
+    workspace_id: workspaceId
+  }));
+
+  const { error: itemsError } = await supabase
+    .from('invoice_items')
+    .insert(itemsWithInvoiceId);
+
+  if (itemsError) throw itemsError;
+
+  // 3. Increment Invoice Number in Settings
+  const { data: settings } = await supabase
+    .from('invoice_settings')
+    .select('next_invoice_number')
+    .eq('workspace_id', workspaceId)
+    .single();
+
+  if (settings) {
+    await supabase
+      .from('invoice_settings')
+      .update({ next_invoice_number: settings.next_invoice_number + 1 })
+      .eq('workspace_id', workspaceId);
+  }
+
+  // 4. Log Activity in CRM Timeline
+  await supabase
+    .from('contact_activities')
+    .insert({
+      workspace_id: workspaceId,
+      contact_id: invoice.contact_id,
+      type: 'invoice',
+      description: `Invoice ${invoice.invoice_number} created for $${invoice.total_amount.toLocaleString()}`,
+      metadata: {
+        invoice_id: invoice.id,
+        amount: invoice.total_amount,
+        status: invoice.status
+      }
+    });
+
+  revalidatePath('/invoices');
+  revalidatePath(`/contacts/${invoice.contact_id}`);
+  return invoice;
 }
 
 export async function markInvoicePaid(invoiceId: string) {

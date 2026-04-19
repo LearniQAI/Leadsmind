@@ -7,7 +7,10 @@ import {
   CheckSquare, 
   Target, 
   Settings, 
-  Clock 
+  Settings, 
+  Clock,
+  ReceiptText,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +23,8 @@ const activityIcons = {
   task: { icon: CheckSquare, color: 'text-green-400', bg: 'bg-green-400/10' },
   deal: { icon: Target, color: 'text-orange-400', bg: 'bg-orange-400/10' },
   system: { icon: Settings, color: 'text-white/40', bg: 'bg-white/5' },
+  invoice: { icon: ReceiptText, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+  quote: { icon: FileText, color: 'text-blue-400', bg: 'bg-blue-400/10' },
 };
 
 export function ActivityTimeline({ activities }: ActivityTimelineProps) {
@@ -52,7 +57,14 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
                </div>
                {activity.metadata && Object.keys(activity.metadata).length > 0 && (
                   <div className="mt-2 p-3 rounded-xl bg-white/3 border border-white/5 text-[11px] text-white/60 font-medium">
-                     <pre className="whitespace-pre-wrap font-sans">{JSON.stringify(activity.metadata, null, 2)}</pre>
+                     {activity.type === 'invoice' ? (
+                        <div className="flex items-center justify-between">
+                           <span className="uppercase tracking-widest text-white/20 text-[9px] font-black">Amount: ${activity.metadata.amount?.toLocaleString()}</span>
+                           <span className="uppercase tracking-widest text-[#6c47ff] text-[9px] font-black">Status: {activity.metadata.status}</span>
+                        </div>
+                     ) : (
+                        <pre className="whitespace-pre-wrap font-sans">{JSON.stringify(activity.metadata, null, 2)}</pre>
+                     )}
                   </div>
                )}
             </div>
