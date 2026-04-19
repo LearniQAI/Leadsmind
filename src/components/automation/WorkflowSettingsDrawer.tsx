@@ -23,13 +23,20 @@ interface WorkflowSettingsDrawerProps {
   initialSettings?: any;
 }
 
+interface WorkflowSettings {
+  max_concurrent: number;
+  re_enrollment_delay_hours: number;
+  allow_re_enrollment: boolean;
+  cancel_conflicting: boolean;
+}
+
 export function WorkflowSettingsDrawer({
   workflowId,
   isOpen,
   onClose,
   initialSettings = {}
 }: WorkflowSettingsDrawerProps) {
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<WorkflowSettings>({
     max_concurrent: 1,
     re_enrollment_delay_hours: 0,
     allow_re_enrollment: true,
@@ -39,7 +46,7 @@ export function WorkflowSettingsDrawer({
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (initialSettings) {
+    if (initialSettings && Object.keys(initialSettings).length > 0) {
       setSettings(prev => ({ ...prev, ...initialSettings }));
     }
   }, [initialSettings]);
