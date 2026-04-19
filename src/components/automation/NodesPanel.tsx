@@ -27,6 +27,7 @@ const NODE_CATEGORIES = [
     items: [
       { type: "trigger", triggerType: "contact_created", label: "New Contact", icon: UserPlus, color: "#10b981", description: "Start when someone new is added" },
       { type: "trigger", triggerType: "form_submitted", label: "Form Filled Out", icon: Mail, color: "#10b981", description: "Start when a website form is submitted" },
+      { type: "trigger", triggerType: "lead_score_low", label: "Cold Lead Alert", icon: BellRing, color: "#ef4444", description: "Start when lead score drops below threshold" }
     ]
   },
   {
@@ -43,6 +44,8 @@ const NODE_CATEGORIES = [
       { type: "action", actionType: "email", label: "Send Email", icon: Mail, color: "#6366f1", description: "Send an automated email" },
       { type: "action", actionType: "sms", label: "Send Text", icon: MessageSquare, color: "#6366f1", description: "Send an automated SMS" },
       { type: "action", actionType: "update_field", label: "Update Record", icon: LayoutGrid, color: "#6366f1", description: "Change status or add tags" },
+      { type: "action", actionType: "update_lead_score", label: "Update Lead Score", icon: Zap, color: "#8b5cf6", description: "Add or subtract points (+/-)" },
+      { type: "action", actionType: "set_grade_tag", label: "Set Grade Tag", icon: Database, color: "#8b5cf6", description: "Assign Tier (A, B, C, etc.)" },
     ]
   },
   {

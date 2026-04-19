@@ -45,7 +45,7 @@ export interface WorkflowExecution {
   workflow_id: string;
   contact_id: string;
   status: 'running' | 'completed' | 'failed' | 'cancelled';
-  current_step: number;
+  current_step_id: string | null;
   started_at: string;
   completed_at: string | null;
   error_message: string | null;

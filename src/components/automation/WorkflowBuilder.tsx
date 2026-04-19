@@ -28,9 +28,10 @@ import { ExecutionLogs } from "./ExecutionLogs";
 import { NodeSettings } from "./NodeSettings";
 import { WorkflowGuide } from "./WorkflowGuide";
 import { TemplateLibrary } from "./TemplateLibrary";
+import { WorkflowSettingsDrawer } from "./WorkflowSettingsDrawer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Save, Play, BarChart2, Shield, Plus, Loader2, History, Zap, HelpCircle, Sparkles } from "lucide-react";
+import { Save, Play, BarChart2, Shield, Plus, Loader2, History, Zap, HelpCircle, Sparkles, Settings } from "lucide-react";
 import { updateWorkflow, syncWorkflowCanvas } from "@/app/actions/automation";
 import { toast } from "sonner";
 
@@ -65,6 +66,8 @@ export function WorkflowBuilder({
   const [showLogs, setShowLogs] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [workflowData, setWorkflowData] = useState<any>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -78,6 +81,12 @@ export function WorkflowBuilder({
     setShowLibrary(false);
     toast.success("Blueprint applied successfully!");
   };
+
+  useEffect(() => {
+    if (workflowId) {
+      import("@/app/actions/automation").then(m => m.getWorkflowById(workflowId)).then(setWorkflowData);
+    }
+  }, [workflowId]);
 
   const onNodeClick = useCallback((_: any, node: Node) => {
     setSelectedNodeId(node.id);
@@ -272,6 +281,17 @@ export function WorkflowBuilder({
             </span>
           </Button>
 
+          <Button 
+            variant="secondary"
+            className="bg-[#1a1a24] border-white/5 text-white gap-2 hover:bg-white/10 rounded-2xl"
+            onClick={() => setShowSettings(true)}
+          >
+            <Settings size={16} className={showSettings ? "text-primary animate-spin" : "text-white/40"} />
+            <span className="text-xs font-black uppercase tracking-wider">
+              Logic
+            </span>
+          </Button>
+
           {isSaving && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
               <Loader2 className="animate-spin text-white/40" size={12} />
@@ -403,6 +423,15 @@ export function WorkflowBuilder({
         onClose={() => setShowLibrary(false)}
         onSelect={handleApplyLibrary}
       />
+
+      {workflowId && (
+        <WorkflowSettingsDrawer
+          workflowId={workflowId}
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+          initialSettings={workflowData?.enrollment_settings}
+        />
+      )}
 
       {selectedNodeId && selectedNode && (
         <NodeSettings

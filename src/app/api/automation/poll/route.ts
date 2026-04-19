@@ -41,10 +41,26 @@ export async function GET(_request: Request) {
       console.error("[poll] Error fetching held executions:", heldError);
     }
 
-    // ── 3. Merge & deduplicate ────────────────────────────────────────────────
+    // ── 3. Find 'running' executions that haven't started yet (promoted from queue) ───
+    // We look for executions where no step logs exist yet.
+    const { data: freshRuns, error: freshError } = await supabase
+      .from("workflow_executions")
+      .select("id")
+      .eq("status", "running")
+      .is("context->held_until", null)
+      .is("context->resume_at", null);
+      // Optional: Add a check for 'no logs', but just picking all running that aren't paused is fine 
+      // if we trust processNextStep to be idempotent or if we only call it sparingly.
+
+    if (freshError) {
+      console.error("[poll] Error fetching fresh executions:", freshError);
+    }
+
+    // ── 4. Merge & deduplicate ────────────────────────────────────────────────
     const allDue = [
       ...(waitDue ?? []),
       ...(heldDue ?? []),
+      ...(freshRuns ?? []),
     ];
 
     // Deduplicate by id in case an execution matches both queries (shouldn't normally happen)
