@@ -21,7 +21,7 @@ import {
 import { getContactDocuments } from '@/app/actions/media';
 import { DocumentsSection } from '@/components/crm/DocumentsSection';
 import { AutomationLogsSection } from '@/components/crm/AutomationLogsSection';
-import { Hubot, Zap, ReceiptText } from 'lucide-react';
+import { Bot, Zap, ReceiptText } from 'lucide-react';
 import { getInvoices, getQuotes } from '@/app/actions/finance';
 import { ContactInvoicesSection } from '@/components/crm/ContactInvoicesSection';
 import { getCurrentWorkspaceId } from '@/lib/auth';
