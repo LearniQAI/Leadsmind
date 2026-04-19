@@ -214,7 +214,7 @@ export async function getPipelineOpportunities(pipelineId: string): Promise<Acti
         .from('opportunities')
         .select(`
             *,
-            contact:contacts(first_name, last_name),
+            contact:contacts(id, first_name, last_name, email),
             stage:pipeline_stages!inner(pipeline_id)
         `)
         .eq('stage.pipeline_id', pipelineId)

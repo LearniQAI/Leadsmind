@@ -163,7 +163,18 @@ export function KanbanBoard({ stages, opportunities: initialDeals }: KanbanBoard
                                       </span>
                                    </div>
                                 </div>
-                                <div className="flex items-center">
+                                <div className="flex items-center gap-3">
+                                  {opp.contact?.total_invoiced ? (
+                                    <div className={cn(
+                                      "flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all",
+                                      opp.contact.outstanding_balance! > 0 
+                                        ? "bg-amber-500/10 border-amber-500/20 text-amber-400 shadow-[0_0_12px_-4px_rgba(245,158,11,0.3)]" 
+                                        : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_12px_-4px_rgba(16,185,129,0.3)]"
+                                    )}>
+                                       {opp.contact.outstanding_balance! > 0 && <div className="h-1 w-1 rounded-full bg-amber-400 mr-0.5 animate-pulse" />}
+                                       Invoiced
+                                    </div>
+                                  ) : null}
                                   <div className="h-6 w-6 rounded-full bg-white/[0.03] border border-white/5 flex items-center justify-center">
                                      <User className="h-3 w-3 text-white/20" />
                                   </div>

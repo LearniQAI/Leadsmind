@@ -93,6 +93,14 @@ export interface Opportunity {
   position: number;
   created_at: string;
   updated_at: string;
+  contact?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    total_invoiced?: number;
+    outstanding_balance?: number;
+  };
 }
 
 export interface Invoice {
