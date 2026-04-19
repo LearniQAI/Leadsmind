@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import crypto from 'crypto';
 
 // --- Workflows (Linear) ---
 export async function getWorkflows(workspaceId: string) {
@@ -142,19 +143,15 @@ export async function syncWorkflowCanvas(workflowId: string, nodes: any[], edges
     
     // Explicitly build the object to ensure no nulls are passed to restricted columns
     const step: any = {
+      id: isUuid ? node.id : crypto.randomUUID(), // Generate on server if UI ID is temporary
       workflow_id: workflowId,
       workspace_id: wf.workspace_id,
-      type: node.type || 'action', // Fallback type
+      type: node.type || 'action', 
       config: { ...node.data, _canvas_node_id: node.id },
       position: index + 1,
       canvas_x: node.position?.x || 0,
       canvas_y: node.position?.y || 0,
     };
-
-    // Only include ID if it's a valid UUID, otherwise let Postgres generate it
-    if (isUuid) {
-      step.id = node.id;
-    }
 
     return step;
   });
@@ -311,4 +308,32 @@ export async function getAutomationLogsForContact(contactId: string) {
     return [];
   }
   return data || [];
+}
+export async function getWorkflowAnalytics(workflowId: string) {
+  const supabase = await createClient();
+  
+  const { data, error } = await supabase
+    .from('vw_workflow_funnel_stats')
+    .select('*')
+    .eq('workflow_id', workflowId)
+    .order('position', { ascending: true });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getWorkflowRevenue(workflowId: string) {
+  const supabase = await createClient();
+  
+  const { data, error } = await supabase
+    .from('vw_workflow_revenue_attribution')
+    .select('*')
+    .eq('workflow_id', workflowId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return { total_revenue: 0, total_enrollments: 0, revenue_per_enrollment: 0 };
+    throw error;
+  }
+  return data;
 }

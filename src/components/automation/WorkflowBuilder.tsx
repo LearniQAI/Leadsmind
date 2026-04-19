@@ -29,6 +29,7 @@ import { ExecutionLogs } from "./ExecutionLogs";
 import { NodeSettings } from "./NodeSettings";
 import { WorkflowGuide } from "./WorkflowGuide";
 import { TemplateLibrary } from "./TemplateLibrary";
+import { ConversionAnalytics } from "./ConversionAnalytics";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Save, Play, BarChart2, Shield, Plus, Loader2, History, Zap, HelpCircle, Sparkles } from "lucide-react";
@@ -395,7 +396,6 @@ export function WorkflowBuilder({
           />
           <Controls className="!bg-[#0a0a1a]/80 !backdrop-blur-xl !border-white/10 !fill-white !shadow-2xl !rounded-2xl !overflow-hidden !m-6 !border" />
         </ReactFlow>
-
         {/* Empty State / Welcome */}
         {nodes.length <= 1 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
@@ -403,6 +403,24 @@ export function WorkflowBuilder({
               <Zap className="w-16 h-16 text-primary mx-auto" />
               <h2 className="text-2xl font-black uppercase tracking-widest text-white">Start Building</h2>
               <p className="text-sm text-white/40 font-medium">Add your first action step below the trigger</p>
+            </div>
+          </div>
+        )}
+
+        {/* Analytics Mode Dashboard */}
+        {isAnalyticsMode && workflowId && (
+          <div className="absolute inset-0 z-[50] bg-[#050510]/95 backdrop-blur-2xl overflow-y-auto">
+            <div className="max-w-6xl mx-auto py-20 px-6">
+              <div className="flex items-center justify-between mb-8">
+                 <Button 
+                   variant="ghost" 
+                   onClick={() => setIsAnalyticsMode(false)}
+                   className="text-white/40 hover:text-white"
+                 >
+                   &larr; Back to Builder
+                 </Button>
+              </div>
+              <ConversionAnalytics workflowId={workflowId} />
             </div>
           </div>
         )}
