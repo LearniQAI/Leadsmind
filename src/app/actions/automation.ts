@@ -138,34 +138,43 @@ export async function syncWorkflowCanvas(workflowId: string, nodes: any[], edges
 
   // 2. Sync Steps (Nodes)
   const steps = nodes.map((node: any, index: number) => {
-    // Check if node.id is a valid UUID (UUIDs are 36 chars)
-    const isUuid = node.id.length === 36 && node.id.includes('-');
+    const isUuid = node.id && node.id.length === 36 && node.id.includes('-');
     
-    return {
-      id: isUuid ? node.id : undefined,
+    // Explicitly build the object to ensure no nulls are passed to restricted columns
+    const step: any = {
       workflow_id: workflowId,
       workspace_id: wf.workspace_id,
-      type: node.type,
-      config: { ...node.data, _canvas_node_id: node.id }, // Tag for mapping
+      type: node.type || 'action', // Fallback type
+      config: { ...node.data, _canvas_node_id: node.id },
       position: index + 1,
-      canvas_x: node.position.x,
-      canvas_y: node.position.y,
+      canvas_x: node.position?.x || 0,
+      canvas_y: node.position?.y || 0,
     };
+
+    // Only include ID if it's a valid UUID, otherwise let Postgres generate it
+    if (isUuid) {
+      step.id = node.id;
+    }
+
+    return step;
   });
 
-  // Clean Slate for edges and steps to avoid foreign key conflicts or orphans
+  // 3. Edges & Steps: Clean Slate
   await supabase.from('workflow_edges').delete().eq('workflow_id', workflowId);
   await supabase.from('workflow_steps').delete().eq('workflow_id', workflowId);
 
-  // Insert Steps
+  // 4. Re-insert Steps
   const { data: insertedSteps, error: stepErr } = await supabase
     .from('workflow_steps')
     .insert(steps)
     .select();
 
-  if (stepErr) throw stepErr;
+  if (stepErr) {
+    console.error("[syncWorkflowCanvas] Step Error:", stepErr);
+    throw stepErr;
+  }
 
-  // 3. Map step IDs (React Flow IDs to DB UUIDs)
+  // 5. Map step IDs (React Flow IDs to DB UUIDs)
   const idMap: Record<string, string> = {};
   insertedSteps.forEach((step: any) => {
     const originalNodeId = step.config?._canvas_node_id;
@@ -174,14 +183,14 @@ export async function syncWorkflowCanvas(workflowId: string, nodes: any[], edges
     }
   });
 
-  // 4. Sync Edges
+  // 6. Re-insert Edges
   const dbEdges = edges.map(edge => ({
     workflow_id: workflowId,
     source_step_id: idMap[edge.source],
     target_step_id: idMap[edge.target],
     source_handle: edge.sourceHandle || 'default',
     target_handle: edge.targetHandle || 'default'
-  })).filter(e => e.source_step_id && e.target_step_id); // Only valid connections
+  })).filter(e => e.source_step_id && e.target_step_id);
 
   if (dbEdges.length > 0) {
     const { error: edgeErr } = await supabase.from('workflow_edges').insert(dbEdges);

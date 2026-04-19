@@ -2,6 +2,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { AutomationActions } from "./actions_registry";
 import { isWithinBusinessHours, nextWindowOpen, BusinessHoursConfig } from "./business_hours";
 import { resolveWinningBranch } from "./condition_evaluator";
+import { cyrb53 } from "@/lib/utils";
 
 /**
  * Trigger point for all automations.
@@ -255,6 +256,48 @@ export async function processNextStep(executionId: string) {
         .select('target_step_id')
         .eq('source_step_id', step.id)
         .eq('source_handle', winner?.is_default ? 'default' : chosenBranch)
+        .single();
+
+      if (edge?.target_step_id) {
+        await supabase.from("workflow_executions").update({ current_step_id: edge.target_step_id }).eq("id", executionId);
+        await processNextStep(executionId);
+      } else {
+        await supabase.from("workflow_executions").update({ status: 'completed', completed_at: new Date().toISOString() }).eq("id", executionId);
+      }
+      return;
+    }
+
+    if (step.type === 'split') {
+      const splitPercentage = step.config?.splitPercentage ?? 50;
+      const winnerDeclared = step.config?.winner_declared ?? false;
+      const winnerVariant = step.config?.winner_variant;
+
+      let variant: 'A' | 'B';
+
+      if (winnerDeclared && winnerVariant) {
+        variant = winnerVariant as 'A' | 'B';
+      } else {
+        // Deterministic Splitting: Use cyrb53(contactId + stepId)
+        const hash = cyrb53(`${execution.contact_id}${step.id}`);
+        const normalizedHash = (hash % 100); // 0-99
+        variant = normalizedHash < splitPercentage ? 'A' : 'B';
+      }
+
+      await updateLog({ 
+        status: 'completed', 
+        completed_at: new Date().toISOString(),
+        metadata: { 
+          assigned_variant: variant,
+          is_winner_path: winnerDeclared
+        } 
+      });
+
+      // Find edge for this specific variant
+      const { data: edge } = await supabase
+        .from('workflow_edges')
+        .select('target_step_id')
+        .eq('source_step_id', step.id)
+        .eq('source_handle', variant)
         .single();
 
       if (edge?.target_step_id) {

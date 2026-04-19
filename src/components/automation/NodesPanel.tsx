@@ -10,7 +10,8 @@ import {
   Share2,
   Database,
   LayoutGrid,
-  BellRing
+  BellRing,
+  GitCompare
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -34,6 +35,7 @@ const NODE_CATEGORIES = [
     items: [
       { type: "route", label: "Multi-Branch Router", icon: GitBranch, color: "#f59e0b", description: "Route to up to 6 different paths" },
       { type: "condition", label: "Yes/No Decision", icon: GitBranch, color: "#f59e0b", description: "Split the flow into two paths" },
+      { type: "split", label: "A/B Split Test", icon: GitCompare, color: "#f43f5e", description: "Test two versions of a flow" },
       { type: "delay", label: "Wait a while", icon: Clock, color: "#6366f1", description: "Pause before the next step" }
     ]
   },

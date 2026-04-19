@@ -22,6 +22,7 @@ import { ActionNode } from "./nodes/ActionNode";
 import { ConditionNode } from "./nodes/ConditionNode";
 import { DelayNode } from "./nodes/DelayNode";
 import { RouteNode } from "./nodes/RouteNode";
+import { SplitNode } from "./nodes/SplitNode";
 import { GoalNode } from "./nodes/GoalNode";
 import { NodesPanel } from "./NodesPanel";
 import { ExecutionLogs } from "./ExecutionLogs";
@@ -40,6 +41,7 @@ const nodeTypes = {
   condition: ConditionNode,
   delay: DelayNode,
   route: RouteNode,
+  split: SplitNode,
   goal: GoalNode,
 };
 
@@ -83,58 +85,66 @@ export function WorkflowBuilder({
     setSelectedNodeId(node.id);
   }, []);
 
-  const updateNodeData = useCallback((nodeId: string, newData: any) => {
-    setNodes((nds: Node[]) =>
-      nds.map((node: Node) => {
-        if (node.id === nodeId) {
-          return { ...node, data: newData };
-        }
-        return node;
-      })
-    );
-  }, [setNodes]);
 
-  // Auto-save logic
-  useEffect(() => {
+  // ── AUTO-SAVE LOGIC ────────────────────────────────────────────────────────
+  const lastSavedJson = useRef<string>("");
+
+  const triggerAutoSave = useCallback(async (currentNodes: Node[], currentEdges: Edge[]) => {
     if (!workflowId) return;
 
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
+    const currentJson = JSON.stringify({ nodes: currentNodes, edges: currentEdges });
+    if (currentJson === lastSavedJson.current) return;
+
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
 
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         setIsSaving(true);
+        lastSavedJson.current = currentJson;
         
-        // Extract goal from trigger node if present
-        const triggerNode = nodes.find(n => n.type === 'trigger');
+        const triggerNode = currentNodes.find(n => n.type === 'trigger');
         const goalUpdates: any = {};
         if (triggerNode?.data?.goal_event_type) {
           goalUpdates.goal_event_type = triggerNode.data.goal_event_type;
-          goalUpdates.goal_event_config = triggerNode.data.goal_event_config || {};
         }
 
-        await syncWorkflowCanvas(workflowId!, nodes, edges);
-        
+        await syncWorkflowCanvas(workflowId!, currentNodes, currentEdges);
         if (Object.keys(goalUpdates).length > 0) {
           await updateWorkflow(workflowId!, goalUpdates);
         }
       } catch (error) {
-        console.error("Failed to auto-save:", error);
+        console.error("Auto-save error:", error);
       } finally {
         setIsSaving(false);
       }
-    }, 2000);
+    }, 2000); // Back to 2s since it's now event-triggered, not constant
+  }, [workflowId]);
 
+  // Clean up on unmount
+  useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [nodes, edges, workflowId]);
+  }, []);
+
+  const onNodeDragStop = useCallback(() => {
+    triggerAutoSave(nodes, edges);
+  }, [nodes, edges, triggerAutoSave]);
+
+  const updateNodeData = useCallback((nodeId: string, newData: any) => {
+    setNodes((nds: Node[]) => {
+      const nextNodes = nds.map((node: Node) => 
+        node.id === nodeId ? { ...node, data: newData } : node
+      );
+      triggerAutoSave(nextNodes, edges);
+      return nextNodes;
+    });
+  }, [setNodes, edges, triggerAutoSave]);
 
   const onConnect = useCallback(
     (params: Connection) => {
-      setEdges((eds: Edge[]) =>
-        addEdge(
+      setEdges((eds: Edge[]) => {
+        const nextEdges = addEdge(
           {
             ...params,
             animated: true,
@@ -151,10 +161,12 @@ export function WorkflowBuilder({
             },
           },
           eds
-        )
-      );
+        );
+        triggerAutoSave(nodes, nextEdges);
+        return nextEdges;
+      });
     },
-    [setEdges]
+    [nodes, setEdges, triggerAutoSave]
   );
 
   const onAddNode = useCallback((type: string, item: any) => {
@@ -181,18 +193,28 @@ export function WorkflowBuilder({
       },
     };
 
-    setNodes((nds) => nds.concat(newNode));
-
-    // Automatically connect to the last node if it exists
-    if (lastNode) {
-      setEdges((eds) => addEdge({
-        id: `e-${lastNode.id}-${newNodeId}`,
-        source: lastNode.id,
-        target: newNodeId,
-        type: 'smoothstep',
-        animated: true,
-      }, eds));
-    }
+    setNodes((nds) => {
+      const nextNodes = nds.concat(newNode);
+      
+      // Automatically connect to the last node if it exists
+      if (lastNode) {
+        setEdges((eds) => {
+          const nextEdges = addEdge({
+            id: `e-${lastNode.id}-${newNodeId}`,
+            source: lastNode.id,
+            target: newNodeId,
+            type: 'smoothstep',
+            animated: true,
+          }, eds);
+          triggerAutoSave(nextNodes, nextEdges);
+          return nextEdges;
+        });
+      } else {
+        triggerAutoSave(nextNodes, edges);
+      }
+      
+      return nextNodes;
+    });
 
     if (type === 'trigger' && workflowId && item.triggerType) {
        updateWorkflow(workflowId, { trigger_type: item.triggerType });
@@ -200,7 +222,7 @@ export function WorkflowBuilder({
 
     setShowPanel(false);
     toast.success(`${item.label} added to workflow`);
-  }, [setNodes, setEdges, isAnalyticsMode, nodes, workflowId]);
+  }, [setNodes, setEdges, isAnalyticsMode, nodes, edges, workflowId, triggerAutoSave]);
 
   const handleManualSave = async () => {
     if (!workflowId) return;
@@ -337,6 +359,7 @@ export function WorkflowBuilder({
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeClick={onNodeClick}
+          onNodeDragStop={onNodeDragStop}
           onPaneClick={() => setSelectedNodeId(null)}
           nodeTypes={nodeTypes}
           fitView
@@ -356,6 +379,13 @@ export function WorkflowBuilder({
               height: 20
             },
           }}
+          // Performance optimizations
+          minZoom={0.2}
+          maxZoom={1.5}
+          panOnScroll
+          selectionOnDrag
+          onlyRenderVisibleElements={true}
+          translateExtent={[[0, 0], [5000, 5000]]} // Constrain area to prevent layout explosion
         >
           <Background 
             variant={BackgroundVariant.Lines} 

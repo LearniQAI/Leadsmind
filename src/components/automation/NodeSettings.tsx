@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Save, AlertCircle, Zap, Sparkles, Plus, Trash2, GitBranch, Copy, Check, Link, ArrowRight } from "lucide-react";
+import { X, Save, AlertCircle, Zap, Sparkles, Plus, Trash2, GitBranch, Copy, Check, Link, ArrowRight, GitCompare, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -298,6 +298,93 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
                   />
                 </div>
               )}
+            </div>
+          )}
+          
+          {/* Logic: A/B Split Test */}
+          {type === 'split' && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">Split Distribution</label>
+                  <span className="text-xs font-black text-rose-400">{data.splitPercentage || 50}% / {100 - (data.splitPercentage || 50)}%</span>
+                </div>
+                
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={data.splitPercentage || 50}
+                  onChange={(e) => handleChange('splitPercentage', parseInt(e.target.value))}
+                  className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                />
+                
+                <div className="flex justify-between text-[9px] font-bold text-white/20 uppercase tracking-tighter">
+                  <span>Variant A (Control)</span>
+                  <span>Variant B (Test)</span>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-white/5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Trophy size={14} className="text-emerald-400" />
+                  <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">Winning Path</label>
+                </div>
+                
+                {data.winner_declared ? (
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-3">
+                    <p className="text-[11px] text-white/70 italic leading-relaxed">
+                      All future contacts will now be routed to <strong>Variant {data.winner_variant}</strong>.
+                    </p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        handleChange('winner_declared', false);
+                        handleChange('winner_variant', null);
+                      }}
+                      className="w-full h-8 text-[9px] uppercase tracking-wider text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                    >
+                      Reset Split Test
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="secondary"
+                      className="h-10 bg-white/5 border border-white/10 hover:bg-rose-500/20 hover:border-rose-500/30 text-white gap-2 transition-all"
+                      onClick={() => {
+                        handleChange('winner_declared', true);
+                        handleChange('winner_variant', 'A');
+                        toast.success("Variant A declared as winner!");
+                      }}
+                    >
+                      <Trophy size={14} className="text-rose-400" />
+                      <span className="text-[10px] font-bold uppercase">Winner A</span>
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="h-10 bg-white/5 border border-white/10 hover:bg-blue-500/20 hover:border-blue-500/30 text-white gap-2 transition-all"
+                      onClick={() => {
+                        handleChange('winner_declared', true);
+                        handleChange('winner_variant', 'B');
+                        toast.success("Variant B declared as winner!");
+                      }}
+                    >
+                      <Trophy size={14} className="text-blue-400" />
+                      <span className="text-[10px] font-bold uppercase">Winner B</span>
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex gap-3">
+                <AlertCircle size={16} className="shrink-0 text-amber-500" />
+                <p className="text-[10px] leading-relaxed text-white/50 italic">
+                  Deterministic splitting ensures that if a contact retries this step, they'll always get the same variant.
+                </p>
+              </div>
             </div>
           )}
 
