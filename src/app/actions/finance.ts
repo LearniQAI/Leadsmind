@@ -377,7 +377,7 @@ export async function getContactsForInvoicing(workspaceId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('contacts')
-    .select('id, first_name, last_name, email')
+    .select('*')
     .eq('workspace_id', workspaceId)
     .order('first_name');
 
