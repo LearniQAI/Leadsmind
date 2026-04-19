@@ -138,7 +138,7 @@ export function WorkflowSettingsDrawer({
                     <label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Re-enrollment Delay</label>
                     <Select 
                       value={settings.re_enrollment_delay_hours.toString()} 
-                      onValueChange={(val) => setSettings({ ...settings, re_enrollment_delay_hours: parseInt(val) })}
+                      onValueChange={(val) => setSettings({ ...settings, re_enrollment_delay_hours: parseInt(val || "0") })}
                     >
                       <SelectTrigger className="bg-black/40 border-white/10 h-11">
                         <SelectValue />
