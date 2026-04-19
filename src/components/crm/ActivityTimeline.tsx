@@ -5,8 +5,7 @@ import { format } from 'date-fns';
 import { 
   MessageSquare, 
   CheckSquare, 
-  Target, 
-  Settings, 
+  Target,
   Settings, 
   Clock,
   ReceiptText,
