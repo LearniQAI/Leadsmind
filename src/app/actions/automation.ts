@@ -32,6 +32,18 @@ export async function getWorkflows(workspaceId: string) {
   }));
 }
 
+export async function getWorkflowById(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('workflows')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function createWorkflow(workspaceId: string, name: string) {
   const supabase = await createClient();
   

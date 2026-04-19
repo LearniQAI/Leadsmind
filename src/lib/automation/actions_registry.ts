@@ -112,6 +112,38 @@ export const AutomationActions = {
     await calculateLeadScore(contactId);
   },
 
+  update_lead_score: async (workspaceId: string, contactId: string, config: any) => {
+    const { points = 1 } = config;
+    const supabase = await createServerClient();
+    
+    // Use an atomic update via RPC if possible, but here we can just update
+    // since we are in a server action context. Note: SQL increment is safer.
+    const { data: contact } = await supabase
+      .from("contacts")
+      .select("lead_score")
+      .eq("id", contactId)
+      .single();
+
+    const currentScore = contact?.lead_score || 0;
+    const newScore = currentScore + Number(points);
+
+    await supabase
+      .from("contacts")
+      .update({ lead_score: newScore })
+      .eq("id", contactId);
+  },
+
+  set_grade_tag: async (workspaceId: string, contactId: string, config: any) => {
+    const { grade } = config;
+    if (!grade) return;
+
+    const supabase = await createServerClient();
+    await supabase
+      .from("contacts")
+      .update({ lead_grade: grade })
+      .eq("id", contactId);
+  },
+
   social_post: async (workspaceId: string, contactId: string, config: any) => {
     const { content, platforms } = config;
     if (!content || !platforms) return;

@@ -93,7 +93,7 @@ export async function GET() {
     if (execution) {
       results.execution = {
         status: execution.status,
-        currentStep: execution.current_step,
+        currentStep: execution.current_step_id,
         logCount: execution.logs.length,
         context: execution.context
       };

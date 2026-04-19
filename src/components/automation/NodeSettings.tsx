@@ -270,6 +270,7 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
                     <SelectItem value="first_name">Person's Name</SelectItem>
                     <SelectItem value="phone">Phone Number</SelectItem>
                     <SelectItem value="lead_score">Lead Score (Hotness)</SelectItem>
+                    <SelectItem value="lead_grade">Lead Grade (Tier)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -284,6 +285,7 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
                     <SelectItem value="contains">Contains this text</SelectItem>
                     <SelectItem value="exists">Is not empty (is known)</SelectItem>
                     <SelectItem value="greater_than">Is greater than (score)</SelectItem>
+                    <SelectItem value="is_between">Is between (e.g. 10,50)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -425,6 +427,7 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
                               <SelectItem value="email">Email</SelectItem>
                               <SelectItem value="first_name">First Name</SelectItem>
                               <SelectItem value="lead_score">Lead Score</SelectItem>
+                              <SelectItem value="lead_grade">Lead Grade</SelectItem>
                             </SelectContent>
                           </Select>
 
@@ -442,6 +445,7 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
                                 <SelectItem value="not_exists">Not Exists</SelectItem>
                                 <SelectItem value="gt">Greater Than</SelectItem>
                                 <SelectItem value="lt">Less Than</SelectItem>
+                                <SelectItem value="is_between">Is Between</SelectItem>
                               </SelectContent>
                             </Select>
                             <Input
@@ -491,6 +495,44 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
                   className="bg-white/5 border-white/10 text-white h-12"
                   placeholder="Enter new value..."
                 />
+              </div>
+            </div>
+          )}
+
+          {/* Action: Update Lead Score */}
+          {data.actionType === 'update_lead_score' && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed">Points to add/subtract</label>
+                <Input
+                  type="number"
+                  value={data.points || 0}
+                  onChange={(e) => handleChange('points', parseInt(e.target.value))}
+                  className="bg-white/5 border-white/10 text-white h-12"
+                  placeholder="e.g. 10 or -10"
+                />
+                <p className="text-[9px] text-white/30 italic">Positive numbers increase the score, negative numbers decrease it.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Action: Set Grade Tag */}
+          {data.actionType === 'set_grade_tag' && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed">Select Tier / Grade</label>
+                <Select value={data.grade || "A"} onValueChange={(val) => handleChange('grade', val)}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white h-12">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a24] border-white/10 text-white">
+                    <SelectItem value="A">Grade A (Hot Lead)</SelectItem>
+                    <SelectItem value="B">Grade B (Warm Lead)</SelectItem>
+                    <SelectItem value="C">Grade C (Cold Lead)</SelectItem>
+                    <SelectItem value="D">Grade D (Unqualified)</SelectItem>
+                    <SelectItem value="F">Grade F (Spam/Trash)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}

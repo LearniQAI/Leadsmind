@@ -106,7 +106,7 @@ export function ExecutionLogs({ workflowId, isOpen, onClose }: ExecutionLogsProp
                   {log.contact?.first_name} {log.contact?.last_name}
                 </p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[9px] text-white/30 truncate">Step: {log.current_step || 'End'}</span>
+                  <span className="text-[9px] text-white/30 truncate">Status: {log.current_step_id ? 'Processing' : 'End'}</span>
                   <span className="text-[9px] text-white/10">•</span>
                   <span className="text-[9px] text-white/30">{format(new Date(log.created_at), 'HH:mm:ss')}</span>
                 </div>

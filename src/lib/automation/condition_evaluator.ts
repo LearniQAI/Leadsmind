@@ -16,7 +16,8 @@ export type ConditionOperator =
   | 'exists'
   | 'not_exists'
   | 'greater_than'
-  | 'less_than';
+  | 'less_than'
+  | 'is_between';
 
 export interface Condition {
   /** The contact field to evaluate, e.g. 'lead_score', 'email', 'tags' */
@@ -86,6 +87,11 @@ function evaluateCondition(cond: Condition, contact: Record<string, unknown>): b
 
     case 'less_than':
       return !isNaN(numVal) && !isNaN(compareNum) && numVal < compareNum;
+
+    case 'is_between': {
+      const [min, max] = compareStr.split(',').map(s => Number(s.trim()));
+      return !isNaN(numVal) && !isNaN(min) && !isNaN(max) && numVal >= min && numVal <= max;
+    }
 
     default:
       return false;

@@ -30,9 +30,10 @@ import { NodeSettings } from "./NodeSettings";
 import { WorkflowGuide } from "./WorkflowGuide";
 import { TemplateLibrary } from "./TemplateLibrary";
 import { ConversionAnalytics } from "./ConversionAnalytics";
+import { WorkflowSettingsDrawer } from "./WorkflowSettingsDrawer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Save, Play, BarChart2, Shield, Plus, Loader2, History, Zap, HelpCircle, Sparkles } from "lucide-react";
+import { Save, Play, BarChart2, Shield, Plus, Loader2, History, Zap, HelpCircle, Sparkles, Settings } from "lucide-react";
 import { updateWorkflow, syncWorkflowCanvas } from "@/app/actions/automation";
 import { toast } from "sonner";
 
@@ -53,9 +54,9 @@ interface WorkflowBuilderProps {
   initialStatus?: string;
 }
 
-export function WorkflowBuilder({ 
-  workflowId, 
-  initialNodes = [], 
+export function WorkflowBuilder({
+  workflowId,
+  initialNodes = [],
   initialEdges = [],
   initialStatus = 'draft'
 }: WorkflowBuilderProps) {
@@ -68,8 +69,10 @@ export function WorkflowBuilder({
   const [showLogs, setShowLogs] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [workflowData, setWorkflowData] = useState<any>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  
+
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const selectedNode = nodes.find((n: Node) => n.id === selectedNodeId);
@@ -81,6 +84,12 @@ export function WorkflowBuilder({
     setShowLibrary(false);
     toast.success("Blueprint applied successfully!");
   };
+
+  useEffect(() => {
+    if (workflowId) {
+      import("@/app/actions/automation").then(m => m.getWorkflowById(workflowId)).then(setWorkflowData);
+    }
+  }, [workflowId]);
 
   const onNodeClick = useCallback((_: any, node: Node) => {
     setSelectedNodeId(node.id);
@@ -102,7 +111,7 @@ export function WorkflowBuilder({
       try {
         setIsSaving(true);
         lastSavedJson.current = currentJson;
-        
+
         const triggerNode = currentNodes.find(n => n.type === 'trigger');
         const goalUpdates: any = {};
         if (triggerNode?.data?.goal_event_type) {
@@ -134,7 +143,7 @@ export function WorkflowBuilder({
 
   const updateNodeData = useCallback((nodeId: string, newData: any) => {
     setNodes((nds: Node[]) => {
-      const nextNodes = nds.map((node: Node) => 
+      const nextNodes = nds.map((node: Node) =>
         node.id === nodeId ? { ...node, data: newData } : node
       );
       triggerAutoSave(nextNodes, edges);
@@ -151,8 +160,8 @@ export function WorkflowBuilder({
             animated: true,
             type: 'smoothstep',
             interactionWidth: 20,
-            style: { 
-              stroke: "#6c47ff", 
+            style: {
+              stroke: "#6c47ff",
               strokeWidth: 3,
               opacity: 0.6
             },
@@ -172,14 +181,14 @@ export function WorkflowBuilder({
 
   const onAddNode = useCallback((type: string, item: any) => {
     const { icon, ...serializableData } = item;
-    
+
     // Find the current bottom-most node to append below it
-    const lastNode = nodes.length > 0 
+    const lastNode = nodes.length > 0
       ? nodes.reduce((prev, curr) => (prev.position.y > curr.position.y ? prev : curr))
       : null;
 
     const newNodeId = `${type}-${Date.now()}`;
-    const position = lastNode 
+    const position = lastNode
       ? { x: lastNode.position.x, y: lastNode.position.y + 150 }
       : { x: 250, y: 50 };
 
@@ -187,7 +196,7 @@ export function WorkflowBuilder({
       id: newNodeId,
       type,
       position,
-      data: { 
+      data: {
         ...serializableData,
         workflowId: workflowId,
         analytics: isAnalyticsMode ? { count: 0, status: 'idle' } : undefined
@@ -196,7 +205,7 @@ export function WorkflowBuilder({
 
     setNodes((nds) => {
       const nextNodes = nds.concat(newNode);
-      
+
       // Automatically connect to the last node if it exists
       if (lastNode) {
         setEdges((eds) => {
@@ -213,12 +222,12 @@ export function WorkflowBuilder({
       } else {
         triggerAutoSave(nextNodes, edges);
       }
-      
+
       return nextNodes;
     });
 
     if (type === 'trigger' && workflowId && item.triggerType) {
-       updateWorkflow(workflowId, { trigger_type: item.triggerType });
+      updateWorkflow(workflowId, { trigger_type: item.triggerType });
     }
 
     setShowPanel(false);
@@ -243,18 +252,18 @@ export function WorkflowBuilder({
       {/* Overlay Header */}
       <div className="absolute top-6 left-6 right-6 z-10 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-3 pointer-events-auto">
-          <Button 
+          <Button
             className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white gap-2 shadow-lg shadow-[#6c47ff]/20 rounded-2xl h-11 px-6 transition-all"
             onClick={() => setShowPanel(!showPanel)}
           >
             <Plus size={16} />
             <span className="text-xs font-bold uppercase tracking-wider">Add Action</span>
           </Button>
-          
+
           <div className="h-4 w-px bg-white/10 mx-1" />
 
-          <Button 
-            variant="secondary" 
+          <Button
+            variant="secondary"
             className="bg-[#1a1a24] border-white/5 text-white gap-2 hover:bg-white/10 rounded-2xl"
             onClick={() => setIsAnalyticsMode(!isAnalyticsMode)}
           >
@@ -264,8 +273,8 @@ export function WorkflowBuilder({
             </span>
           </Button>
 
-          <Button 
-            variant="secondary" 
+          <Button
+            variant="secondary"
             className="bg-[#1a1a24] border-white/5 text-white gap-2 hover:bg-white/10 rounded-2xl"
             onClick={() => setShowLogs(!showLogs)}
           >
@@ -275,7 +284,7 @@ export function WorkflowBuilder({
             </span>
           </Button>
 
-          <Button 
+          <Button
             className="bg-amber-500/10 border border-amber-500/20 text-amber-500 gap-2 hover:bg-amber-500/20 rounded-2xl animate-pulse"
             onClick={() => setShowGuide(true)}
           >
@@ -285,13 +294,24 @@ export function WorkflowBuilder({
             </span>
           </Button>
 
-          <Button 
+          <Button
             className="bg-primary/10 border border-primary/20 text-primary gap-2 hover:bg-primary/20 rounded-2xl"
             onClick={() => setShowLibrary(true)}
           >
             <Sparkles size={16} />
             <span className="text-xs font-black uppercase tracking-wider">
               Blueprints
+            </span>
+          </Button>
+
+          <Button
+            variant="secondary"
+            className="bg-[#1a1a24] border-white/5 text-white gap-2 hover:bg-white/10 rounded-2xl"
+            onClick={() => setShowSettings(true)}
+          >
+            <Settings size={16} className={showSettings ? "text-primary animate-spin" : "text-white/40"} />
+            <span className="text-xs font-black uppercase tracking-wider">
+              Logic
             </span>
           </Button>
 
@@ -303,40 +323,40 @@ export function WorkflowBuilder({
           )}
         </div>
 
-          <Button 
-            className={cn(
-              "h-9 px-4 rounded-xl font-bold uppercase tracking-widest text-[9px] pointer-events-auto transition-all transition-all duration-300",
-              status === 'active' 
-                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20" 
-                : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 hover:text-white"
-            )}
-            onClick={async () => {
-              const newStatus = status === 'active' ? 'draft' : 'active';
-              if (workflowId) {
-                await updateWorkflow(workflowId, { status: newStatus });
-                setStatus(newStatus);
-                toast.success(`Workflow is now ${newStatus}`);
-              }
-            }}
-          >
-            <Zap size={14} className={cn("mr-2", status === 'active' ? "fill-emerald-400 animate-pulse" : "")} />
-            {status === 'active' ? 'LIVE' : 'PUBLISH'}
-          </Button>
+        <Button
+          className={cn(
+            "h-9 px-4 rounded-xl font-bold uppercase tracking-widest text-[9px] pointer-events-auto transition-all transition-all duration-300",
+            status === 'active'
+              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+              : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 hover:text-white"
+          )}
+          onClick={async () => {
+            const newStatus = status === 'active' ? 'draft' : 'active';
+            if (workflowId) {
+              await updateWorkflow(workflowId, { status: newStatus });
+              setStatus(newStatus);
+              toast.success(`Workflow is now ${newStatus}`);
+            }
+          }}
+        >
+          <Zap size={14} className={cn("mr-2", status === 'active' ? "fill-emerald-400 animate-pulse" : "")} />
+          {status === 'active' ? 'LIVE' : 'PUBLISH'}
+        </Button>
 
-          <div className="h-4 w-px bg-white/10 mx-1" />
+        <div className="h-4 w-px bg-white/10 mx-1" />
 
         <div className="flex items-center gap-2 pointer-events-auto">
           <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md mr-4">
             <Shield className="text-blue-400" size={14} />
             <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">Automation Secure</span>
           </div>
-          
+
           <Button variant="ghost" className="text-white/40 hover:text-white hover:bg-white/5 gap-2 h-10 px-4 rounded-2xl">
             <Play size={16} />
             <span className="text-xs font-bold uppercase tracking-wide">Simulate</span>
           </Button>
-          
-          <Button 
+
+          <Button
             className="bg-white/5 border border-white/10 hover:bg-white/10 text-white gap-2 h-10 px-4 rounded-2xl"
             onClick={handleManualSave}
           >
@@ -352,7 +372,7 @@ export function WorkflowBuilder({
         {/* Subtle Depth Layers */}
         <div className="absolute inset-0 bg-[#020205]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(108,71,255,0.05),transparent_70%)]" />
-        
+
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -368,8 +388,8 @@ export function WorkflowBuilder({
           defaultEdgeOptions={{
             type: 'smoothstep',
             animated: true,
-            style: { 
-              stroke: "#6c47ff", 
+            style: {
+              stroke: "#6c47ff",
               strokeWidth: 3,
               opacity: 0.4
             },
@@ -388,8 +408,8 @@ export function WorkflowBuilder({
           onlyRenderVisibleElements={true}
           translateExtent={[[0, 0], [5000, 5000]]} // Constrain area to prevent layout explosion
         >
-          <Background 
-            variant={BackgroundVariant.Lines} 
+          <Background
+            variant={BackgroundVariant.Lines}
             className="opacity-[0.02]"
             color="#ffffff"
             gap={60}
@@ -412,27 +432,27 @@ export function WorkflowBuilder({
           <div className="absolute inset-0 z-[50] bg-[#050510]/95 backdrop-blur-2xl overflow-y-auto">
             <div className="max-w-6xl mx-auto py-20 px-6">
               <div className="flex items-center justify-between mb-8">
-                 <Button 
-                   variant="ghost" 
-                   onClick={() => setIsAnalyticsMode(false)}
-                   className="text-white/40 hover:text-white"
-                 >
-                   &larr; Back to Builder
-                 </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsAnalyticsMode(false)}
+                  className="text-white/40 hover:text-white"
+                >
+                  &larr; Back to Builder
+                </Button>
               </div>
               <ConversionAnalytics workflowId={workflowId} />
             </div>
           </div>
         )}
       </div>
-      
+
       {/* Sidebars & Modals */}
-      <NodesPanel 
-        isOpen={showPanel} 
-        onClose={() => setShowPanel(false)} 
-        onAdd={onAddNode} 
+      <NodesPanel
+        isOpen={showPanel}
+        onClose={() => setShowPanel(false)}
+        onAdd={onAddNode}
       />
-      
+
       {workflowId && (
         <ExecutionLogs
           workflowId={workflowId}
@@ -451,6 +471,15 @@ export function WorkflowBuilder({
         onClose={() => setShowLibrary(false)}
         onSelect={handleApplyLibrary}
       />
+
+      {workflowId && (
+        <WorkflowSettingsDrawer
+          workflowId={workflowId}
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+          initialSettings={workflowData?.enrollment_settings}
+        />
+      )}
 
       {selectedNodeId && selectedNode && (
         <NodeSettings

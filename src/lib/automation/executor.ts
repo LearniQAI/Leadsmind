@@ -26,40 +26,29 @@ export async function triggerWorkflows(workspaceId: string, triggerType: string,
 }
 
 /**
- * Initializes a new execution record and starts the first step.
+ * Initializes a new execution record (or queues it) using the atomic stored procedure.
  */
 async function startWorkflowExecution(workflow: any, contactId: string) {
   const supabase = await createServerClient();
 
-  // 1. Fetch the absolute first step (order is only for migration; usually edges handle this)
-  // But we need a starting point for the graph
-  const { data: step1 } = await supabase
-    .from("workflow_steps")
-    .select("id")
-    .eq("workflow_id", workflow.id)
-    .order("position", { ascending: true })
-    .limit(1)
-    .single();
+  // Call the atomic enrollment procedure
+  const { data: executionId, error } = await supabase.rpc('enroll_contact_in_workflow', {
+    p_workspace_id: workflow.workspace_id,
+    p_workflow_id: workflow.id,
+    p_contact_id: contactId
+  });
 
-  const { data: execution, error } = await supabase
-    .from("workflow_executions")
-    .insert({
-      workspace_id: workflow.workspace_id,
-      workflow_id: workflow.id,
-      contact_id: contactId,
-      status: 'running',
-      current_step_id: step1?.id // Source of truth in the new graph architecture
-    })
-    .select()
-    .single();
-
-  if (error || !execution) {
-    console.error("[executor] Failed to create execution:", error);
+  if (error) {
+    console.error("[executor] Enrollment RPC Failed:", error);
     return;
   }
 
-  // 2. Start Sequential Processing
-  await processNextStep(execution.id);
+  // If executionId is returned, it means it started immediately (not queued)
+  if (executionId) {
+    await processNextStep(executionId);
+  } else {
+    console.log(`[executor] Workflow ${workflow.id} for contact ${contactId} was either queued or skipped due to rules.`);
+  }
 }
 
 /**
