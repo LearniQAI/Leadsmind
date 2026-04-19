@@ -17,7 +17,8 @@ import {
   FolderOpen,
   GraduationCap,
   CreditCard,
-  Zap
+  Zap,
+  Receipt
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -89,6 +90,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'Contacts', href: '/contacts', icon: Contact },
       { name: 'Pipelines', href: '/pipelines', icon: GitGraph },
+      { name: 'Invoices', href: '/invoices', icon: Receipt },
     ]
   },
   {
