@@ -34,6 +34,7 @@ export default async function ContactDetailPage({
   params: Promise<{ id: string }>;
 }) {
   await requireAuth();
+  const { id } = await params;
   const workspaceId = await getCurrentWorkspaceId();
 
   const [

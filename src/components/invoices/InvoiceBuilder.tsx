@@ -450,7 +450,7 @@ export function InvoiceBuilder({ workspaceId, contacts, products, settings, init
 
             <div className="pt-8 border-t border-white/10">
                <div className="bg-[#6c47ff]/10 border border-[#6c47ff]/20 rounded-2xl p-4 flex items-center gap-3">
-                  <calculator className="text-[#6c47ff]" size={20} />
+                  <Calculator className="text-[#6c47ff]" size={20} />
                   <div>
                     <p className="text-[10px] font-black text-[#6c47ff] uppercase tracking-widest">Auto-Tax Calculation</p>
                     <p className="text-[9px] text-[#6c47ff]/60 uppercase">Applied to all line items</p>
