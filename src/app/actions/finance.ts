@@ -385,37 +385,39 @@ export async function saveInvoice(invoiceData: any, items: any[]) {
 }
 
 export async function markInvoicePaid(invoiceId: string) {
-  const supabase = await createClient();
-  
-  // 1. Fetch invoice to get workspace and contact info
-  const { data: invoice } = await supabase
-    .from('invoices')
-    .select('workspace_id, contact_id')
-    .eq('id', invoiceId)
-    .single();
-
-  if (!invoice) throw new Error("Invoice not found");
-
-  // 2. Update status
-  const { error } = await supabase
-    .from('invoices')
-    .update({ status: 'paid', paid_at: new Date().toISOString() })
-    .eq('id', invoiceId);
-
-  if (error) throw error;
-
-  // 3. Trigger Goal Check
   try {
-    const { checkActiveWorkflowGoals } = await import('@/lib/automation/executor');
-    await checkActiveWorkflowGoals(invoice.workspace_id, invoice.contact_id, 'invoice_paid');
-  } catch (err) {
-    console.error("[finance-action] Failed to trigger goal check:", err);
-  }
+    const supabase = await createClient();
+    
+    // 1. Fetch invoice to get workspace and contact info
+    const { data: invoice } = await supabase
+      .from('invoices')
+      .select('workspace_id, contact_id')
+      .eq('id', invoiceId)
+      .single();
+
+    if (!invoice) throw new Error("Invoice not found");
+
+    // 2. Update status
+    const { error } = await supabase
+      .from('invoices')
+      .update({ status: 'paid', paid_at: new Date().toISOString() })
+      .eq('id', invoiceId);
+
+    if (error) throw error;
+
+    // 3. Trigger Goal Check (Silent Fail)
+    try {
+      const { checkActiveWorkflowGoals } = await import('@/lib/automation/executor');
+      await checkActiveWorkflowGoals(invoice.workspace_id, invoice.contact_id, 'invoice_paid');
+    } catch (err) {
+      console.warn("[finance-action] Goal check skipped:", err);
+    }
 
     revalidatePath('/settings/billing');
     revalidatePath('/invoices');
     return { success: true };
   } catch (err: any) {
+    console.error("[finance] markPaid Error:", err);
     return { success: false, error: err.message };
   }
 }

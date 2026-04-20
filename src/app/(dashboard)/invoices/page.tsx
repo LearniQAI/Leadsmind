@@ -1,10 +1,19 @@
 import { requireAuth, getCurrentWorkspaceId } from "@/lib/auth";
 import { getInvoices, getInvoiceSettings } from "@/app/actions/finance";
+import { 
   AlertCircle,
   Eye,
   FileEdit,
   Mail,
-  Trash
+  Trash,
+  ReceiptText, 
+  Plus, 
+  Search, 
+  Filter, 
+  Download,
+  MoreVertical,
+  Clock,
+  CheckCircle2
 } from "lucide-react";
 import { 
   DropdownMenu,
