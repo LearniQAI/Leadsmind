@@ -58,3 +58,27 @@ export async function markAllNotificationsAsRead() {
   revalidatePath('/', 'layout');
   return { success: true };
 }
+
+export async function createNotification(notificationData: {
+  workspace_id: string;
+  user_id: string;
+  type: 'message' | 'contact' | 'deal' | 'system' | 'team';
+  title: string;
+  message: string;
+  link?: string;
+}) {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('notifications')
+    .insert(notificationData)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating notification:', error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/', 'layout');
+  return { success: true, data };
+}

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { stripe } from '@/lib/stripe';
 import { sendEmail } from '@/lib/email';
+import { createNotification } from './notifications';
 import React from 'react';
 
 // --- Products ---
@@ -184,6 +185,56 @@ export async function createCheckoutSession(tierId: string, interval: 'month' | 
   } catch (err: any) {
     console.error('Critical Checkout Crash:', err.message);
     return { error: err.message || 'Unknown Server Action Exception' };
+  }
+}
+
+export async function createInvoiceCheckoutSession(invoiceId: string) {
+  try {
+    const supabase = await createClient();
+    
+    // 1. Fetch Invoice
+    const { data: invoice, error: invError } = await supabase
+      .from('invoices')
+      .select('*, contact:contacts(email)')
+      .eq('id', invoiceId)
+      .single();
+
+    if (invError || !invoice) throw new Error("Invoice not found");
+
+    // 2. Create Stripe line item
+    const lineItems = [
+      {
+        price_data: {
+          currency: (invoice.currency || 'usd').toLowerCase(),
+          product_data: {
+            name: `Invoice ${invoice.invoice_number}`,
+            description: `Payment for invoice ${invoice.invoice_number} from LeadsMind`,
+          },
+          unit_amount: Math.round(Number(invoice.total_amount) * 100),
+        },
+        quantity: 1,
+      },
+    ];
+
+    // 3. Create Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: lineItems,
+      mode: 'payment',
+      customer_email: invoice.contact?.email || undefined,
+      metadata: {
+        invoiceId: invoice.id,
+        workspaceId: invoice.workspace_id,
+        type: 'crm_invoice'
+      },
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/invoice/${invoice.id}?success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/invoice/${invoice.id}?canceled=true`,
+    });
+
+    return { url: session.url };
+  } catch (err: any) {
+    console.error('[finance] Invoice Checkout Error:', err);
+    return { error: err.message };
   }
 }
 
@@ -405,7 +456,56 @@ export async function markInvoicePaid(invoiceId: string) {
 
     if (error) throw error;
 
-    // 3. Trigger Goal Check (Silent Fail)
+    // 3. Trigger 2-Way Emails & Notifications
+    const { data: admins } = await supabase
+      .from('workspace_members')
+      .select('user_id')
+      .eq('workspace_id', invoice.workspace_id)
+      .eq('role', 'admin');
+
+    const { data: user } = await supabase.auth.getUser();
+    const adminEmail = user.user?.email;
+
+    const { data: contact } = await supabase
+      .from('contacts')
+      .select('email, first_name')
+      .eq('id', invoice.contact_id)
+      .single();
+
+    // Emails
+    if (contact?.email) {
+      await sendEmail({
+        to: contact.email,
+        subject: `Payment Received - Invoice [PAID]`,
+        text: `We have received your payment. Thank you!`,
+        react: React.createElement('div', null, 'Payment Received. Thank you for your business!')
+      });
+    }
+
+    if (adminEmail) {
+      await sendEmail({
+        to: adminEmail,
+        subject: `Payment Success: Invoice marked as PAID`,
+        text: `Great news! A payment has been recorded for your invoice.`,
+        react: React.createElement('div', null, `Payment received from contact ID: ${invoice.contact_id}`)
+      });
+    }
+
+    // Notification
+    if (admins) {
+      for (const admin of admins) {
+        await createNotification({
+          workspace_id: invoice.workspace_id,
+          user_id: admin.user_id,
+          type: 'system',
+          title: 'Payment Received',
+          message: `Invoice for ${contact?.first_name} marked as PAID.`,
+          link: `/invoices/${invoiceId}`
+        });
+      }
+    }
+
+    // 4. Trigger Goal Check (Silent Fail)
     try {
       const { checkActiveWorkflowGoals } = await import('@/lib/automation/executor');
       await checkActiveWorkflowGoals(invoice.workspace_id, invoice.contact_id, 'invoice_paid');
@@ -440,12 +540,10 @@ export async function getInvoiceById(id: string) {
 
 export async function sendInvoice(id: string) {
   try {
-    const supabase = await createClient();
-    
-    // 1. Update status to open
+    // 1. Update status to sent
     const { data: invoice, error } = await supabase
       .from('invoices')
-      .update({ status: 'open' })
+      .update({ status: 'sent' })
       .eq('id', id)
       .select(`
         *,
@@ -455,17 +553,133 @@ export async function sendInvoice(id: string) {
 
     if (error) throw error;
 
-    // 2. Send Email
+    // 2. Fetch Workspace Admins to notify
+    const { data: admins } = await supabase
+      .from('workspace_members')
+      .select('user_id, role')
+      .eq('workspace_id', invoice.workspace_id)
+      .eq('role', 'admin');
+
+    const { data: user } = await supabase.auth.getUser();
+    const adminEmail = user.user?.email;
+
+    // 3. Send 2-Way Emails
+    const emailPromises = [];
+    
+    // To Client
     if (invoice.contact?.email) {
-      await sendEmail({
+      emailPromises.push(sendEmail({
         to: invoice.contact.email,
         subject: `Invoice ${invoice.invoice_number} from LeadsMind`,
         text: `Your invoice ${invoice.invoice_number} for $${invoice.total_amount} is ready.`,
         react: React.createElement('div', null, [
           React.createElement('h1', null, 'Invoice Ready'),
           React.createElement('p', null, `Amount: $${invoice.total_amount}`),
+          React.createElement('p', null, `Please click here to view and pay: [Link Your Invoice]`),
         ])
+      }));
+    }
+
+    // To Admin
+    if (adminEmail) {
+      emailPromises.push(sendEmail({
+        to: adminEmail,
+        subject: `Invoice Sent: ${invoice.invoice_number}`,
+        text: `Invoice ${invoice.invoice_number} for $${invoice.total_amount} has been sent to ${invoice.contact?.email}.`,
+        react: React.createElement('div', null, [
+          React.createElement('h1', null, 'Invoice Sent Successfully'),
+          React.createElement('p', null, `Client: ${invoice.contact?.first_name} ${invoice.contact?.last_name}`),
+          React.createElement('p', null, `Amount: $${invoice.total_amount}`),
+        ])
+      }));
+    }
+
+    await Promise.all(emailPromises);
+
+    // 4. Create Notification for Admin
+    if (admins) {
+      for (const admin of admins) {
+        await createNotification({
+          workspace_id: invoice.workspace_id,
+          user_id: admin.user_id,
+          type: 'system',
+          title: 'Invoice Sent',
+          message: `Invoice ${invoice.invoice_number} sent to ${invoice.contact?.first_name}`,
+          link: `/invoices/${invoice.id}`
+        });
+      }
+    }
+
+    // 5. Record activity
+    await supabase.from('contact_activities').insert({
+      workspace_id: invoice.workspace_id,
+      contact_id: invoice.contact_id,
+      type: 'invoice',
+      description: `Invoice ${invoice.invoice_number} sent to client`,
+      metadata: { invoice_id: invoice.id, status: 'sent' }
+    });
+
+    revalidatePath('/invoices');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function triggerPaymentReminder(invoiceId: string) {
+  try {
+    const supabase = await createClient();
+    
+    // 1. Fetch Invoice
+    const { data: invoice } = await supabase
+      .from('invoices')
+      .select('*, contact:contacts(*)')
+      .eq('id', invoiceId)
+      .single();
+
+    if (!invoice) throw new Error("Invoice not found");
+
+    // 2. Fetch Admin Email
+    const { data: userAuth } = await supabase.auth.getUser();
+    const adminEmail = userAuth.user?.email;
+
+    // 3. Send 2-Way Reminder Emails
+    if (invoice.contact?.email) {
+      await sendEmail({
+        to: invoice.contact.email,
+        subject: `Reminder: Invoice ${invoice.invoice_number} is pending`,
+        text: `Friendly reminder: Your invoice ${invoice.invoice_number} for $${invoice.total_amount} is awaiting payment.`,
+        react: React.createElement('div', null, `A reminder for invoice ${invoice.invoice_number} has been sent.`)
       });
+    }
+
+    if (adminEmail) {
+      await sendEmail({
+        to: adminEmail,
+        subject: `Reminder Sent: ${invoice.invoice_number}`,
+        text: `You have sent a payment reminder to ${invoice.contact?.email} for invoice ${invoice.invoice_number}.`,
+        react: React.createElement('div', null, `Manual reminder triggered for $${invoice.total_amount}`)
+      });
+    }
+
+    // 4. Create Notification for Admin
+    const { data: admins } = await supabase
+      .from('workspace_members')
+      .select('user_id')
+      .eq('workspace_id', invoice.workspace_id)
+      .eq('role', 'admin');
+
+    if (admins) {
+      for (const admin of admins) {
+        await createNotification({
+          workspace_id: invoice.workspace_id,
+          user_id: admin.user_id,
+          type: 'system',
+          title: 'Reminder Sent',
+          message: `Reminder email sent to ${invoice.contact?.first_name}`,
+          link: `/invoices/${invoice.id}`
+        });
+      }
     }
 
     revalidatePath('/invoices');

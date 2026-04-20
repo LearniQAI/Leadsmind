@@ -39,10 +39,10 @@ export default async function InvoicesPage() {
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Volume', value: `$${invoices.reduce((a, b) => a + (b.total_amount || 0), 0).toLocaleString()}`, color: 'blue' },
-          { label: 'Paid', value: `$${invoices.filter(i => i.status === 'paid').reduce((a, b) => a + (b.total_amount || 0), 0).toLocaleString()}`, color: 'emerald' },
-          { label: 'Pending', value: `$${invoices.filter(i => i.status === 'open').reduce((a, b) => a + (b.total_amount || 0), 0).toLocaleString()}`, color: 'amber' },
-          { label: 'Overdue', value: '$0', color: 'rose' },
+          { label: 'Total Volume', value: `$${invoices.filter(i => i.status !== 'void').reduce((a, b) => a + Number(b.total_amount || 0), 0).toLocaleString()}`, color: 'blue' },
+          { label: 'Paid', value: `$${invoices.filter(i => i.status === 'paid').reduce((a, b) => a + Number(b.total_amount || 0), 0).toLocaleString()}`, color: 'emerald' },
+          { label: 'Pending', value: `$${invoices.filter(i => (i.status === 'open' || i.status === 'sent') && (!i.due_date || new Date(i.due_date) >= new Date())).reduce((a, b) => a + Number(b.total_amount || 0), 0).toLocaleString()}`, color: 'amber' },
+          { label: 'Overdue', value: `$${invoices.filter(i => (i.status === 'open' || i.status === 'sent') && i.due_date && new Date(i.due_date) < new Date()).reduce((a, b) => a + Number(b.total_amount || 0), 0).toLocaleString()}`, color: 'rose' },
         ].map((stat) => (
           <div key={stat.label} className="bg-white/3 border border-white/5 rounded-[24px] p-6">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-2">{stat.label}</p>

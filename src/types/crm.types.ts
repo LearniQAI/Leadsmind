@@ -108,7 +108,7 @@ export interface Invoice {
   workspace_id: string;
   contact_id: string;
   invoice_number: string;
-  status: 'draft' | 'open' | 'paid' | 'void' | 'uncollectible';
+  status: 'draft' | 'sent' | 'open' | 'paid' | 'void' | 'uncollectible';
   subtotal: number;
   tax_total: number;
   discount_total: number;
