@@ -484,3 +484,17 @@ export async function saveAdaptiveRule(quizId: string, rule: any) {
   if (error) throw error;
   return data;
 }
+
+export async function saveCertificateTemplate(design: any) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('lms_certificate_templates')
+        .upsert({ 
+            ...design,
+            updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
