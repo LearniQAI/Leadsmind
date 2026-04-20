@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { stripe } from '@/lib/stripe';
+import { sendEmail } from '@/lib/email';
+import React from 'react';
 
 // --- Products ---
 export async function getProducts(workspaceId: string) {
@@ -335,6 +337,37 @@ export async function saveInvoice(invoiceData: any, items: any[]) {
         status: invoice.status
       }
     });
+
+  // 5. Send Email if published
+  if (invoice.status === 'open') {
+    try {
+      // Fetch contact details for email
+      const { data: contact } = await supabase
+        .from('contacts')
+        .select('email, first_name')
+        .eq('id', invoice.contact_id)
+        .single();
+
+      if (contact?.email) {
+        await sendEmail({
+          to: contact.email,
+          subject: `New Invoice from LeadsMind: ${invoice.invoice_number}`,
+          text: `Hi ${contact.first_name || 'there'},\n\nA new invoice (${invoice.invoice_number}) has been generated for you.\nTotal Amount: $${invoice.total_amount.toLocaleString()}\nDue Date: ${new Date(invoice.due_date).toLocaleDateString()}\n\nYou can pay this invoice online or contact us for details.`,
+          react: React.createElement('div', { style: { fontFamily: 'sans-serif', padding: '20px' } }, [
+            React.createElement('h1', null, 'New Invoice'),
+            React.createElement('p', null, `Invoice Number: ${invoice.invoice_number}`),
+            React.createElement('p', null, `Amount Due: $${invoice.total_amount.toLocaleString()}`),
+            React.createElement('p', null, `Due Date: ${new Date(invoice.due_date).toLocaleDateString()}`),
+            React.createElement('hr'),
+            React.createElement('p', null, 'Thank you for your business!')
+          ])
+        });
+      }
+    } catch (emailErr) {
+      console.error("[finance-action] Email failed to send:", emailErr);
+      // We don't throw here to avoid failing the whole save, but we log it.
+    }
+  }
 
   revalidatePath('/invoices');
   revalidatePath(`/contacts/${invoice.contact_id}`);

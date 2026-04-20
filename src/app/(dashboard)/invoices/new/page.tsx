@@ -48,10 +48,18 @@ export default async function NewInvoicePage({
         contacts={contacts} 
         products={products} 
         settings={settings || {
+           id: "default",
+           workspace_id: workspaceId!,
            invoice_prefix: "INV-",
            next_invoice_number: 1,
            quote_prefix: "QT-",
-           next_quote_number: 1
+           next_quote_number: 1,
+           default_terms: "",
+           default_notes: "",
+           company_address: "",
+           company_email: "",
+           company_phone: "",
+           logo_url: null
         }} 
         initialData={{ contact_id: contactId }}
       />

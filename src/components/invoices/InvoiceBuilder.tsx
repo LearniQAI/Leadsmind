@@ -65,6 +65,9 @@ export function InvoiceBuilder({ workspaceId, contacts, products, settings, init
   const [notes, setNotes] = useState(initialData?.notes || settings.default_notes || "");
   const [terms, setTerms] = useState(initialData?.terms || settings.default_terms || "");
   const [shipping, setShipping] = useState(initialData?.shipping_amount || 0);
+  const [showTaxSettings, setShowTaxSettings] = useState(false);
+  const [showCustomFields, setShowCustomFields] = useState(false);
+  const [customFields, setCustomFields] = useState<{name: string, value: string}[]>([]);
 
   // Calculations
   const subtotal = useMemo(() => 
@@ -104,16 +107,24 @@ export function InvoiceBuilder({ workspaceId, contacts, products, settings, init
         due_date: new Date(dueDate).toISOString(),
         notes,
         terms,
+        metadata: {
+           custom_fields: customFields
+        }
       };
 
       await saveInvoice(invoiceData, items);
-      toast.success(status === 'open' ? "Invoice sent successfully" : "Draft saved");
+      toast.success(status === 'open' ? `Invoice ${invoiceNumber} sent to ${selectedContact.email}` : "Draft saved successfully");
       router.push('/invoices');
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message || "Failed to save invoice");
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const addItem = () => {
@@ -408,7 +419,10 @@ export function InvoiceBuilder({ workspaceId, contacts, products, settings, init
             </div>
 
             <div className="pt-8 border-t border-white/10 space-y-6">
-               <div className="flex items-center justify-between group cursor-pointer">
+               <div 
+                 onClick={handlePrint}
+                 className="flex items-center justify-between group cursor-pointer"
+               >
                   <div className="flex items-center gap-3">
                      <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 group-hover:scale-110 transition-all">
                         <Receipt size={18} />
@@ -421,31 +435,100 @@ export function InvoiceBuilder({ workspaceId, contacts, products, settings, init
                   <ArrowRight size={14} className="text-white/20 group-hover:translate-x-1 transition-all" />
                </div>
 
-               <div className="flex items-center justify-between group cursor-pointer">
-                  <div className="flex items-center gap-3">
-                     <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 group-hover:scale-110 transition-all">
-                        <Tag size={18} />
-                     </div>
-                     <div>
-                        <p className="text-[10px] font-black text-white uppercase tracking-widest">Tax Settings</p>
-                        <p className="text-[9px] text-white/30 uppercase">SARS / VAT Enabled</p>
-                     </div>
-                  </div>
-                  <ArrowRight size={14} className="text-white/20 group-hover:translate-x-1 transition-all" />
-               </div>
+               <Popover open={showTaxSettings} onOpenChange={setShowTaxSettings}>
+                 <PopoverTrigger asChild>
+                   <div className="flex items-center justify-between group cursor-pointer">
+                      <div className="flex items-center gap-3">
+                         <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 group-hover:scale-110 transition-all">
+                            <Tag size={18} />
+                         </div>
+                         <div>
+                            <p className="text-[10px] font-black text-white uppercase tracking-widest">Tax Settings</p>
+                            <p className="text-[9px] text-white/30 uppercase">SARS / VAT Enabled</p>
+                         </div>
+                      </div>
+                      <ArrowRight size={14} className="text-white/20 group-hover:translate-x-1 transition-all" />
+                   </div>
+                 </PopoverTrigger>
+                 <PopoverContent className="w-80 bg-[#0b0b14] border-white/10 p-6 rounded-[32px] shadow-2xl">
+                    <div className="space-y-4">
+                       <h4 className="text-xs font-black text-white uppercase tracking-widest">Workspace Tax Defaults</h4>
+                       <div className="space-y-3">
+                          {items.map((it, idx) => (
+                            <div key={idx} className="flex items-center justify-between gap-4">
+                               <p className="text-[10px] text-white/40 truncate flex-1">{it.description || "Untitled Item"}</p>
+                               <div className="flex items-center gap-2">
+                                  <Input 
+                                    type="number" 
+                                    value={it.tax_rate} 
+                                    onChange={(e) => updateItem(idx, { tax_rate: Number(e.target.value) })}
+                                    className="w-16 h-8 bg-white/5 border-white/10 text-[10px] text-center" 
+                                  />
+                                  <span className="text-[10px] text-white/20">%</span>
+                               </div>
+                            </div>
+                          ))}
+                       </div>
+                    </div>
+                 </PopoverContent>
+               </Popover>
 
-               <div className="flex items-center justify-between group cursor-pointer">
-                  <div className="flex items-center gap-3">
-                     <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-white/40 border border-white/10 group-hover:scale-110 transition-all">
-                        <Settings size={18} />
-                     </div>
-                     <div>
-                        <p className="text-[10px] font-black text-white uppercase tracking-widest">Custom Fields</p>
-                        <p className="text-[9px] text-white/30 uppercase">0/6 Enabled</p>
-                     </div>
-                  </div>
-                  <ArrowRight size={14} className="text-white/20 group-hover:translate-x-1 transition-all" />
-               </div>
+               <Popover open={showCustomFields} onOpenChange={setShowCustomFields}>
+                 <PopoverTrigger asChild>
+                   <div className="flex items-center justify-between group cursor-pointer">
+                      <div className="flex items-center gap-3">
+                         <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-white/40 border border-white/10 group-hover:scale-110 transition-all">
+                            <Settings size={18} />
+                         </div>
+                         <div>
+                            <p className="text-[10px] font-black text-white uppercase tracking-widest">Custom Fields</p>
+                            <p className="text-[9px] text-white/30 uppercase">{customFields.length}/6 Enabled</p>
+                         </div>
+                      </div>
+                      <ArrowRight size={14} className="text-white/20 group-hover:translate-x-1 transition-all" />
+                   </div>
+                 </PopoverTrigger>
+                 <PopoverContent className="w-80 bg-[#0b0b14] border-white/10 p-6 rounded-[32px] shadow-2xl">
+                    <div className="space-y-4">
+                       <h4 className="text-xs font-black text-white uppercase tracking-widest">Add Custom Metadata</h4>
+                       <div className="space-y-3">
+                          {customFields.map((f, i) => (
+                            <div key={i} className="flex flex-col gap-2 p-3 bg-white/3 rounded-xl">
+                               <Input 
+                                 placeholder="Field Name (e.g. VAT #)" 
+                                 value={f.name}
+                                 onChange={(e) => {
+                                   const newF = [...customFields];
+                                   newF[i].name = e.target.value;
+                                   setCustomFields(newF);
+                                 }}
+                                 className="h-8 bg-transparent border-none p-0 text-[10px] font-bold"
+                               />
+                               <Input 
+                                 placeholder="Value" 
+                                 value={f.value}
+                                 onChange={(e) => {
+                                   const newF = [...customFields];
+                                   newF[i].value = e.target.value;
+                                   setCustomFields(newF);
+                                 }}
+                                 className="h-8 bg-white/5 border-white/5 rounded-lg text-[10px]"
+                               />
+                            </div>
+                          ))}
+                          {customFields.length < 6 && (
+                            <Button 
+                              variant="ghost" 
+                              onClick={() => setCustomFields([...customFields, { name: '', value: '' }])}
+                              className="w-full h-8 border border-dashed border-white/10 text-[10px] uppercase font-black tracking-widest hover:bg-[#6c47ff]/10 hover:text-[#6c47ff]"
+                            >
+                              Add Field
+                            </Button>
+                          )}
+                       </div>
+                    </div>
+                 </PopoverContent>
+               </Popover>
             </div>
 
             <div className="pt-8 border-t border-white/10">
