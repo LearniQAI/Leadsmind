@@ -105,6 +105,7 @@ export function InvoiceBuilder({ workspaceId, contacts, products, settings, init
         discount_total: discountTotal,
         shipping_amount: shipping,
         total_amount: totalAmount,
+        amount_due: totalAmount,
         currency: initialData?.currency || "USD",
         due_date: new Date(dueDate).toISOString(),
         notes,
