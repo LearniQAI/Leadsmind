@@ -19,7 +19,9 @@ import {
   MoreVertical, 
   Zap, 
   Plus, 
-  Loader2 
+  Loader2,
+  XCircle,
+  AlertTriangle 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -61,6 +63,19 @@ export function ContactDetailLayout({ contact, children }: ContactDetailLayoutPr
     <div className="flex flex-col lg:flex-row gap-8">
       {/* Left Sidebar Profile */}
       <div className="w-full lg:w-[320px] xl:w-[360px] flex-shrink-0 space-y-6">
+        {/* No-Show Risk Warning Banner */}
+        {contact.no_show_count && contact.no_show_count >= 3 && (
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded-[28px] p-6 text-center animate-pulse-subtle">
+             <div className="h-10 w-10 rounded-full bg-rose-500/20 flex items-center justify-center mx-auto mb-3">
+               <XCircle className="h-5 w-5 text-rose-500" />
+             </div>
+             <h4 className="text-sm font-black text-rose-500 uppercase tracking-widest italic mb-1">High Risk Contact</h4>
+             <p className="text-[11px] text-white/50 leading-relaxed">
+               This contact has <strong>{contact.no_show_count}</strong> no-shows. Host discretion advised for future bookings.
+             </p>
+          </div>
+        )}
+
         <Card className="bg-[#0b0b10] border-white/5 rounded-[32px] p-6 sm:p-8 lg:sticky lg:top-28 shadow-2xl overflow-hidden relative">
           {/* Subtle Background Glow */}
           <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-[#6c47ff]/50 to-transparent" />

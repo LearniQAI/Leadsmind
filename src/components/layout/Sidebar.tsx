@@ -14,6 +14,7 @@ import {
   GitGraph,
   MessageSquare,
   Inbox,
+  CalendarDays,
   FolderOpen,
   GraduationCap,
   CreditCard,
@@ -84,6 +85,14 @@ const navGroups: NavGroup[] = [
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { name: 'Conversations', href: '/conversations', icon: MessageSquare },
       { name: 'Inbox', href: '/inbox', icon: Inbox },
+    ]
+  },
+  {
+    name: 'Scheduling',
+    items: [
+      { name: 'Calendars', href: '/calendar', icon: CalendarDays },
+      { name: 'Analytics', href: '/calendar/analytics', icon: BarChart3 },
+      { name: 'Waitlists', href: '/calendar/waitlist', icon: Users },
     ]
   },
   {
