@@ -15,7 +15,7 @@ export function BookingHeatmap({ data }: HeatmapProps) {
   // Map data to 7x24 matrix
   const matrix = Array(7).fill(0).map(() => Array(24).fill(0));
   
-  data.forEach(item => {
+  data.forEach((item: any) => {
     if (item.slot_day_of_week < 7 && item.slot_hour < 24) {
       matrix[item.slot_day_of_week][item.slot_hour] = item.total_bookings;
     }
@@ -47,20 +47,22 @@ export function BookingHeatmap({ data }: HeatmapProps) {
                    const count = matrix[dIdx][h];
                    
                    return (
-                     <TooltipProvider key={h}>
-                        <Tooltip delayDuration={0}>
-                           <TooltipTrigger asChild>
-                              <div 
-                                className={cn(
-                                  "flex-1 h-6 rounded-md transition-all duration-300",
-                                  count === 0 ? "bg-white/[0.02]" : "ring-1 ring-white/5"
-                                )}
-                                style={{ 
-                                  backgroundColor: count > 0 ? `rgba(108, 71, 255, ${0.1 + intensity * 0.9})` : undefined,
-                                  boxShadow: count > 0 ? `0 0 10px rgba(108, 71, 255, ${intensity * 0.3})` : 'none'
-                                }}
-                              />
-                           </TooltipTrigger>
+                     <TooltipProvider key={h} delay={0}>
+                        <Tooltip>
+                           <TooltipTrigger 
+                              render={
+                                <div 
+                                  className={cn(
+                                    "flex-1 h-6 rounded-md transition-all duration-300",
+                                    count === 0 ? "bg-white/[0.02]" : "ring-1 ring-white/5"
+                                  )}
+                                  style={{ 
+                                    backgroundColor: count > 0 ? `rgba(108, 71, 255, ${0.1 + intensity * 0.9})` : undefined,
+                                    boxShadow: count > 0 ? `0 0 10px rgba(108, 71, 255, ${intensity * 0.3})` : 'none'
+                                  }}
+                                />
+                              }
+                           />
                            <TooltipContent className="bg-black border border-white/10 text-[10px] font-bold py-1 px-2">
                               {day} at {h}:00 — {count} Bookings
                            </TooltipContent>
