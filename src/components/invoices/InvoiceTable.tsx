@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { deleteInvoice, markInvoicePaid } from "@/app/actions/finance";
+import { deleteInvoice, markInvoicePaid, sendInvoice } from "@/app/actions/finance";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -33,17 +33,26 @@ export function InvoiceTable({ invoices }: InvoiceTableProps) {
   const router = useRouter();
 
   const handleMarkPaid = async (id: string) => {
-    toast.promise(markInvoicePaid(id), {
-      loading: 'Updating status...',
-      success: () => {
-        router.refresh();
-        return 'Marked as paid';
-      },
-      error: 'Failed to update'
-    });
+    const result = await markInvoicePaid(id);
+    if (result.success) {
+      toast.success("Invoice marked as paid");
+      router.refresh();
+    } else {
+      toast.error(result.error || "Failed to update");
+    }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleSend = async (invoice: any) => {
+    toast.loading("Sending invoice...", { id: 'send' });
+    const result = await sendInvoice(invoice.id);
+    
+    if (result.success) {
+      toast.success("Invoice sent to " + (invoice.contact?.email || 'client'), { id: 'send' });
+      router.refresh();
+    } else {
+      toast.error(result.error || "Failed to send", { id: 'send' });
+    }
+  };
     if (!confirm("Are you sure you want to delete this invoice?")) return;
     
     toast.promise(deleteInvoice(id), {

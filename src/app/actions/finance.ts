@@ -422,6 +422,59 @@ export async function markInvoicePaid(invoiceId: string) {
   }
 }
 
+export async function getInvoiceById(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('invoices')
+    .select(`
+      *,
+      items:invoice_items(*),
+      contact:contacts(*)
+    `)
+    .eq('id', id)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function sendInvoice(id: string) {
+  try {
+    const supabase = await createClient();
+    
+    // 1. Update status to open
+    const { data: invoice, error } = await supabase
+      .from('invoices')
+      .update({ status: 'open' })
+      .eq('id', id)
+      .select(`
+        *,
+        contact:contacts(*)
+      `)
+      .single();
+
+    if (error) throw error;
+
+    // 2. Send Email
+    if (invoice.contact?.email) {
+      await sendEmail({
+        to: invoice.contact.email,
+        subject: `Invoice ${invoice.invoice_number} from LeadsMind`,
+        text: `Your invoice ${invoice.invoice_number} for $${invoice.total_amount} is ready.`,
+        react: React.createElement('div', null, [
+          React.createElement('h1', null, 'Invoice Ready'),
+          React.createElement('p', null, `Amount: $${invoice.total_amount}`),
+        ])
+      });
+    }
+
+    revalidatePath('/invoices');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
 export async function deleteInvoice(invoiceId: string) {
   try {
     const supabase = await createClient();
