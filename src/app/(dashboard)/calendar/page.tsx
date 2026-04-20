@@ -1,5 +1,5 @@
 import { requireAuth, getCurrentWorkspaceId } from '@/lib/auth';
-import { getBookingAnalytics, getPopularSlots, getCalendarOutcomes, getIntakeForm } from '@/app/actions/calendar';
+import { getBookingAnalytics, getCalendarOutcomes, getIntakeForm } from '@/app/actions/calendar';
 import { BookingIntelligenceDashboard } from '@/components/dashboard/BookingIntelligenceDashboard';
 import { AppointmentsList } from '@/components/calendar/AppointmentsList';
 import { CalendarList } from '@/components/calendar/CalendarList';
