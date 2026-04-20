@@ -540,6 +540,7 @@ export async function getInvoiceById(id: string) {
 
 export async function sendInvoice(id: string) {
   try {
+    const supabase = await createClient();
     // 1. Update status to sent
     const { data: invoice, error } = await supabase
       .from('invoices')
