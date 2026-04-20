@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { 
   Plus, 
   GripVertical, 
@@ -17,10 +18,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { createModule, createLesson, deleteLesson } from '@/app/actions/lms';
-import { toast } from 'sonner';
 import { LessonSettingsModal } from './LessonSettingsModal';
+import { QuizBuilder } from './QuizBuilder';
+import { CertificateDesigner } from './CertificateDesigner';
+import { AdaptivePathEditor } from './AdaptivePathEditor';
+import { QuizAnalyticsDashboard } from './QuizAnalyticsDashboard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Brain, GraduationCap, Award, Zap, BarChart4 } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
+import { createModule, createLesson, deleteLesson } from '@/app/actions/lms';
 
 interface CourseBuilderProps {
   courseId: string;
@@ -33,6 +40,8 @@ export function CourseBuilder({ courseId, initialModules, workspaceId = '' }: Co
   const [isAddingModule, setIsAddingModule] = useState(false);
   const [newModuleName, setNewModuleName] = useState('');
   const [editingLesson, setEditingLesson] = useState<any>(null);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<any[]>([]);
 
   const handleAddModule = async () => {
     if (!newModuleName.trim()) return;
@@ -79,6 +88,18 @@ export function CourseBuilder({ courseId, initialModules, workspaceId = '' }: Co
     }
   };
 
+  useEffect(() => {
+    async function loadAnalytics() {
+      if (!courseId) return;
+      const { data: subs } = await createClient()
+        .from('lms_quiz_submissions')
+        .select(`*, contact:contacts(full_name, email)`)
+        .eq('quiz_id', courseId);
+      setSubmissions(subs || []);
+    }
+    loadAnalytics();
+  }, [courseId]);
+
   const handleLessonUpdate = (updatedLesson: any) => {
     const updatedModules = modules.map(m => ({
       ...m,
@@ -98,22 +119,44 @@ export function CourseBuilder({ courseId, initialModules, workspaceId = '' }: Co
           onSave={handleLessonUpdate}
         />
       )}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h2 className="text-xl font-bold text-white">Course Curriculum</h2>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Link href={`/courses/${courseId}`} className="flex-1 sm:flex-none">
-            <Button variant="outline" className="w-full bg-white/5 border-white/10 text-white rounded-xl">
-              <Eye className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Preview</span>
-            </Button>
-          </Link>
-          <Button className="flex-1 sm:flex-none bg-[#6c47ff] hover:bg-[#5b3ce0] rounded-xl">
-            <Save className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Save Changes</span>
-            <span className="sm:hidden">Save</span>
-          </Button>
+
+      <Tabs defaultValue="curriculum" className="w-full">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <TabsList className="bg-white/5 border border-white/10 p-1 rounded-[20px] h-14">
+             <TabsTrigger value="curriculum" className="px-8 rounded-xl data-[state=active]:bg-[#6c47ff] data-[state=active]:text-white gap-2 font-black italic uppercase text-xs transition-all">
+                <GraduationCap className="h-4 w-4" />
+                Curriculum
+             </TabsTrigger>
+             <TabsTrigger value="assessment" className="px-8 rounded-xl data-[state=active]:bg-[#6c47ff] data-[state=active]:text-white gap-2 font-black italic uppercase text-xs transition-all">
+                <Brain className="h-4 w-4" />
+                Quiz Architect
+             </TabsTrigger>
+             <TabsTrigger value="certification" className="px-8 rounded-xl data-[state=active]:bg-[#6c47ff] data-[state=active]:text-white gap-2 font-black italic uppercase text-xs transition-all">
+                <Award className="h-4 w-4" />
+                Certificate Designer
+             </TabsTrigger>
+             <TabsTrigger value="adaptive" className="px-8 rounded-xl data-[state=active]:bg-[#6c47ff] data-[state=active]:text-white gap-2 font-black italic uppercase text-xs transition-all">
+                <Zap className="h-4 w-4" />
+                Adaptive Flows
+             </TabsTrigger>
+             <TabsTrigger value="intelligence" className="px-8 rounded-xl data-[state=active]:bg-[#6c47ff] data-[state=active]:text-white gap-2 font-black italic uppercase text-xs transition-all">
+                <BarChart4 className="h-4 w-4" />
+                Intelligence Hub
+             </TabsTrigger>
+          </TabsList>
+
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Link href={`/courses/${courseId}`} className="flex-1 sm:flex-none">
+              <Button variant="outline" className="w-full h-14 bg-white/5 border-white/10 text-white rounded-xl font-bold uppercase text-[10px] tracking-widest">
+                <Eye className="h-4 w-4 mr-2" />
+                Preview Mode
+              </Button>
+            </Link>
+          </div>
         </div>
-      </div>
+
+        <TabsContent value="curriculum" className="mt-0 animate-in fade-in slide-in-from-left-4 duration-500">
+           {/* Existing Curriculum content */}
 
       <div className="space-y-4">
         {modules.map((module, mIndex) => (
@@ -191,7 +234,24 @@ export function CourseBuilder({ courseId, initialModules, workspaceId = '' }: Co
             Add New Module
           </Button>
         )}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="assessment" className="mt-0 animate-in fade-in slide-in-from-right-4 duration-500">
+           <QuizBuilder quizId={courseId} initialQuestions={[]} /> 
+        </TabsContent>
+
+        <TabsContent value="certification" className="mt-0 animate-in fade-in slide-in-from-right-4 duration-500">
+           <CertificateDesigner />
+        </TabsContent>
+
+        <TabsContent value="adaptive" className="mt-0 animate-in fade-in slide-in-from-right-4 duration-500">
+           <AdaptivePathEditor quizId={courseId} />
+        </TabsContent>
+
+        <TabsContent value="intelligence" className="mt-0 animate-in fade-in slide-in-from-right-4 duration-500">
+           <QuizAnalyticsDashboard quizId={courseId} submissions={submissions} questions={questions} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

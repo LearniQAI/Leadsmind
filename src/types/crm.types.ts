@@ -14,8 +14,11 @@ export type Contact = {
   source: string | null;
   owner_id: string | null;
   tags: string[];
-  lead_score: number | null;
-  lead_score_explanation: string | null;
+  lead_score?: number;
+  lead_score_explanation?: string;
+  no_show_count?: number;
+  last_no_show_at?: string;
+  no_show_risk_flag?: boolean;
   last_activity_at: string;
   created_at: string;
   updated_at: string;
