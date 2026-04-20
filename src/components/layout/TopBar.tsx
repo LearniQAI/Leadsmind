@@ -40,7 +40,7 @@ export function TopBar({ user, workspace }: TopBarProps) {
   const userInitials = user?.firstName?.substring(0, 2).toUpperCase() || user?.email?.substring(0, 2).toUpperCase() || 'U';
 
   return (
-    <header className="flex h-20 w-full items-center justify-between px-8 bg-background/50 backdrop-blur-md border-b border-white/5">
+    <header className="flex h-[80px] min-h-[80px] w-full items-center justify-between px-8 bg-[#050510]/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
       <div className="flex items-center gap-8">
         <h1 className="text-xl font-bold tracking-tight text-foreground/90">{title}</h1>
         

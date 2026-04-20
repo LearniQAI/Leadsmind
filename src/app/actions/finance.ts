@@ -234,7 +234,10 @@ export async function createInvoice(invoiceData: any) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('invoices')
-    .insert(invoiceData)
+    .insert({
+      total_amount: invoiceData.amount_due || 0,
+      ...invoiceData
+    })
     .select()
     .single();
 

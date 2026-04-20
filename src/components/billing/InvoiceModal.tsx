@@ -74,7 +74,7 @@ export function InvoiceModal({ workspaceId, contacts }: InvoiceModalProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={
-        <Button variant="outline" className="bg-white/5 border-white/10 text-white hover:bg-white/10 flex items-center gap-2 rounded-xl h-9 text-xs font-bold">
+        <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 flex items-center gap-2 rounded-xl h-9 text-xs font-bold transition-all">
           <Receipt className="h-4 w-4 text-[#6c47ff]" />
           Create Invoice
         </Button>

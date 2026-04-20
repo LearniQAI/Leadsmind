@@ -100,11 +100,12 @@ const navGroups: NavGroup[] = [
     ]
   },
   {
-    name: 'Workspace',
+    name: 'Business',
     items: [
       { name: 'Media Center', href: '/media', icon: FolderOpen },
       { name: 'Learning', href: '/courses', icon: GraduationCap },
       { name: 'Team Members', href: '/team-members', icon: Users },
+      { name: 'Launch Invoice', href: '/invoice/dashboard', icon: CreditCard },
     ]
   },
   {
