@@ -53,6 +53,7 @@ export function InvoiceTable({ invoices }: InvoiceTableProps) {
       toast.error(result.error || "Failed to send", { id: 'send' });
     }
   };
+  const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this invoice?")) return;
     
     toast.promise(deleteInvoice(id), {
