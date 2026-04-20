@@ -282,7 +282,7 @@ export async function deleteProduct(productId: string) {
   if (error) throw error;
   revalidatePath('/settings/billing');
 }
-
+export async function saveInvoice(invoiceData: any, items: any[]) {
   try {
     const supabase = await createClient();
     const workspaceId = invoiceData.workspace_id;
