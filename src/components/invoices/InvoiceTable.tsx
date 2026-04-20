@@ -124,7 +124,7 @@ export function InvoiceTable({ invoices }: InvoiceTableProps) {
                   </td>
                   <td className="px-6 py-5 text-right">
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <DropdownMenuTrigger>
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-white/20 hover:text-white hover:bg-white/5">
                           <MoreVertical size={16} />
                         </Button>
