@@ -1,16 +1,21 @@
 import { requireAuth, getCurrentWorkspaceId } from "@/lib/auth";
 import { getInvoices, getInvoiceSettings } from "@/app/actions/finance";
-import { 
-  ReceiptText, 
-  Plus, 
-  Search, 
-  Filter, 
-  Download,
-  MoreVertical,
-  Clock,
-  CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  FileEdit,
+  Mail,
+  Trash
 } from "lucide-react";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import { deleteInvoice, markInvoicePaid } from "@/app/actions/finance";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -148,11 +153,65 @@ export default async function InvoicesPage() {
                         {invoice.status}
                       </div>
                     </td>
-                    <td className="px-6 py-5 text-right">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-white/20 hover:text-white">
-                        <MoreVertical size={16} />
-                      </Button>
-                    </td>
+                     <td className="px-6 py-5 text-right">
+                       <DropdownMenu>
+                         <DropdownMenuTrigger asChild>
+                           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-white/20 hover:text-white hover:bg-white/5">
+                             <MoreVertical size={16} />
+                           </Button>
+                         </DropdownMenuTrigger>
+                         <DropdownMenuContent align="end" className="w-56 bg-[#0b0b14] border-white/10 rounded-2xl shadow-2xl p-2">
+                           <Link href={`/invoices/${invoice.id}/edit`}>
+                             <DropdownMenuItem className="flex items-center gap-2 rounded-xl focus:bg-white/5 cursor-pointer text-white/70">
+                               <FileEdit size={14} className="text-blue-400" />
+                               Edit Invoice
+                             </DropdownMenuItem>
+                           </Link>
+                           <DropdownMenuItem className="flex items-center gap-2 rounded-xl focus:bg-white/5 cursor-pointer text-white/70">
+                             <Eye size={14} className="text-[#6c47ff]" />
+                             View Web Invoice
+                           </DropdownMenuItem>
+                           <DropdownMenuSeparator className="bg-white/5" />
+                           {invoice.status === 'draft' && (
+                             <DropdownMenuItem className="flex items-center gap-2 rounded-xl focus:bg-white/5 cursor-pointer text-emerald-400">
+                               <Mail size={14} />
+                               Send to Client
+                             </DropdownMenuItem>
+                           )}
+                           {invoice.status !== 'paid' && (
+                             <DropdownMenuItem 
+                               onClick={() => {
+                                 toast.promise(markInvoicePaid(invoice.id), {
+                                   loading: 'Updating status...',
+                                   success: 'Marked as paid',
+                                   error: 'Failed to update'
+                                 });
+                               }}
+                               className="flex items-center gap-2 rounded-xl focus:bg-white/5 cursor-pointer text-emerald-400"
+                             >
+                               <CheckCircle2 size={14} />
+                               Mark as Paid
+                             </DropdownMenuItem>
+                           )}
+                           <DropdownMenuSeparator className="bg-white/5" />
+                           <DropdownMenuItem 
+                             onClick={() => {
+                               if (confirm("Are you sure you want to delete this invoice?")) {
+                                 toast.promise(deleteInvoice(invoice.id), {
+                                   loading: 'Deleting...',
+                                   success: 'Invoice deleted',
+                                   error: 'Delete failed'
+                                 });
+                               }
+                             }}
+                             className="flex items-center gap-2 rounded-xl focus:bg-white/5 cursor-pointer text-rose-500"
+                           >
+                             <Trash size={14} />
+                             Delete Invoice
+                           </DropdownMenuItem>
+                         </DropdownMenuContent>
+                       </DropdownMenu>
+                     </td>
                   </tr>
                 ))
               )}

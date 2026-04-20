@@ -412,8 +412,24 @@ export async function markInvoicePaid(invoiceId: string) {
     console.error("[finance-action] Failed to trigger goal check:", err);
   }
 
-  revalidatePath('/settings/billing');
-  return { success: true };
+    revalidatePath('/settings/billing');
+    revalidatePath('/invoices');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function deleteInvoice(invoiceId: string) {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.from('invoices').delete().eq('id', invoiceId);
+    if (error) throw error;
+    revalidatePath('/invoices');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 export async function getContactsForInvoicing(workspaceId: string) {
