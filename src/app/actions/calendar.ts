@@ -258,14 +258,14 @@ export async function getComprehensiveCalendarAnalytics() {
 
     // Process Day of Week Distribution
     const dowDist = [0, 0, 0, 0, 0, 0, 0];
-    allApts.data?.forEach(a => {
+    allApts.data?.forEach((a: any) => {
        const d = new Date(a.start_time).getUTCDay();
        dowDist[d]++;
     });
 
     // Process Hour Distribution
     const hourDist = Array(24).fill(0);
-    allApts.data?.forEach(a => {
+    allApts.data?.forEach((a: any) => {
        const h = new Date(a.start_time).getUTCHours();
        hourDist[h]++;
     });
@@ -273,7 +273,7 @@ export async function getComprehensiveCalendarAnalytics() {
     // Analyze Revenue
     let packageRevenue = 0;
     let sessionRevenue = 0; // Single session payments
-    revenueStats.data?.forEach(r => {
+    revenueStats.data?.forEach((r: any) => {
        if (r.action === 'purchase') packageRevenue += 100; // Mocking price for now
        if (r.action === 'usage' && r.amount < 0) sessionRevenue += 20; // Mocking single rate
     });
@@ -281,7 +281,7 @@ export async function getComprehensiveCalendarAnalytics() {
     return {
       totalBookings: allApts.data?.length || 0,
       monthBookings: monthApts.data?.length || 0,
-      showUpRate: allApts.data?.length ? (allApts.data.filter(a => a.status === 'showed_up').length / allApts.data.length) * 100 : 0,
+      showUpRate: allApts.data?.length ? (allApts.data.filter((a: any) => a.status === 'showed_up').length / allApts.data.length) * 100 : 0,
       dowDistribution: dowDist,
       hourDistribution: hourDist,
       slotAnalytics: slotAnalytics.data || [],

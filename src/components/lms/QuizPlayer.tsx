@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -36,12 +37,12 @@ interface QuizPlayerProps {
 }
 
 export function QuizPlayer({ quiz, contactId, workspaceId }: QuizPlayerProps) {
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState<number>(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [status, setStatus] = useState<'intro' | 'taking' | 'result'>('intro');
   const [result, setResult] = useState<any>(null);
-  const [timeLeft, setTimeLeft] = useState(quiz.time_limit_minutes * 60);
-  const [qTimeLeft, setQTimeLeft] = useState(quiz.time_limit_per_question || 0);
+  const [timeLeft, setTimeLeft] = useState<number>(quiz.time_limit_minutes * 60);
+  const [qTimeLeft, setQTimeLeft] = useState<number>(quiz.time_limit_per_question || 0);
   const [shuffledQuestions, setShuffledQuestions] = useState<any[]>([]);
 
   // 1. Initial Logic (Randomization & Cooldown)
@@ -63,7 +64,7 @@ export function QuizPlayer({ quiz, contactId, workspaceId }: QuizPlayerProps) {
   useEffect(() => {
     let timer: any;
     if (status === 'taking' && timeLeft > 0) {
-      timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+      timer = setInterval(() => setTimeLeft((prev: number) => prev - 1), 1000);
     } else if (timeLeft === 0 && status === 'taking' && quiz.time_limit_minutes > 0) {
       handleSubmit();
     }
@@ -75,11 +76,11 @@ export function QuizPlayer({ quiz, contactId, workspaceId }: QuizPlayerProps) {
       let qTimer: any;
       if (status === 'taking' && quiz.time_limit_per_question > 0) {
          if (qTimeLeft > 0) {
-            qTimer = setInterval(() => setQTimeLeft(prev => prev - 1), 1000);
+            qTimer = setInterval(() => setQTimeLeft((prev: number) => prev - 1), 1000);
          } else {
             // Auto-advance
             if (currentStep < shuffledQuestions.length - 1) {
-                setCurrentStep(prev => prev + 1);
+                setCurrentStep((prev: number) => prev + 1);
                 setQTimeLeft(quiz.time_limit_per_question);
             } else {
                 handleSubmit();
@@ -121,7 +122,7 @@ export function QuizPlayer({ quiz, contactId, workspaceId }: QuizPlayerProps) {
             <div className="grid grid-cols-3 gap-4 mb-12">
                <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5">
                   <span className="block text-[10px] font-black text-white/20 uppercase tracking-widest mb-1">Questions</span>
-                  <span className="text-2xl font-black text-white italic">{questions.length}</span>
+                  <span className="text-2xl font-black text-white italic">{shuffledQuestions.length}</span>
                </div>
                <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5">
                   <span className="block text-[10px] font-black text-white/20 uppercase tracking-widest mb-1">Pass Mark</span>
@@ -224,7 +225,7 @@ export function QuizPlayer({ quiz, contactId, workspaceId }: QuizPlayerProps) {
 
        <div className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-500" key={currentStep}>
           <div className="space-y-4">
-             <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest bg-white/5 border-white/10 text-white/40">Question {currentStep + 1} / {questions.length}</Badge>
+             <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest bg-white/5 border-white/10 text-white/40">Question {currentStep + 1} / {shuffledQuestions.length}</Badge>
              <h3 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-tight">{currentQuestion.question_text}</h3>
              {currentQuestion.type === 'scenario' && (
                 <div className="p-8 bg-white/5 border border-white/10 rounded-3xl text-white/60 text-sm leading-relaxed italic animate-in fade-in slide-in-from-top-2 duration-700">
@@ -338,7 +339,7 @@ export function QuizPlayer({ quiz, contactId, workspaceId }: QuizPlayerProps) {
           <div className="pt-10 flex items-center justify-between">
              <Button 
                 disabled={currentStep === 0}
-                onClick={() => setCurrentStep(prev => prev - 1)}
+                onClick={() => setCurrentStep((prev: number) => prev - 1)}
                 variant="ghost" 
                 className="text-white/40 hover:text-white rounded-2xl h-14 px-8 font-black uppercase italic"
              >
@@ -346,10 +347,10 @@ export function QuizPlayer({ quiz, contactId, workspaceId }: QuizPlayerProps) {
                 Previous Question
              </Button>
              
-             {currentStep < questions.length - 1 ? (
+             {currentStep < shuffledQuestions.length - 1 ? (
                 <Button 
                   disabled={answers[currentQuestion.id] === undefined}
-                  onClick={() => setCurrentStep(prev => prev + 1)}
+                  onClick={() => setCurrentStep((prev: number) => prev + 1)}
                   className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white rounded-2xl h-14 px-10 font-black uppercase italic shadow-xl shadow-[#6c47ff]/20 gap-4"
                 >
                    Forward Progression

@@ -59,7 +59,7 @@ export default async function BookingPage({ params, searchParams }: BookingPageP
 
                <div className="grid grid-cols-3 gap-4">
                   {[10, 11, 14, 15, 16, 17].map((hour) => {
-                    const isPreferred = preferredSlots.some(s => s.hour === hour);
+                    const isPreferred = preferredSlots.some((s: any) => s.hour === hour);
                     return (
                       <button key={hour} className={cn(
                         "relative p-6 rounded-3xl border transition-all duration-500 overflow-hidden group/slot",
