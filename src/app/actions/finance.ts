@@ -283,95 +283,105 @@ export async function deleteProduct(productId: string) {
   revalidatePath('/settings/billing');
 }
 
-export async function saveInvoice(invoiceData: any, items: any[]) {
-  const supabase = await createClient();
-  const workspaceId = invoiceData.workspace_id;
+  try {
+    const supabase = await createClient();
+    const workspaceId = invoiceData.workspace_id;
 
-  // 1. Insert Invoice
-  const { data: invoice, error: invError } = await supabase
-    .from('invoices')
-    .insert(invoiceData)
-    .select()
-    .single();
+    // 1. Insert Invoice
+    const { data: invoice, error: invError } = await supabase
+      .from('invoices')
+      .insert(invoiceData)
+      .select()
+      .single();
 
-  if (invError) throw invError;
-
-  // 2. Insert Items
-  const itemsWithInvoiceId = items.map(item => ({
-    ...item,
-    invoice_id: invoice.id,
-    workspace_id: workspaceId
-  }));
-
-  const { error: itemsError } = await supabase
-    .from('invoice_items')
-    .insert(itemsWithInvoiceId);
-
-  if (itemsError) throw itemsError;
-
-  // 3. Increment Invoice Number in Settings
-  const { data: settings } = await supabase
-    .from('invoice_settings')
-    .select('next_invoice_number')
-    .eq('workspace_id', workspaceId)
-    .single();
-
-  if (settings) {
-    await supabase
-      .from('invoice_settings')
-      .update({ next_invoice_number: settings.next_invoice_number + 1 })
-      .eq('workspace_id', workspaceId);
-  }
-
-  // 4. Log Activity in CRM Timeline
-  await supabase
-    .from('contact_activities')
-    .insert({
-      workspace_id: workspaceId,
-      contact_id: invoice.contact_id,
-      type: 'invoice',
-      description: `Invoice ${invoice.invoice_number} created for $${invoice.total_amount.toLocaleString()}`,
-      metadata: {
-        invoice_id: invoice.id,
-        amount: invoice.total_amount,
-        status: invoice.status
-      }
-    });
-
-  // 5. Send Email if published
-  if (invoice.status === 'open') {
-    try {
-      // Fetch contact details for email
-      const { data: contact } = await supabase
-        .from('contacts')
-        .select('email, first_name')
-        .eq('id', invoice.contact_id)
-        .single();
-
-      if (contact?.email) {
-        await sendEmail({
-          to: contact.email,
-          subject: `New Invoice from LeadsMind: ${invoice.invoice_number}`,
-          text: `Hi ${contact.first_name || 'there'},\n\nA new invoice (${invoice.invoice_number}) has been generated for you.\nTotal Amount: $${invoice.total_amount.toLocaleString()}\nDue Date: ${new Date(invoice.due_date).toLocaleDateString()}\n\nYou can pay this invoice online or contact us for details.`,
-          react: React.createElement('div', { style: { fontFamily: 'sans-serif', padding: '20px' } }, [
-            React.createElement('h1', null, 'New Invoice'),
-            React.createElement('p', null, `Invoice Number: ${invoice.invoice_number}`),
-            React.createElement('p', null, `Amount Due: $${invoice.total_amount.toLocaleString()}`),
-            React.createElement('p', null, `Due Date: ${new Date(invoice.due_date).toLocaleDateString()}`),
-            React.createElement('hr'),
-            React.createElement('p', null, 'Thank you for your business!')
-          ])
-        });
-      }
-    } catch (emailErr) {
-      console.error("[finance-action] Email failed to send:", emailErr);
-      // We don't throw here to avoid failing the whole save, but we log it.
+    if (invError) {
+      console.error("[finance] Invoice Insert Error:", invError);
+      return { success: false, error: invError.message };
     }
-  }
 
-  revalidatePath('/invoices');
-  revalidatePath(`/contacts/${invoice.contact_id}`);
-  return invoice;
+    // 2. Insert Items
+    if (items && items.length > 0) {
+      const itemsWithInvoiceId = items.map(item => ({
+        ...item,
+        invoice_id: invoice.id,
+        workspace_id: workspaceId
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('invoice_items')
+        .insert(itemsWithInvoiceId);
+
+      if (itemsError) {
+        console.error("[finance] Items Insert Error:", itemsError);
+        // We might want to delete the invoice here if items fail, but for now we log it.
+      }
+    }
+
+    // 3. Increment Invoice Number in Settings
+    const { data: settings } = await supabase
+      .from('invoice_settings')
+      .select('next_invoice_number')
+      .eq('workspace_id', workspaceId)
+      .single();
+
+    if (settings) {
+      await supabase
+        .from('invoice_settings')
+        .update({ next_invoice_number: settings.next_invoice_number + 1 })
+        .eq('workspace_id', workspaceId);
+    }
+
+    // 4. Log Activity in CRM Timeline (Silent Fail)
+    try {
+      await supabase
+        .from('contact_activities')
+        .insert({
+          workspace_id: workspaceId,
+          contact_id: invoice.contact_id,
+          type: 'invoice',
+          description: `Invoice ${invoice.invoice_number} created for $${invoice.total_amount.toLocaleString()}`,
+          metadata: {
+            invoice_id: invoice.id,
+            amount: invoice.total_amount,
+            status: invoice.status
+          }
+        });
+    } catch (e) {
+      console.warn("[finance] Failed to log activity:", e);
+    }
+
+    // 5. Send Email if published (Silent Fail)
+    if (invoice.status === 'open') {
+      try {
+        const { data: contact } = await supabase
+          .from('contacts')
+          .select('email, first_name')
+          .eq('id', invoice.contact_id)
+          .single();
+
+        if (contact?.email) {
+          await sendEmail({
+            to: contact.email,
+            subject: `New Invoice: ${invoice.invoice_number}`,
+            text: `A new invoice (${invoice.invoice_number}) for $${invoice.total_amount} is ready.`,
+            react: React.createElement('div', null, [
+              React.createElement('h1', null, 'New Invoice'),
+              React.createElement('p', null, `Invoice Number: ${invoice.invoice_number}`),
+              React.createElement('p', null, `Total Amount: $${invoice.total_amount}`),
+            ])
+          });
+        }
+      } catch (emailErr) {
+        console.warn("[finance] Email failed:", emailErr);
+      }
+    }
+
+    revalidatePath('/invoices');
+    return { success: true, data: invoice };
+  } catch (err: any) {
+    console.error("[finance] Fatal Save Error:", err);
+    return { success: false, error: err.message || "An unexpected error occurred" };
+  }
 }
 
 export async function markInvoicePaid(invoiceId: string) {

@@ -38,6 +38,8 @@ import { format } from "date-fns";
 import { saveInvoice } from "@/app/actions/finance";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
+import { upsertInvoiceSettings } from "@/app/actions/finance";
 
 interface InvoiceBuilderProps {
   workspaceId: string;
@@ -117,14 +119,51 @@ export function InvoiceBuilder({ workspaceId, contacts, products, settings, init
         total_amount: (Number(item.quantity || 0) * Number(item.unit_price || 0))
       }));
 
-      await saveInvoice(invoiceData, itemsWithTotals);
-      toast.success(status === 'open' ? `Invoice ${invoiceNumber} sent to ${selectedContact.email}` : "Draft saved successfully");
-      router.push('/invoices');
-      router.refresh();
+      const result = await saveInvoice(invoiceData, itemsWithTotals);
+      
+      if (result.success) {
+        toast.success(status === 'open' ? `Invoice ${invoiceNumber} sent` : "Draft saved");
+        router.push('/invoices');
+        router.refresh();
+      } else {
+        toast.error(result.error || "Failed to save invoice");
+      }
     } catch (err: any) {
-      toast.error(err.message || "Failed to save invoice");
+      toast.error(err.message || "A client-side error occurred");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const supabase = createClient();
+    const fileName = `${workspaceId}/${Date.now()}-${file.name}`;
+    
+    toast.loading("Uploading logo...", { id: 'upload' });
+    
+    try {
+      const { data, error } = await supabase.storage
+        .from('media')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('media')
+        .getPublicUrl(data.path);
+
+      await upsertInvoiceSettings({
+        ...settings,
+        logo_url: publicUrl
+      });
+
+      toast.success("Logo updated successfully", { id: 'upload' });
+      router.refresh();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload logo", { id: 'upload' });
     }
   };
 
@@ -155,16 +194,17 @@ export function InvoiceBuilder({ workspaceId, contacts, products, settings, init
           {/* Header section */}
           <div className="flex flex-col md:flex-row justify-between gap-8 pt-4">
              <div className="space-y-6">
-                <div className="h-20 w-48 bg-white/5 rounded-3xl flex items-center justify-center border border-dashed border-white/10 group cursor-pointer hover:bg-white/[0.07] transition-all">
+                <label className="h-20 w-48 bg-white/5 rounded-3xl flex items-center justify-center border border-dashed border-white/10 group cursor-pointer hover:bg-white/[0.07] transition-all overflow-hidden">
+                  <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
                   {settings.logo_url ? (
-                    <img src={settings.logo_url} alt="Company Logo" className="max-h-12" />
+                    <img src={settings.logo_url} alt="Company Logo" className="max-h-full w-full object-contain p-2" />
                   ) : (
                     <div className="text-center">
                        <Layout size={24} className="mx-auto text-white/20 group-hover:text-[#6c47ff] transition-all" />
                        <p className="text-[9px] font-black uppercase tracking-widest text-white/10 mt-2">Upload Logo</p>
                     </div>
                   )}
-                </div>
+                </label>
                 <div className="space-y-2">
                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6c47ff]">From</p>
                    <div className="space-y-1">
