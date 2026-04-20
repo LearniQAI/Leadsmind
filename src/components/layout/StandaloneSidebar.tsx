@@ -14,7 +14,8 @@ import {
   LogOut,
   FileSearch,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ const navItems = [
   { name: 'Dashboard', href: '/invoice/dashboard', icon: LayoutDashboard },
   { name: 'Invoices', href: '/invoice/invoices', icon: FileText },
   { name: 'Quotes', href: '/invoice/quotes', icon: FileSearch },
+  { name: 'AI Accountant', href: '/accountant', icon: Sparkles },
   { name: 'Clients', href: '/invoice/clients', icon: Users },
   { name: 'Analytics', href: '/invoice/analytics', icon: BarChart3 },
 ];

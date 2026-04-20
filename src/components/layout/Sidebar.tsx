@@ -18,7 +18,8 @@ import {
   GraduationCap,
   CreditCard,
   Zap,
-  Receipt
+  Receipt,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -91,6 +92,7 @@ const navGroups: NavGroup[] = [
       { name: 'Contacts', href: '/contacts', icon: Contact },
       { name: 'Pipelines', href: '/pipelines', icon: GitGraph },
       { name: 'Invoices', href: '/invoices', icon: Receipt },
+      { name: 'AI Accountant', href: '/accountant', icon: Sparkles },
     ]
   },
   {
