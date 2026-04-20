@@ -194,25 +194,41 @@ export async function updateProgress(contactId: string, lessonId: string, comple
 
 export async function saveQuiz(payload: any) {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('lms_quizzes')
-    .upsert({
-      workspace_id: payload.workspaceId,
-      course_id: payload.courseId,
-      moduleId: payload.moduleId,
-      title: payload.title,
-      description: payload.description,
-      passing_score: payload.passingScore,
-      time_limit_minutes: payload.timeLimitMinutes,
-      max_retakes: payload.maxRetakes,
-      is_required: payload.isRequired,
-      updated_at: new Date().toISOString()
-    })
-    .select()
-    .single();
+  const { quizId, ...rest } = payload;
+  
+  const record = {
+    workspace_id: rest.workspaceId,
+    course_id: rest.courseId,
+    moduleId: rest.moduleId,
+    title: rest.title,
+    description: rest.description,
+    passing_score: rest.passingScore,
+    time_limit_minutes: rest.timeLimitMinutes,
+    max_retakes: rest.maxRetakes,
+    is_required: rest.isRequired,
+    bank_enabled: rest.bankEnabled,
+    question_count: rest.questionCount,
+    updated_at: new Date().toISOString()
+  };
 
-  if (error) throw error;
-  return data;
+  if (quizId) {
+    const { data, error } = await supabase
+      .from('lms_quizzes')
+      .update(record)
+      .eq('id', quizId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } else {
+    const { data, error } = await supabase
+      .from('lms_quizzes')
+      .insert({ ...record, id: crypto.randomUUID() })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
 }
 
 export async function saveQuestions(quizId: string, questions: any[]) {
@@ -462,20 +478,6 @@ export async function saveAdaptiveRule(quizId: string, rule: any) {
       ...rule,
       quiz_id: quizId,
     })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-export async function saveQuiz(quizData: any) {
-  const supabase = await createClient();
-  const { quizId, ...updates } = quizData;
-  const { data, error } = await supabase
-    .from('lms_quizzes')
-    .update(updates)
-    .eq('id', quizId)
     .select()
     .single();
 
