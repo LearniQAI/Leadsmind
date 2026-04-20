@@ -77,3 +77,59 @@ BEGIN
     WHERE id = pid;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 9. AI ADVISOR ENGINE
+CREATE TABLE public.accountant_ai_alerts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workspace_id UUID REFERENCES public.workspaces(id) ON DELETE CASCADE,
+    type TEXT NOT NULL, -- 'tax_deduction', 'compliance_warning', 'financial_health'
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    priority TEXT DEFAULT 'medium', -- 'low', 'medium', 'high'
+    status TEXT DEFAULT 'active', -- 'active', 'dismissed', 'resolved'
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(workspace_id, title)
+);
+
+CREATE TABLE public.compliance_deadlines (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workspace_id UUID REFERENCES public.workspaces(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    deadline_date DATE NOT NULL,
+    type TEXT NOT NULL, -- 'VAT201', 'IRP6', 'EMP201'
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- RLS
+ALTER TABLE public.accountant_ai_alerts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.compliance_deadlines ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Workspace owners can manage their alerts" ON public.accountant_ai_alerts
+    FOR ALL USING (workspace_id IN (SELECT id FROM public.workspaces WHERE owner_id = auth.uid()));
+
+CREATE POLICY "Workspace owners can manage their deadlines" ON public.compliance_deadlines
+    FOR ALL USING (workspace_id IN (SELECT id FROM public.workspaces WHERE owner_id = auth.uid()));
+
+-- 10. BUSINESS STRATEGY & GOALS
+CREATE TABLE public.business_goals (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workspace_id UUID REFERENCES public.workspaces(id) ON DELETE CASCADE,
+    type TEXT NOT NULL, -- 'revenue_target', 'hiring_plan', 'capital_purchase'
+    title TEXT NOT NULL,
+    target_value NUMERIC NOT NULL,
+    current_value NUMERIC DEFAULT 0,
+    deadline_date DATE,
+    status TEXT DEFAULT 'active', -- 'active', 'completed', 'paused'
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(workspace_id, title)
+);
+
+ALTER TABLE public.business_goals ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Workspace owners can manage their goals" ON public.business_goals
+    FOR ALL USING (workspace_id IN (SELECT id FROM public.workspaces WHERE owner_id = auth.uid()));

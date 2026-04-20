@@ -212,3 +212,8 @@ html {
 .animate-grow-bar {
   animation: growBar 1s ease both;
 }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+[data-radix-collection-item] { flex-shrink: 0 !important; }
+.tabs-container { max-width: 100vw; overflow-x: hidden; position: relative; }

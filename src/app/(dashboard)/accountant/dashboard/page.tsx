@@ -12,7 +12,8 @@ import {
    Home,
    Landmark,
    Package,
-   RefreshCcw
+   RefreshCcw,
+   Target
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProvisionalTaxCalculator from "@/components/accountant/ProvisionalTaxCalculator";
@@ -29,9 +30,17 @@ import {
    getBusinessLoans,
    getRecentTransactions,
    getInventory,
-   getMigrationJobs
+   getMigrationJobs,
+   getAIAlerts,
+   getComplianceDeadlines,
+   generateIntelligence,
+   getBusinessGoals,
+   updateGoalProgress,
+   getFinancialSummary
 } from "@/app/actions/accountant";
 import { cn } from "@/lib/utils";
+import AIAdvisorFeed from "@/components/accountant/AIAdvisorFeed";
+import StrategyHub from "@/components/accountant/StrategyHub";
 
 export default async function AccountantDashboardPage() {
    const supabase = await createServerClient();
@@ -40,6 +49,12 @@ export default async function AccountantDashboardPage() {
 
    const workspace = await getCurrentWorkspace(session.user);
    if (!workspace) redirect("/dashboard");
+
+   // Trigger scanners
+   await Promise.all([
+      generateIntelligence(workspace.id),
+      updateGoalProgress(workspace.id)
+   ]);
 
    // Fetch all data in parallel
    const [
@@ -50,7 +65,11 @@ export default async function AccountantDashboardPage() {
       businessLoans,
       recentTransactions,
       inventoryItems,
-      migrationJobs
+      migrationJobs,
+      aiAlerts,
+      deadlines,
+      businessGoals,
+      financialSummary
    ] = await Promise.all([
       getAccountantOnboarding(workspace.id),
       getProvisionalTaxRecords(workspace.id),
@@ -59,15 +78,17 @@ export default async function AccountantDashboardPage() {
       getBusinessLoans(workspace.id),
       getRecentTransactions(workspace.id),
       getInventory(workspace.id),
-      getMigrationJobs(workspace.id)
+      getMigrationJobs(workspace.id),
+      getAIAlerts(workspace.id),
+      getComplianceDeadlines(workspace.id),
+      getBusinessGoals(workspace.id),
+      getFinancialSummary(workspace.id)
    ]);
 
-   const netProfit = recentTransactions.reduce((acc, tx) => {
-      return tx.source_type === 'revenue' ? acc + parseFloat(tx.total_amount) : acc - parseFloat(tx.total_amount);
-   }, 0);
+   const netProfit = financialSummary.netProfit;
 
    return (
-      <div className="space-y-10 animate-in fade-in duration-700">
+      <div className="space-y-10 animate-in fade-in duration-700 max-w-full overflow-x-hidden">
          {/* Header */}
          <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3 text-[#6c47ff]">
@@ -117,32 +138,45 @@ export default async function AccountantDashboardPage() {
             </Card>
          </div>
 
+         {/* Proactive Advisor Feed */}
+         <AIAdvisorFeed alerts={aiAlerts} deadlines={deadlines} />
+
          {/* Intelligence Tabs */}
-         <Tabs defaultValue="tax" className="space-y-8">
-            <div className="w-full relative">
-               <TabsList className="bg-[#0b0b15] border border-white/5 h-14 p-1 rounded-2xl w-full flex items-center justify-start overflow-x-auto overflow-y-hidden no-scrollbar gap-1">
-                  <TabsTrigger value="tax" className="data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] px-4 h-full rounded-xl gap-2 font-black uppercase tracking-widest text-[10px] transition-all whitespace-nowrap shrink-0">
+         <Tabs defaultValue="strategy" className="space-y-8 w-full max-w-full overflow-x-hidden">
+            <div className="grid grid-cols-1 w-full overflow-hidden relative group/tabs">
+               {/* Fade Indicators */}
+               <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#030308] to-transparent z-10 pointer-events-none opacity-0 group-hover/tabs:opacity-100 transition-opacity" />
+               <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#030308] to-transparent z-10 pointer-events-none opacity-0 group-hover/tabs:opacity-100 transition-opacity" />
+               
+               <TabsList className="bg-[#0b0b15] border border-white/5 h-14 p-1 rounded-2xl flex items-center justify-start overflow-x-auto no-scrollbar gap-1 flex-nowrap scroll-smooth w-full min-w-0">
+                  <TabsTrigger value="strategy" className="data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] px-5 h-full rounded-xl gap-2 font-black uppercase tracking-widest text-[10px] transition-all whitespace-nowrap shrink-0">
+                     <Target size={14} /> Strategy & Goals
+                  </TabsTrigger>
+                  <TabsTrigger value="tax" className="data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] px-5 h-full rounded-xl gap-2 font-black uppercase tracking-widest text-[10px] transition-all whitespace-nowrap shrink-0">
                      <Calculator size={14} /> Tax Compliance
                   </TabsTrigger>
-                  <TabsTrigger value="governance" className="data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] px-4 h-full rounded-xl gap-2 font-black uppercase tracking-widest text-[10px] transition-all whitespace-nowrap shrink-0">
+                  <TabsTrigger value="governance" className="data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] px-5 h-full rounded-xl gap-2 font-black uppercase tracking-widest text-[10px] transition-all whitespace-nowrap shrink-0">
                      <UserCircle size={14} /> Director & Owner
                   </TabsTrigger>
-                  <TabsTrigger value="operations" className="data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] px-4 h-full rounded-xl gap-2 font-black uppercase tracking-widest text-[10px] transition-all whitespace-nowrap shrink-0">
+                  <TabsTrigger value="operations" className="data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] px-5 h-full rounded-xl gap-2 font-black uppercase tracking-widest text-[10px] transition-all whitespace-nowrap shrink-0">
                      <Home size={14} /> Office & Assets
                   </TabsTrigger>
-                  <TabsTrigger value="debt" className="data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] px-4 h-full rounded-xl gap-2 font-black uppercase tracking-widest text-[10px] transition-all whitespace-nowrap shrink-0">
+                  <TabsTrigger value="debt" className="data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] px-5 h-full rounded-xl gap-2 font-black uppercase tracking-widest text-[10px] transition-all whitespace-nowrap shrink-0">
                      <Landmark size={14} /> Loan Management
                   </TabsTrigger>
-                  <TabsTrigger value="inventory" className="data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] px-4 h-full rounded-xl gap-2 font-black uppercase tracking-widest text-[10px] transition-all whitespace-nowrap shrink-0">
+                  <TabsTrigger value="inventory" className="data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] px-5 h-full rounded-xl gap-2 font-black uppercase tracking-widest text-[10px] transition-all whitespace-nowrap shrink-0">
                      <Package size={14} /> Inventory
                   </TabsTrigger>
-                  <TabsTrigger value="migration" className="data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] px-4 h-full rounded-xl gap-2 font-black uppercase tracking-widest text-[10px] transition-all whitespace-nowrap shrink-0">
+                  <TabsTrigger value="migration" className="data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] px-5 h-full rounded-xl gap-2 font-black uppercase tracking-widest text-[10px] transition-all whitespace-nowrap shrink-0">
                      <RefreshCcw size={14} /> Migrations
                   </TabsTrigger>
                </TabsList>
             </div>
 
             <div className="mt-8">
+               <TabsContent value="strategy" className="focus-visible:outline-none focus-visible:ring-0">
+                  <StrategyHub workspaceId={workspace.id} goals={businessGoals} />
+               </TabsContent>
                <TabsContent value="tax" className="focus-visible:outline-none focus-visible:ring-0">
                   <ProvisionalTaxCalculator workspaceId={workspace.id} initialData={provisionalTax} />
                </TabsContent>

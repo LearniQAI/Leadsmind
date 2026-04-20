@@ -330,6 +330,154 @@ export async function importTransactions(workspaceId: string, transactions: any[
     return data;
 }
 
+export async function getAIAlerts(workspaceId: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('accountant_ai_alerts')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+}
+
+export async function getComplianceDeadlines(workspaceId: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('compliance_deadlines')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('deadline_date', { ascending: true });
+    if (error) throw error;
+    return data;
+}
+
+export async function generateIntelligence(workspaceId: string) {
+    const supabase = await createClient();
+    
+    // 1. Fetch data for analysis
+    const { data: txs } = await supabase.from('accounting_transactions').select('*').eq('workspace_id', workspaceId);
+    const { data: loans } = await supabase.from('director_loans').select('*').eq('workspace_id', workspaceId).single();
+
+    const alerts = [];
+
+    // SCANNER 1: Section 12C Equipment Allowance
+    const equipmentPurchase = txs?.find(t => t.description.toLowerCase().includes('laptop') || t.description.toLowerCase().includes('machine') || t.description.toLowerCase().includes('equipment'));
+    if (equipmentPurchase) {
+        alerts.push({
+            workspace_id: workspaceId,
+            type: 'tax_deduction',
+            title: 'Section 12C Opportunity',
+            description: `We noticed a purchase of "${equipmentPurchase.description}". You may be eligible for an accelerated 40/20/20 depreciation allowance under Section 12C.`,
+            priority: 'high',
+            metadata: { transaction_id: equipmentPurchase.id }
+        });
+    }
+
+    // SCANNER 2: Overdrawn Director Loan
+    if (loans && (loans.total_borrowed - loans.total_repaid) > 0) {
+        alerts.push({
+            workspace_id: workspaceId,
+            type: 'compliance_warning',
+            title: 'Overdrawn Director Loan',
+            description: `The director's loan account is currently overdrawn by R${(loans.total_borrowed - loans.total_repaid).toLocaleString()}. SARS requires interest to be charged at a minimum of 8.25% to avoid deemed dividends.`,
+            priority: 'high'
+        });
+    }
+
+    // SCANNER 3: Cash Flow Runway (Simple)
+    const income = txs?.filter(t => t.source_type === 'revenue').reduce((acc, t) => acc + parseFloat(t.total_amount), 0) || 0;
+    const expenses = txs?.filter(t => t.source_type === 'expense').reduce((acc, t) => acc + parseFloat(t.total_amount), 0) || 0;
+    if (expenses > income && income > 0) {
+        alerts.push({
+            workspace_id: workspaceId,
+            type: 'financial_health',
+            title: 'Negative Cash Flow Alert',
+            description: 'Your expenses exceeded your revenue over the recorded period. Consider reviewing operational costs for the next quarter.',
+            priority: 'medium'
+        });
+    }
+
+    // Batch insert if not duplicate (simplified here, in real world use upsert with unique constraint)
+    for (const alert of alerts) {
+        await supabase.from('accountant_ai_alerts').upsert(alert, { onConflict: 'workspace_id, title' });
+    }
+
+    // 4. SEED COMPLIANCE DEADLINES (If empty)
+    const { count: deadlineCount } = await supabase.from('compliance_deadlines').select('*', { count: 'exact', head: true }).eq('workspace_id', workspaceId);
+    if (deadlineCount === 0) {
+        const standardDeadlines = [
+            { workspace_id: workspaceId, title: 'VAT201 Submission', deadline_date: '2026-04-25', type: 'VAT', description: 'Monthly VAT return' },
+            { workspace_id: workspaceId, title: 'EMP201 (PAYE)', deadline_date: '2026-05-07', type: 'PAYE', description: 'Monthly payroll tax' },
+            { workspace_id: workspaceId, title: 'IRP6 P1 (Provisional)', deadline_date: '2026-08-31', type: 'TAX', description: 'First provisional tax payment' },
+        ];
+        await supabase.from('compliance_deadlines').insert(standardDeadlines);
+    }
+
+    // 5. SEED BUSINESS GOALS (If empty)
+    const { count: goalCount } = await supabase.from('business_goals').select('*', { count: 'exact', head: true }).eq('workspace_id', workspaceId);
+    if (goalCount === 0) {
+        const initialGoals = [
+            { workspace_id: workspaceId, type: 'revenue_target', title: 'Fiscal Year Revenue Target', target_value: 5000000, current_value: 0, deadline_date: '2027-02-28' },
+            { workspace_id: workspaceId, type: 'hiring_plan', title: 'Scale-up Hiring (3 New Hires)', target_value: 3, current_value: 0, deadline_date: '2026-12-31' },
+            { workspace_id: workspaceId, type: 'capital_purchase', title: 'Cloud Infrastructure Upgrade', target_value: 150000, current_value: 0, deadline_date: '2026-06-30' },
+        ];
+        await supabase.from('business_goals').insert(initialGoals);
+    }
+
+    return alerts;
+}
+
+export async function getBusinessGoals(workspaceId: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('business_goals')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('created_at', { ascending: true });
+    if (error) throw error;
+    return data;
+}
+
+export async function updateGoalProgress(workspaceId: string) {
+    const supabase = await createClient();
+    
+    // 1. Calculate current revenue
+    const { data: txs } = await supabase.from('accounting_transactions').select('total_amount').eq('workspace_id', workspaceId).eq('source_type', 'revenue');
+    const totalRev = txs?.reduce((acc, t) => acc + parseFloat(t.total_amount), 0) || 0;
+
+    // 2. Update 'revenue_target' goals
+    await supabase
+        .from('business_goals')
+        .update({ current_value: totalRev })
+        .eq('workspace_id', workspaceId)
+        .eq('type', 'revenue_target');
+}
+
+export async function getContactFinancialHealth(workspaceId: string, contactId: string) {
+    const supabase = await createClient();
+    const { data: txs } = await supabase
+        .from('accounting_transactions')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .eq('metadata->contact_id', contactId); // Hypothetical link
+
+    if (!txs || txs.length === 0) return { score: 0, narrative: 'No transaction history' };
+
+    const totalVal = txs.reduce((acc, t) => acc + parseFloat(t.total_amount), 0);
+    const narrative = totalVal > 50000 ? 'High-Value Strategic Partner' : 'Emerging Customer';
+
+    return { totalVal, narrative, count: txs.length };
+}
+
+export async function addBusinessGoal(goal: any) {
+    const supabase = await createClient();
+    const { error } = await supabase.from('business_goals').insert([goal]);
+    if (error) throw error;
+    revalidatePath('/accountant');
+}
+
 export async function getBusinessLoans(workspaceId: string) {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -340,7 +488,71 @@ export async function getBusinessLoans(workspaceId: string) {
     return data;
 }
 
-export async function getRecentTransactions(workspaceId: string, limit = 5) {
+export async function getFinancialSummary(workspaceId: string) {
+    const supabase = await createClient();
+    const { data: txs } = await supabase.from('accounting_transactions').select('total_amount, source_type').eq('workspace_id', workspaceId);
+    
+    const revenue = txs?.filter(t => t.source_type === 'revenue').reduce((acc, t) => acc + parseFloat(t.total_amount), 0) || 0;
+    const expenses = txs?.filter(t => t.source_type === 'expense').reduce((acc, t) => acc + parseFloat(t.total_amount), 0) || 0;
+    
+    return {
+        revenue,
+        expenses,
+        netProfit: revenue - expenses
+    };
+}
+
+export async function sellInventoryItem(workspaceId: string, saleData: { product_id: string, quantity: number, price_each: number }) {
+    const supabase = await createClient();
+    
+    // 1. FIFO Depletion Logic
+    const { data: lots } = await supabase
+        .from('inventory_lots')
+        .select('*')
+        .eq('product_id', saleData.product_id)
+        .gt('quantity_remaining', 0)
+        .order('created_at', { ascending: true });
+
+    if (!lots || lots.length === 0) throw new Error("Out of stock (no available lots)");
+
+    let needed = saleData.quantity;
+    let totalCogs = 0;
+
+    for (const lot of lots) {
+        if (needed <= 0) break;
+        const consume = Math.min(needed, lot.quantity_remaining);
+        await supabase.from('inventory_lots').update({ 
+            quantity_remaining: lot.quantity_remaining - consume 
+        }).eq('id', lot.id);
+        
+        totalCogs += consume * lot.unit_cost;
+        needed -= consume;
+    }
+
+    if (needed > 0) throw new Error("Insufficient stock in FIFO lots");
+
+    // 2. Update main product stock
+    await supabase.rpc('increment_product_stock', { pid: saleData.product_id, amount: -saleData.quantity });
+
+    // 3. Record Revenue
+    await recordTransaction(workspaceId, {
+        description: `Sale: ${saleData.quantity} unit(s)`,
+        amount: saleData.quantity * saleData.price_each,
+        type: 'revenue',
+        reference: saleData.product_id
+    });
+
+    // 4. Record COGS Expense
+    await recordTransaction(workspaceId, {
+        description: `COGS for sale (${saleData.product_id})`,
+        amount: totalCogs,
+        type: 'expense'
+    });
+
+    revalidatePath('/accountant');
+}
+
+export async function getRecentTransactions(workspaceId: string, limit = 10) {
     const supabase = await createClient();
     const { data, error } = await supabase
         .from('accounting_transactions')
