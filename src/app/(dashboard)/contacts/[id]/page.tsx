@@ -21,7 +21,10 @@ import {
 import { getContactDocuments } from '@/app/actions/media';
 import { DocumentsSection } from '@/components/crm/DocumentsSection';
 import { AutomationLogsSection } from '@/components/crm/AutomationLogsSection';
-import { Zap } from 'lucide-react';
+import { Bot, Zap, ReceiptText } from 'lucide-react';
+import { getInvoices, getQuotes } from '@/app/actions/finance';
+import { ContactInvoicesSection } from '@/components/crm/ContactInvoicesSection';
+import { getCurrentWorkspaceId } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,20 +35,26 @@ export default async function ContactDetailPage({
 }) {
   await requireAuth();
   const { id } = await params;
+  const workspaceId = await getCurrentWorkspaceId();
+
   const [
     contactResult, 
     activitiesResult, 
     notesResult, 
     tasksResult,
     docsResult,
-    automationLogsResult
+    automationLogsResult,
+    invoices,
+    quotes
   ] = await Promise.all([
     getContact(id),
     getContactActivities(id),
     getContactNotes(id),
     getContactTasks(id),
     getContactDocuments(id),
-    getAutomationLogsForContact(id)
+    getAutomationLogsForContact(id),
+    getInvoices(workspaceId!, id),
+    getQuotes(workspaceId!, id)
   ]);
 
   if (!contactResult.success) {
@@ -85,6 +94,10 @@ export default async function ContactDetailPage({
             <Zap className="h-4 w-4" />
             <span>Automation</span>
           </TabsTrigger>
+          <TabsTrigger value="invoices" className="rounded-xl px-6 data-[state=active]:bg-white/5 data-[state=active]:text-[#6c47ff] gap-2 font-bold transition-all">
+            <ReceiptText className="h-4 w-4" />
+            <span>Invoices</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="activity" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -105,6 +118,14 @@ export default async function ContactDetailPage({
 
         <TabsContent value="automation" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           <AutomationLogsSection logs={automationLogsResult || []} />
+        </TabsContent>
+
+        <TabsContent value="invoices" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <ContactInvoicesSection 
+            contactId={id} 
+            invoices={invoices || []} 
+            quotes={quotes || []} 
+          />
         </TabsContent>
         
       </Tabs>

@@ -4,6 +4,7 @@ import {
   getPipelineStages, 
   getPipelineOpportunities 
 } from '@/app/actions/pipelines';
+import { getInvoices } from '@/app/actions/finance';
 import { KanbanBoard } from '@/components/crm/KanbanBoard';
 import { PipelineSelector } from '@/components/crm/PipelineSelector';
 import { Button } from '@/components/ui/button';
@@ -56,13 +57,28 @@ export default async function PipelinesPage({
   const { pipelineId } = await searchParams;
   const activePipelineId = pipelineId || pipelines[0].id;
 
-  const [stagesResult, opportunitiesResult] = await Promise.all([
+   const [stagesResult, opportunitiesResult, invoices] = await Promise.all([
     getPipelineStages(activePipelineId),
-    getPipelineOpportunities(activePipelineId)
+    getPipelineOpportunities(activePipelineId),
+    getInvoices(workspace.id)
   ]);
 
   const stages = stagesResult.success ? stagesResult.data || [] : [];
-  const opportunities = opportunitiesResult.success ? opportunitiesResult.data || [] : [];
+  const opportunities = opportunitiesResult.success ? (opportunitiesResult.data || []).map(opp => {
+    // Attach invoice stats to opportunity contact
+    const contactInvoices = invoices.filter(inv => inv.contact_id === opp.contact_id);
+    const totalInvoiced = contactInvoices.reduce((sum, inv) => sum + (inv.status !== 'void' ? inv.total_amount : 0), 0);
+    const paidAmount = contactInvoices.reduce((sum, inv) => sum + (inv.status === 'paid' ? inv.total_amount : 0), 0);
+    
+    return {
+       ...opp,
+       contact: opp.contact ? {
+          ...opp.contact,
+          total_invoiced: totalInvoiced,
+          outstanding_balance: totalInvoiced - paidAmount
+       } : undefined
+    };
+  }) : [];
 
   return (
     <div className="space-y-8">

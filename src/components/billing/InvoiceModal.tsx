@@ -19,7 +19,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { createInvoice } from '@/app/actions/finance';
+import { saveInvoice } from '@/app/actions/finance';
 import { toast } from 'sonner';
 import { Plus, Receipt } from 'lucide-react';
 
@@ -51,17 +51,28 @@ export function InvoiceModal({ workspaceId, contacts }: InvoiceModalProps) {
     setLoading(true);
     
     const formData = new FormData(e.currentTarget);
+    const amount = parseFloat(formData.get('amount') as string);
     const invoiceData = {
       workspace_id: workspaceId,
       contact_id: formData.get('contactId') as string,
-      amount_due: parseFloat(formData.get('amount') as string),
-      currency: 'USD',
+      invoice_number: `INV-${Date.now().toString().slice(-6)}`,
       status: 'draft',
+      subtotal: amount,
+      total_amount: amount,
+      currency: 'USD',
       due_date: new Date(formData.get('dueDate') as string).toISOString(),
     };
 
+    const items = [{
+      description: 'Consultation / Service Fee',
+      quantity: 1,
+      unit_price: amount,
+      total_amount: amount,
+      position: 0
+    }];
+
     try {
-      await createInvoice(invoiceData);
+      await saveInvoice(invoiceData, items);
       toast.success('Invoice generated successfully');
       setOpen(false);
     } catch (error: any) {

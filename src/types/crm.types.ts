@@ -25,9 +25,15 @@ export interface ContactActivity {
   id: string;
   workspace_id: string;
   contact_id: string;
-  type: 'note' | 'task' | 'deal' | 'system';
+  type: 'note' | 'task' | 'deal' | 'system' | 'invoice' | 'quote';
   description: string;
-  metadata: any;
+  metadata: {
+    invoice_id?: string;
+    quote_id?: string;
+    amount?: number;
+    status?: string;
+    [key: string]: any;
+  };
   created_by: string | null;
   created_at: string;
 }
@@ -87,4 +93,84 @@ export interface Opportunity {
   position: number;
   created_at: string;
   updated_at: string;
+  contact?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    total_invoiced?: number;
+    outstanding_balance?: number;
+  };
+}
+
+export interface Invoice {
+  id: string;
+  workspace_id: string;
+  contact_id: string;
+  invoice_number: string;
+  status: 'draft' | 'sent' | 'open' | 'paid' | 'void' | 'uncollectible';
+  subtotal: number;
+  tax_total: number;
+  discount_total: number;
+  shipping_amount: number;
+  total_amount: number;
+  currency: string;
+  due_date: string | null;
+  notes: string | null;
+  terms: string | null;
+  assigned_to: string | null;
+  created_at: string;
+  updated_at: string;
+  items?: InvoiceItem[];
+}
+
+export interface Quote {
+  id: string;
+  workspace_id: string;
+  contact_id: string;
+  quote_number: string;
+  status: 'draft' | 'sent' | 'accepted' | 'declined' | 'expired';
+  subtotal: number;
+  tax_total: number;
+  discount_total: number;
+  shipping_amount: number;
+  total_amount: number;
+  currency: string;
+  expiry_date: string | null;
+  notes: string | null;
+  terms: string | null;
+  assigned_to: string | null;
+  created_at: string;
+  updated_at: string;
+  items?: InvoiceItem[];
+}
+
+export interface InvoiceItem {
+  id: string;
+  workspace_id: string;
+  invoice_id?: string;
+  quote_id?: string;
+  product_id?: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  tax_rate: number;
+  discount_amount: number;
+  total_amount: number;
+  position: number;
+}
+
+export interface InvoiceSettings {
+  id: string;
+  workspace_id: string;
+  invoice_prefix: string;
+  next_invoice_number: number;
+  quote_prefix: string;
+  next_quote_number: number;
+  default_terms: string | null;
+  default_notes: string | null;
+  company_address: string | null;
+  company_email: string | null;
+  company_phone: string | null;
+  logo_url: string | null;
 }

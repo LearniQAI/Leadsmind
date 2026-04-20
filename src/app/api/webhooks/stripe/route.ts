@@ -36,11 +36,25 @@ export async function POST(req: NextRequest) {
           await supabaseAdmin
             .from('workspaces')
             .update({ 
-              plan_tier: tierId,
-              stripe_customer_id: session.customer,
-              stripe_subscription_id: subscriptionId
+               plan_tier: tierId,
+               stripe_customer_id: session.customer,
+               stripe_subscription_id: subscriptionId
             })
             .eq('id', workspaceId);
+        }
+
+        // Handle CRM Invoice Payment
+        const invoiceId = session.metadata?.invoiceId;
+        const type = session.metadata?.type;
+        
+        if (type === 'crm_invoice' && invoiceId) {
+          // Use the markInvoicePaid logic but via admin client to bypass RLS
+          await supabaseAdmin
+            .from('invoices')
+            .update({ status: 'paid', paid_at: new Date().toISOString() })
+            .eq('id', invoiceId);
+            
+          console.log(`CRM Invoice ${invoiceId} marked as paid via Stripe.`);
         }
         break;
       }
