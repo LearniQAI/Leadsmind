@@ -35,9 +35,12 @@ ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS shipping_amount DECIMAL(10,
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS total_amount DECIMAL(10, 2) DEFAULT 0.00;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS notes TEXT;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS terms TEXT;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS assigned_to UUID REFERENCES auth.users(id);
 
 -- 4. QUOTES TABLE
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
 CREATE TABLE IF NOT EXISTS public.quotes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,

@@ -112,7 +112,12 @@ export function InvoiceBuilder({ workspaceId, contacts, products, settings, init
         }
       };
 
-      await saveInvoice(invoiceData, items);
+      const itemsWithTotals = items.map(item => ({
+        ...item,
+        total_amount: (Number(item.quantity || 0) * Number(item.unit_price || 0))
+      }));
+
+      await saveInvoice(invoiceData, itemsWithTotals);
       toast.success(status === 'open' ? `Invoice ${invoiceNumber} sent to ${selectedContact.email}` : "Draft saved successfully");
       router.push('/invoices');
       router.refresh();
