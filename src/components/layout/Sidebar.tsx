@@ -85,9 +85,10 @@ import {
 interface NavItem {
   label: string;
   route: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   adminOnly?: boolean;
 }
+
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',   icon: Home,          route: '/dashboard',          adminOnly: false },
