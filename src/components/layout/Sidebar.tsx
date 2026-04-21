@@ -126,7 +126,7 @@ export function Sidebar({ className, user, workspace, role, isCollapsed = false,
     }
   }
 
-  const workspaceInitials = workspace?.name?.substring(0, 2).toUpperCase() || 'LM';
+  const workspaceInitials = workspace?.branding?.platformName?.substring(0, 2).toUpperCase() || workspace?.name?.substring(0, 2).toUpperCase() || 'WS';
   const userInitials = user?.firstName?.substring(0, 2).toUpperCase() || user?.email?.substring(0, 2).toUpperCase() || 'U';
 
   return (
@@ -146,20 +146,16 @@ export function Sidebar({ className, user, workspace, role, isCollapsed = false,
               {workspace?.branding?.logoUrl || workspace?.logoUrl ? (
                 <img src={workspace?.branding?.logoUrl || workspace?.logoUrl || ''} alt={workspace?.branding?.platformName || workspace?.name} className="h-full w-full object-cover" />
               ) : (
-                <span className="text-sm tracking-tighter">{workspace?.branding?.platformName?.substring(0,2).toUpperCase() || workspaceInitials}</span>
+                <span className="text-sm tracking-tighter">{workspaceInitials}</span>
               )}
             </div>
             {!isCollapsed && (
               <div className="flex flex-col overflow-hidden animate-in fade-in duration-500">
                 <span className="text-lg font-extrabold tracking-tighter text-white leading-tight">
-                  {workspace?.branding?.platformName ? (
-                     <>{workspace.branding.platformName}</>
-                  ) : (
-                     <>Leads<span style={{ color: 'var(--primary, #fdab3d)' }}>Mind</span></>
-                  )}
+                  {workspace?.branding?.platformName || workspace?.name || 'Platform'}
                 </span>
                 <span className="text-[10px] font-medium text-white/30 uppercase tracking-widest truncate">
-                  {workspace?.name || 'Workspace'}
+                  {workspace?.branding?.platformName ? workspace?.name : 'Workspace'}
                 </span>
                 {workspace?.plan === 'enterprise' && (
                   <div className="flex items-center gap-1 mt-0.5">

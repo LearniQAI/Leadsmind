@@ -19,6 +19,8 @@ interface InvitationEmailProps {
   inviteUrl?: string;
   role?: string;
   expiresIn?: string;
+  platformName?: string;
+  primaryColor?: string;
 }
 
 export const InvitationEmail = ({
@@ -27,15 +29,17 @@ export const InvitationEmail = ({
   inviteUrl = 'http://localhost:3000/invite/accept',
   role = 'Team Member',
   expiresIn = '48 hours',
+  platformName = 'LeadsMind',
+  primaryColor = '#6c47ff',
 }: InvitationEmailProps) => (
   <Html>
     <Head />
-    <Preview>{inviterName} invited you to join {workspaceName} on LeadsMind</Preview>
+    <Preview>{inviterName} invited you to join {workspaceName} on {platformName}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
           <Text style={logoText}>
-            Leads<span style={logoAccent}>Mind</span>
+            {platformName}
           </Text>
         </Section>
         
@@ -45,16 +49,16 @@ export const InvitationEmail = ({
           Hello,
         </Text>
         <Text style={text}>
-          <strong>{inviterName}</strong> has invited you to join the <strong>{workspaceName}</strong> workspace on LeadsMind.
+          <strong>{inviterName}</strong> has invited you to join the <strong>{workspaceName}</strong> workspace on {platformName}.
         </Text>
         
         <Section style={roleCard}>
-          <Text style={roleLabel}>YOUR ROLE</Text>
+          <Text style={{ ...roleLabel, color: primaryColor }}>YOUR ROLE</Text>
           <Text style={roleValue}>{role}</Text>
         </Section>
 
         <Section style={buttonContainer}>
-          <Button style={button} href={inviteUrl}>
+          <Button style={{ ...button, backgroundColor: primaryColor }} href={inviteUrl}>
             Accept Invitation
           </Button>
         </Section>
@@ -66,7 +70,7 @@ export const InvitationEmail = ({
         <Hr style={hr} />
         
         <Text style={footer}>
-          <strong>LeadsMind</strong> — The world&apos;s best CRM + LMS all-in-one platform.
+          <strong>{platformName}</strong> — The all-in-one CRM + LMS platform.
         </Text>
         <Text style={footerSub}>
           If you were not expecting this invitation, you can safely ignore this email.
@@ -135,7 +139,6 @@ const roleCard = {
 };
 
 const roleLabel = {
-  color: '#6c47ff',
   fontSize: '10px',
   fontWeight: '700',
   letterSpacing: '1px',

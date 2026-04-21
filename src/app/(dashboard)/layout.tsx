@@ -48,7 +48,10 @@ export default async function DashboardLayout({
   return (
     <>
       <WorkspaceSync workspaceId={workspaceData?.id ?? null} />
-      <BrandingProvider primaryColor={branding?.primary_color}>
+      <BrandingProvider 
+        primaryColor={branding?.primary_color}
+        platformName={branding?.platform_name}
+      >
         <DashboardShell 
           user={user} 
           workspace={workspaceData}
