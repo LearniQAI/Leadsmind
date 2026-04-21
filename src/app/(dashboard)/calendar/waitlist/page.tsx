@@ -2,7 +2,7 @@ import { requireAuth, getCurrentWorkspaceId } from '@/lib/auth';
 import { createServerClient } from '@/lib/supabase/server';
 import { getWaitlistEntries } from '@/app/actions/calendar';
 import { WaitlistManager } from './WaitlistManager';
-import { Users, AlertCircle } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
