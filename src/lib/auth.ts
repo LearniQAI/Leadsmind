@@ -101,7 +101,7 @@ export interface Workspace {
   slug: string;
   logoUrl: string | null;
   ownerId: string;
-  plan: 'free' | 'pro' | 'enterprise';
+  plan: 'free' | 'pro' | 'enterprise' | 'agency';
   createdAt: string;
 }
 
@@ -167,7 +167,7 @@ export async function getCurrentWorkspace(existingUser?: any): Promise<Workspace
 
   const { data, error } = await supabase
     .from('workspaces')
-    .select('id, name, slug, logo_url, owner_id, plan, created_at')
+    .select('id, name, slug, logo_url, owner_id, plan_tier, created_at')
     .eq('id', workspaceId)
     .single();
 
@@ -182,7 +182,7 @@ export async function getCurrentWorkspace(existingUser?: any): Promise<Workspace
     slug: data.slug,
     logoUrl: data.logo_url ?? null,
     ownerId: data.owner_id,
-    plan: data.plan as 'free' | 'pro' | 'enterprise',
+    plan: data.plan_tier as 'free' | 'pro' | 'enterprise' | 'agency',
     createdAt: data.created_at,
   };
 }

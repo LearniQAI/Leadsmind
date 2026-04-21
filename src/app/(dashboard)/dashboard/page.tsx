@@ -15,7 +15,10 @@ import {
   Target,
   GraduationCap,
   Brain,
-  Award
+  Award,
+  BarChart3,
+  Zap,
+  FileText
 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -213,6 +216,49 @@ export default async function DashboardPage() {
               <div>
                 <h3 className="font-bold text-white text-sm uppercase italic tracking-tight">Certifications</h3>
                 <p className="text-[10px] text-white/30 font-medium">Issued Credentials</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+
+      {/* ─── Platform Systems ─── */}
+      <div className="grid gap-6 md:grid-cols-3 animate-fade-up [animation-delay:140ms]">
+        <Link href="/analytics" className="group">
+          <Card className="h-full border-white/5 bg-white/1 hover:bg-white/3 transition-all hover:border-[#6c47ff]/30">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-[#6c47ff]/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <BarChart3 className="h-6 w-6 text-[#6c47ff]" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-sm uppercase italic tracking-tight">Analytics</h3>
+                <p className="text-[10px] text-white/30 font-medium">Business KPIs</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/automations" className="group">
+          <Card className="h-full border-white/5 bg-white/1 hover:bg-white/3 transition-all hover:border-[#6c47ff]/30">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-orange-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Zap className="h-6 w-6 text-orange-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-sm uppercase italic tracking-tight">Automations</h3>
+                <p className="text-[10px] text-white/30 font-medium">Visual Workflows</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/invoices" className="group">
+          <Card className="h-full border-white/5 bg-white/1 hover:bg-white/3 transition-all hover:border-[#6c47ff]/30">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <FileText className="h-6 w-6 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-sm uppercase italic tracking-tight">Invoices</h3>
+                <p className="text-[10px] text-white/30 font-medium">Client Billing</p>
               </div>
             </CardContent>
           </Card>

@@ -18,6 +18,10 @@ interface TopBarProps {
     id: string;
     name: string;
     logoUrl?: string | null;
+    branding?: {
+      platformName?: string | null;
+      primaryColor?: string | null;
+    } | null;
   } | null;
 }
 
@@ -49,7 +53,8 @@ export function TopBar({ user, workspace }: TopBarProps) {
           <Search className="absolute left-3 h-4 w-4 text-foreground/20" />
           <Input 
             placeholder="Search leads, tasks..." 
-            className="h-10 w-[300px] pl-10 bg-white/3 border-white/5 rounded-full text-sm placeholder:text-foreground/20 focus:border-[#6c47ff]/50 transition-all"
+            className="h-10 w-[300px] pl-10 bg-white/3 border-white/5 rounded-full text-sm placeholder:text-foreground/20 focus:border-white/30 transition-all focus-visible:ring-1"
+            style={{ '--tw-ring-color': 'var(--primary, #6c47ff)' } as React.CSSProperties}
           />
         </div>
       </div>
@@ -64,15 +69,15 @@ export function TopBar({ user, workspace }: TopBarProps) {
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex flex-col items-end">
               <span className="text-xs font-bold text-foreground/80 uppercase tracking-widest leading-none mb-1">
-                {workspace?.name || 'Workspace'}
+                {workspace?.branding?.platformName || workspace?.name || 'Workspace'}
               </span>
               <Badge variant="outline" className="h-5 px-1.5 bg-green-500/10 text-green-500 border-none text-[10px] font-bold uppercase tracking-tight">
                 Active
               </Badge>
             </div>
-            <Avatar className="h-9 w-9 rounded-xl border border-white/10 shadow-lg ring-2 ring-[#6c47ff]/5">
+            <Avatar className="h-9 w-9 rounded-xl border border-white/10 shadow-lg ring-1" style={{ '--tw-ring-color': 'rgba(var(--primary-rgb), 0.2)' } as React.CSSProperties}>
               <AvatarImage src={user?.avatarUrl || ''} alt={user?.firstName || 'User'} />
-              <AvatarFallback className="bg-[#6c47ff]/10 text-[#6c47ff] text-xs font-extrabold">{userInitials}</AvatarFallback>
+              <AvatarFallback className="text-xs font-extrabold" style={{ backgroundColor: 'rgba(var(--primary-rgb), 0.1)', color: 'var(--primary, #6c47ff)' }}>{userInitials}</AvatarFallback>
             </Avatar>
           </div>
         </div>
