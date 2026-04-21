@@ -26,7 +26,9 @@ import {
   Palette,
   Home,
   MessageCircle,
-  LayoutKanban
+  KanbanSquare,
+  BookOpen,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -88,7 +90,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',   icon: Home,          route: '/dashboard',          adminOnly: false },
   { label: 'Contacts',    icon: Users,         route: '/contacts',           adminOnly: false },
-  { label: 'Pipelines',   icon: LayoutKanban,  route: '/pipelines',          adminOnly: false },
+  { label: 'Pipelines',   icon: KanbanSquare,  route: '/pipelines',          adminOnly: false },
   { label: 'Inbox',       icon: MessageCircle, route: '/inbox',              adminOnly: false },
   { label: 'Automations', icon: Zap,           route: '/automations',        adminOnly: true  },
   { label: 'Courses',     icon: BookOpen,      route: '/courses',            adminOnly: false },
