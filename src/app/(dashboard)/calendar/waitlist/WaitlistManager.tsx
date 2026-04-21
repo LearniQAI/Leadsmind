@@ -48,7 +48,7 @@ export function WaitlistManager({ initialSession, initialWaitlist, allSessions }
     try {
       const res = await addContactToWaitlist(activeSession.id, emailToAdd);
       if (res.success) {
-        toast.success(res.mode === 'booked' ? 'User booked directly!' : 'User added to waitlist!');
+        toast.success(res.data?.mode === 'booked' ? 'User booked directly!' : 'User added to waitlist!');
         setEmailToAdd('');
         // Re-fetch waitlist
         const updated = await getWaitlistEntries(activeSession.id);
