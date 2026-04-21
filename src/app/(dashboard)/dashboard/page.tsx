@@ -13,6 +13,9 @@ import {
   ArrowRight,
   TrendingUp,
   Target,
+  GraduationCap,
+  Brain,
+  Award
 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -172,6 +175,49 @@ export default async function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* ─── LMS Quick Access ─── */}
+      <div className="grid gap-6 md:grid-cols-3 animate-fade-up [animation-delay:120ms]">
+        <Link href="/courses" className="group">
+          <Card className="h-full border-white/5 bg-white/1 hover:bg-white/3 transition-all hover:border-[#6c47ff]/30">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-[#6c47ff]/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <GraduationCap className="h-6 w-6 text-[#6c47ff]" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-sm uppercase italic tracking-tight">Courses</h3>
+                <p className="text-[10px] text-white/30 font-medium">Manage Curriculum</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/courses/quizzes" className="group">
+          <Card className="h-full border-white/5 bg-white/1 hover:bg-white/3 transition-all hover:border-[#6c47ff]/30">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Brain className="h-6 w-6 text-purple-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-sm uppercase italic tracking-tight">Quizzes</h3>
+                <p className="text-[10px] text-white/30 font-medium">Assessments & Logic</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/courses/certifications" className="group">
+          <Card className="h-full border-white/5 bg-white/1 hover:bg-white/3 transition-all hover:border-[#6c47ff]/30">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Award className="h-6 w-6 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-sm uppercase italic tracking-tight">Certifications</h3>
+                <p className="text-[10px] text-white/30 font-medium">Issued Credentials</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
 
       {/* ─── Stats Grid ─── */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 animate-fade-up [animation-delay:160ms]">

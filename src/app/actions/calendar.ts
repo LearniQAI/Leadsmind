@@ -434,3 +434,87 @@ export async function getContactCredits(contactId: string) {
     return data;
   });
 }
+
+// --- WAITLISTS ---
+
+export async function getWaitlistEntries(appointmentId: string) {
+  return executeAction(async (supabase) => {
+    const { data, error } = await supabase
+      .from('booking_waitlists')
+      .select('*, contact:contacts(first_name, last_name, email)')
+      .eq('appointment_id', appointmentId)
+      .order('position', { ascending: true });
+
+    if (error) throw error;
+    return data;
+  });
+}
+
+export async function offerWaitlistSpot(waitlistId: string) {
+  return executeAction(async (supabase, workspaceId) => {
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    
+    const { data: waitlistEntry, error: updateErr } = await supabase
+      .from('booking_waitlists')
+      .update({
+        offered_at: new Date().toISOString(),
+        offer_expires_at: expiresAt
+      })
+      .eq('id', waitlistId)
+      .select('*, contact:contacts(first_name, last_name, email), appointment:appointments(title)')
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    // Trigger Real-Time Email (Simulated for now, but ready for Resend/Postmark)
+    console.log(`[WAITLIST OFFER] Emailing ${waitlistEntry.contact.email}: Your spot for '${waitlistEntry.appointment.title}' is ready!`);
+    
+    // Fire Automation Trigger
+    await supabase.rpc('fn_trigger_automation', { 
+      p_event: 'waitlist_offer_sent', 
+      p_contact_id: waitlistEntry.contact_id,
+      p_data: { 
+        appointment_title: waitlistEntry.appointment.title,
+        expiry: expiresAt
+      }
+    });
+
+    revalidatePath('/calendar/waitlist');
+    return waitlistEntry;
+  });
+}
+
+export async function addContactToWaitlist(appointmentId: string, email: string) {
+  return executeAction(async (supabase, workspaceId) => {
+    // 1. Find or create contact
+    let { data: contact } = await supabase.from('contacts').select('id').eq('email', email).eq('workspace_id', workspaceId).single();
+    
+    if (!contact) {
+      const { data: newContact, error: createErr } = await supabase
+        .from('contacts')
+        .insert({
+          workspace_id: workspaceId,
+          email,
+          first_name: email.split('@')[0]
+        })
+        .select()
+        .single();
+      
+      if (createErr) throw createErr;
+      contact = newContact;
+    }
+
+    // 2. Call RPC for atomic waitlist addition
+    const { data, error } = await supabase.rpc('fn_secure_booking_or_waitlist', {
+      p_workspace_id: workspaceId,
+      p_appointment_id: appointmentId,
+      p_contact_id: contact.id
+    });
+
+    if (error) throw error;
+    
+    revalidatePath('/calendar/waitlist');
+    return data;
+  });
+}
+

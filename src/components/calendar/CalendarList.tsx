@@ -4,8 +4,19 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Link as LinkIcon, Settings, Copy, ExternalLink, Globe } from 'lucide-react';
+import { Plus, Link as LinkIcon, Settings, Copy, ExternalLink, Globe, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { createCalendar } from '@/app/actions/calendar';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter,
+  DialogTrigger
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface Calendar {
   id: string;
@@ -19,21 +30,119 @@ interface CalendarListProps {
 }
 
 export function CalendarList({ calendars }: CalendarListProps) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [formData, setFormData] = React.useState({
+    name: '',
+    slug: '',
+    slotDuration: 30
+  });
+
   const copyLink = (slug: string) => {
     const url = `${window.location.origin}/book/${slug}`;
     navigator.clipboard.writeText(url);
     toast.success('Booking link copied to clipboard');
   };
 
+  const handleCreate = async () => {
+    if (!formData.name || !formData.slug) {
+      toast.error('Name and Slug are required');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      const res = await createCalendar(formData);
+      if (res.success) {
+        toast.success('Calendar created successfully');
+        setIsOpen(false);
+        setFormData({ name: '', slug: '', slotDuration: 30 });
+      } else {
+        toast.error(res.error);
+      }
+    } catch (err) {
+      toast.error('Failed to create calendar');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const generateSlug = (name: string) => {
+     return name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-      {/* Create New Calendar Card */}
-      <button className="flex flex-col items-center justify-center p-8 rounded-[32px] border-2 border-dashed border-white/5 hover:border-[#6c47ff]/50 bg-white/[0.02] hover:bg-[#6c47ff]/5 transition-all duration-500 group">
-        <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-[#6c47ff] transition-all duration-500">
-           <Plus className="h-6 w-6 text-white" />
-        </div>
-        <span className="text-sm font-bold text-white/60 group-hover:text-white transition-colors">Create New Calendar</span>
-      </button>
+      {/* Create New Calendar Dialog */}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <button className="flex flex-col items-center justify-center p-8 rounded-[32px] border-2 border-dashed border-white/5 hover:border-[#6c47ff]/50 bg-white/[0.02] hover:bg-[#6c47ff]/5 transition-all duration-500 group">
+            <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-[#6c47ff] transition-all duration-500">
+               <Plus className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-sm font-bold text-white/60 group-hover:text-white transition-colors">Create New Calendar</span>
+          </button>
+        </DialogTrigger>
+        <DialogContent className="bg-[#0b0b14] border-white/10 text-white rounded-[40px] max-w-md p-8">
+           <DialogHeader>
+              <div className="flex items-center gap-2 mb-2">
+                 <Sparkles className="h-4 w-4 text-[#6c47ff]" />
+                 <span className="text-[10px] font-black text-[#6c47ff] uppercase tracking-widest">New Engine Instance</span>
+              </div>
+              <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Create <span className="text-white/20">Booking Node</span></DialogTitle>
+           </DialogHeader>
+           
+           <div className="space-y-6 py-6">
+              <div className="space-y-2">
+                 <Label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Display Name</Label>
+                 <Input 
+                   value={formData.name}
+                   onChange={(e) => {
+                      setFormData(prev => ({ 
+                         ...prev, 
+                         name: e.target.value,
+                         slug: prev.slug === generateSlug(prev.name) ? generateSlug(e.target.value) : prev.slug
+                      }));
+                   }}
+                   placeholder="e.g. Discovery Call"
+                   className="bg-white/5 border-white/5 text-white h-12 rounded-xl focus:ring-1 focus:ring-[#6c47ff]"
+                 />
+              </div>
+              
+              <div className="space-y-2">
+                 <Label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">URL Slug</Label>
+                 <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 text-xs">book/</span>
+                    <Input 
+                      value={formData.slug}
+                      onChange={(e) => setFormData(prev => ({ ...prev, slug: generateSlug(e.target.value) }))}
+                      className="bg-white/5 border-white/5 text-white h-12 rounded-xl pl-12 focus:ring-1 focus:ring-[#6c47ff]"
+                    />
+                 </div>
+              </div>
+
+              <div className="space-y-2">
+                 <Label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Slot Duration (Min)</Label>
+                 <Input 
+                   type="number"
+                   value={formData.slotDuration}
+                   onChange={(e) => setFormData(prev => ({ ...prev, slotDuration: parseInt(e.target.value) }))}
+                   className="bg-white/5 border-white/5 text-white h-12 rounded-xl focus:ring-1 focus:ring-[#6c47ff]"
+                 />
+              </div>
+           </div>
+
+           <DialogFooter>
+              <Button 
+                onClick={handleCreate}
+                disabled={isSubmitting}
+                className="w-full h-14 bg-[#6c47ff] hover:bg-[#5b3ce0] text-white font-black italic uppercase rounded-2xl shadow-lg shadow-[#6c47ff]/20 translate-y-2"
+              >
+                 {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Initialize Calendar'}
+              </Button>
+           </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {calendars.map((calendar) => (
         <Card key={calendar.id} className="bg-[#0b0b14] border-white/5 rounded-[32px] overflow-hidden group hover:border-white/10 transition-all duration-500">

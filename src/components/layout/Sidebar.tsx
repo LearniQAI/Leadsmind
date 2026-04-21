@@ -21,6 +21,8 @@ import {
   Zap,
   Receipt,
   Sparkles,
+  Brain,
+  Award,
   BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -118,6 +120,8 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'Media Center', href: '/media', icon: FolderOpen },
       { name: 'Learning', href: '/courses', icon: GraduationCap },
+      { name: 'Quizzes', href: '/courses/quizzes', icon: Brain },
+      { name: 'Certifications', href: '/courses/certifications', icon: Award },
       { name: 'Team Members', href: '/team-members', icon: Users },
       { name: 'Launch Invoice', href: '/invoice/dashboard', icon: CreditCard },
     ]
