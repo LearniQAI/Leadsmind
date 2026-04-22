@@ -564,3 +564,53 @@ export async function getWorkspaceTags(workspaceId: string) {
   })).sort((a, b) => b.count - a.count);
 }
 
+// --- CRM Detail Logic ---
+
+export async function getContactNotes(contactId: string) {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('contact_notes')
+    .select('*')
+    .eq('contact_id', contactId)
+    .order('created_at', { ascending: false });
+
+  if (error) return { success: false, error: error.message };
+  return { success: true, data: data || [] };
+}
+
+export async function getContactTasks(contactId: string) {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('contact_tasks')
+    .select('*')
+    .eq('contact_id', contactId)
+    .order('due_date', { ascending: true });
+
+  if (error) return { success: false, error: error.message };
+  return { success: true, data: data || [] };
+}
+
+export async function getContactActivities(contactId: string) {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('contact_activities')
+    .select('*')
+    .eq('contact_id', contactId)
+    .order('created_at', { ascending: false });
+
+  if (error) return { success: false, error: error.message };
+  return { success: true, data: data || [] };
+}
+
+export async function deleteTask(taskId: string) {
+  const supabase = await createServerClient();
+  const { error } = await supabase
+    .from('contact_tasks')
+    .delete()
+    .eq('id', taskId);
+
+  if (error) throw error;
+  revalidatePath('/contacts/[id]');
+  return { success: true };
+}
+

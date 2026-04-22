@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { updateCampaign } from '@/app/actions/campaigns';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { MinimalistEmailBuilder, EmailBlock } from './MinimalistEmailBuilder';
+import { MinimalistEmailBuilder, EmailBlock } from '../builder/MinimalistEmailBuilder';
 import { Edit3 } from 'lucide-react';
 
 interface CampaignWizardProps {

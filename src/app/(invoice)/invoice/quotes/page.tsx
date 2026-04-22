@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { getRecentQuotes, convertToInvoice } from "@/app/actions/invoice";
+import { getRecentQuotes, convertToInvoice } from "@/app/actions/finance";
 import Link from "next/link";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";

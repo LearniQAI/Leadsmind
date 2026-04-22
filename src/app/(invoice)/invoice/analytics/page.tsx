@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { getInvoiceAnalytics } from "@/app/actions/invoice";
+import { getInvoiceAnalytics } from "@/app/actions/finance";
 import { cn } from "@/lib/utils";
 
 export default function AnalyticsPage() {

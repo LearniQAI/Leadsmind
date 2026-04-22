@@ -811,3 +811,76 @@ export async function getInvoiceAnalytics(workspaceId: string) {
     }
   };
 }
+
+export async function getRecentQuotes(workspaceId: string, limit = 5) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("quotes")
+    .select("*, contact:contacts(first_name, last_name, email)")
+    .eq("workspace_id", workspaceId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data;
+}
+
+export async function createQuote(quoteData: any, items: any[]) {
+  const supabase = await createClient();
+  const workspaceId = quoteData.workspace_id;
+
+  // 1. Insert Quote
+  const { data: quote, error: qError } = await supabase
+    .from('quotes')
+    .insert(quoteData)
+    .select()
+    .single();
+
+  if (qError) throw qError;
+
+  // 2. Insert Items (Using same table as invoices for consistency)
+  if (items && items.length > 0) {
+    const itemsWithQuoteId = items.map(item => ({
+      ...item,
+      quote_id: quote.id,
+      workspace_id: workspaceId
+    }));
+
+    await supabase.from('invoice_items').insert(itemsWithQuoteId);
+  }
+
+  revalidatePath('/invoices');
+  return { success: true, data: quote };
+}
+
+export async function convertToInvoice(quoteId: string) {
+  const supabase = await createClient();
+  
+  // 1. Get Quote & Items
+  const { data: quote } = await supabase.from('quotes').select('*, items:invoice_items(*)').eq('id', quoteId).single();
+  if (!quote) throw new Error("Quote not found");
+
+  // 2. Map to Invoice Data
+  const invoiceData = {
+    workspace_id: quote.workspace_id,
+    contact_id: quote.contact_id,
+    invoice_number: `INV-${Date.now()}`,
+    status: 'open',
+    total_amount: quote.total_amount,
+    tax_amount: quote.tax_amount || 0,
+    discount_amount: quote.discount_amount || 0,
+    currency: quote.currency || 'USD',
+    due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    created_at: new Date().toISOString()
+  };
+
+  // 3. Save as Invoice
+  const result = await saveInvoice(invoiceData, quote.items || []);
+  
+  // 4. Update Quote Status
+  if (result.success) {
+    await supabase.from('quotes').update({ status: 'converted' }).eq('id', quoteId);
+  }
+
+  return result;
+}

@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { getRecentClients } from "@/app/actions/invoice";
+import { getRecentClients } from "@/app/actions/finance";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 

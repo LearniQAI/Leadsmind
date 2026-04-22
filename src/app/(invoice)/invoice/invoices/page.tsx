@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { getRecentInvoices } from "@/app/actions/invoice";
+import { getRecentInvoices } from "@/app/actions/finance";
 import Link from "next/link";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";

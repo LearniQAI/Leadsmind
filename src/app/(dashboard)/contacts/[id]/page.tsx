@@ -4,7 +4,7 @@ import {
   getContactActivities, 
   getContactNotes, 
   getContactTasks 
-} from '@/app/actions/crm';
+} from '@/app/actions/contacts';
 import { getAutomationLogsForContact } from '@/app/actions/automation';
 import { ContactDetailLayout } from '@/components/crm/ContactDetailLayout';
 import { ActivityTimeline } from '@/components/crm/ActivityTimeline';
