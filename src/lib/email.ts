@@ -14,15 +14,15 @@ interface SendEmailProps {
 
 export async function sendEmail({ to, subject, react, text, config }: SendEmailProps) {
   const apiKey = config?.apiKey || process.env.RESEND_API_KEY
-  const fromAddress = config?.fromEmail || 'onboarding@resend.dev'
+  const fromAddress = config?.fromEmail || process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
   const fromName = config?.fromName || 'LeadsMind'
   
-  if (!apiKey || apiKey === 're_123') {
+  if (!apiKey || apiKey === 're_123' || apiKey.includes('PLACEHOLDER')) {
     console.log('--- EMAIL SANDBOX MODE ---')
     console.log(`To: ${to}`)
     console.log(`Subject: ${subject}`)
     console.log(`Body (Text): ${text || 'React component provided'}`)
-    console.log('---------------------------')
+    console.log('--- CONFIGURE RESEND_API_KEY TO SEND REAL EMAILS ---')
     return { id: 'mock_id_' + Date.now() }
   }
 
