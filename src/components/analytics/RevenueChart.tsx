@@ -51,7 +51,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
               color: '#fff',
               fontSize: 12,
             }}
-            formatter={(v: number) => [`$${v.toFixed(2)}`, 'Revenue']}
+            formatter={(v: any) => [`$${Number(v).toFixed(2)}`, 'Revenue']}
           />
           <Bar
             dataKey="value"
