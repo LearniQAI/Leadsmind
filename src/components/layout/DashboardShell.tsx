@@ -21,12 +21,24 @@ interface DashboardShellProps {
     id: string;
     name: string;
     logoUrl?: string | null;
+    plan?: string;
   } | null;
+  branding?: {
+    platformName?: string | null;
+    logoUrl?: string | null;
+  };
+  role?: string | null;
 }
 
-export function DashboardShell({ children, user, workspace }: DashboardShellProps) {
+export function DashboardShell({ children, user, workspace, branding, role }: DashboardShellProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Merge branding data into workspace object for Sidebar consumption
+  const enrichedWorkspace = workspace ? {
+    ...workspace,
+    branding: branding
+  } : null;
 
   return (
     <div className="flex min-h-screen bg-[#030303]">
@@ -37,7 +49,8 @@ export function DashboardShell({ children, user, workspace }: DashboardShellProp
       )}>
         <Sidebar
           user={user}
-          workspace={workspace}
+          workspace={enrichedWorkspace}
+          role={role}
           className="h-full"
           isCollapsed={isCollapsed}
           onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
@@ -60,12 +73,12 @@ export function DashboardShell({ children, user, workspace }: DashboardShellProp
               }
             />
             <SheetContent side="left" className="p-0 w-[280px] bg-[#0b0b10] border-r border-white/5">
-              <Sidebar user={user} workspace={workspace} className="h-full" />
+              <Sidebar user={user} workspace={enrichedWorkspace} role={role} className="h-full" />
             </SheetContent>
           </Sheet>
 
           <div className="flex-1 w-full">
-            <TopBar user={user} workspace={workspace} />
+            <TopBar user={user} workspace={enrichedWorkspace} />
           </div>
         </header>
 

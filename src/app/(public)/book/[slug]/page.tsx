@@ -100,7 +100,9 @@ export default async function BookingPage({ params, searchParams }: BookingPageP
         </div>
 
         <div className="mt-12 flex flex-col items-center gap-6">
-           <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em]">Leadsmind Intelligence Sync Enabled</p>
+           <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em]">
+             {res.data.calendar?.name ? `Powered by ${res.data.calendar.name} Intelligence` : 'Secured by our proprietary Sync technology'}
+           </p>
            <div className="h-px w-20 bg-linear-to-r from-transparent via-white/5 to-transparent" />
         </div>
       </main>

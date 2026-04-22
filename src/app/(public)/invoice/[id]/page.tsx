@@ -43,19 +43,27 @@ export default async function PublicInvoicePage({ params, searchParams }: Public
   const { success, canceled } = await searchParams;
   const supabase = await createClient();
   
-  // 1. Fetch Invoice with items and contact
+  // 1. Fetch Invoice with items, contact, and branding
   const { data: invoice, error } = await supabase
     .from('invoices')
     .select(`
       *,
       items:invoice_items(*),
       contact:contacts(first_name, last_name, email),
-      settings:invoice_settings(*)
+      settings:invoice_settings(*),
+      workspace:workspaces(
+        name,
+        branding:workspace_branding(*)
+      )
     `)
     .eq('id', id)
     .single();
 
   if (error || !invoice) notFound();
+
+  // @ts-ignore - nested join translation
+  const branding = invoice.workspace?.branding?.[0] || null;
+  const platformName = branding?.platform_name || invoice.workspace?.name || 'Platform';
 
   // 2. Track View (Silent notification to Admin)
   if (invoice.status === 'sent') {
@@ -235,7 +243,7 @@ export default async function PublicInvoicePage({ params, searchParams }: Public
                  <span className="text-[10px] font-black uppercase tracking-widest">Mobile Friendly</span>
               </div>
            </div>
-           <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em]">Powered by Leadsmind Finance Network</p>
+           <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em]">Powered by {platformName} Finance Network</p>
         </div>
       </main>
     </div>

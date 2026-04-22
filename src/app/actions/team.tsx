@@ -70,14 +70,20 @@ export async function inviteMember(payload: InviteValues) {
     return { success: false, error: 'Failed to create invitation' };
   }
 
-  // 4. Get workspace name and inviter name for email
+  // 4. Get workspace info with branding for email
   const { data: workspace } = await supabase
     .from('workspaces')
-    .select('name')
+    .select(`
+      name,
+      branding:workspace_branding(platform_name, primary_color)
+    `)
     .eq('id', workspaceId)
     .single();
 
   const user = await getCurrentProfile();
+  
+  // @ts-ignore
+  const branding = workspace?.branding?.[0] || null;
 
   // 5. Send email
   const inviteUrl = `http://localhost:3000/invite/accept?token=${token}`;
@@ -93,6 +99,8 @@ export async function inviteMember(payload: InviteValues) {
           inviteUrl={inviteUrl}
           role={validatedFields.data.role}
           expiresIn="48 hours"
+          platformName={branding?.platform_name || 'LeadsMind'}
+          primaryColor={branding?.primary_color || '#6c47ff'}
         />
       ),
     });
@@ -115,7 +123,7 @@ export async function resendInvitation(invitationId: string) {
   const supabase = await createServerClient();
   const { data: invite, error: fetchError } = await supabase
     .from('invitations')
-    .select('*, workspaces(name)')
+    .select('*, workspaces(name, branding:workspace_branding(platform_name, primary_color))')
     .eq('id', invitationId)
     .single();
 
@@ -141,6 +149,9 @@ export async function resendInvitation(invitationId: string) {
 
   const user = await getCurrentProfile();
   const inviteUrl = `http://localhost:3000/invite/accept?token=${newToken}`;
+  
+  // @ts-ignore
+  const branding = invite.workspaces?.branding?.[0] || null;
 
   try {
     await sendEmail({
@@ -153,6 +164,8 @@ export async function resendInvitation(invitationId: string) {
           inviteUrl={inviteUrl}
           role={invite.role}
           expiresIn="48 hours"
+          platformName={branding?.platform_name || 'LeadsMind'}
+          primaryColor={branding?.primary_color || '#6c47ff'}
         />
       ),
     });

@@ -6,7 +6,7 @@ export interface Workspace {
   slug: string;
   logoUrl: string | null;
   ownerId: string;
-  plan: 'free' | 'pro' | 'enterprise';
+  plan: 'free' | 'pro' | 'enterprise' | 'agency';
   createdAt: string;
 }
 

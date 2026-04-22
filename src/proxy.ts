@@ -84,7 +84,24 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  // NOTE: Rule 3 (Admin check) removed from middleware to prevent blind redirects to /dashboard.
+  // ────────────────────────────────────────────────────────
+  // Rule 3: Phase 6 Client Isolation Logic
+  // ────────────────────────────────────────────────────────
+  if (session?.user) {
+    const isClient = session.user.user_metadata?.role === 'client' || request.cookies.get('active_role')?.value === 'client'
+    
+    if (isClient) {
+      if (!pathname.startsWith('/portal') && !pathname.startsWith('/learn') && !pathname.startsWith('/api') && !pathname.includes('.')) {
+        return NextResponse.redirect(new URL('/portal/dashboard', request.url))
+      }
+    } else {
+      if (pathname.startsWith('/portal')) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+    }
+  }
+
+  // NOTE: Rule 4 (Admin check) removed from middleware to prevent blind redirects to /dashboard.
   // Role-based protection should be handled within the Server Components (layouts/pages)
   // using utility functions like requireAdmin().
 

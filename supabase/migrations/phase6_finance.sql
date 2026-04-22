@@ -44,9 +44,9 @@ ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Workspace owners can manage products"
 ON public.products FOR ALL
 TO authenticated
-USING (workspace_id = (SELECT workspace_id FROM profiles WHERE id = auth.uid()));
+USING (workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid() AND role = 'admin'));
 
 CREATE POLICY "Workspace owners can view invoices"
 ON public.invoices FOR ALL
 TO authenticated
-USING (workspace_id = (SELECT workspace_id FROM profiles WHERE id = auth.uid()));
+USING (workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()));

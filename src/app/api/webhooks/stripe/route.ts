@@ -48,13 +48,68 @@ export async function POST(req: NextRequest) {
         const type = session.metadata?.type;
         
         if (type === 'crm_invoice' && invoiceId) {
-          // Use the markInvoicePaid logic but via admin client to bypass RLS
-          await supabaseAdmin
+          // Idempotency check: only update if not already paid
+          const { data: existing } = await supabaseAdmin
             .from('invoices')
-            .update({ status: 'paid', paid_at: new Date().toISOString() })
-            .eq('id', invoiceId);
-            
-          console.log(`CRM Invoice ${invoiceId} marked as paid via Stripe.`);
+            .select('status')
+            .eq('id', invoiceId)
+            .single();
+
+          if (existing?.status !== 'paid') {
+            await supabaseAdmin
+              .from('invoices')
+              .update({ status: 'paid', paid_at: new Date().toISOString() })
+              .eq('id', invoiceId);
+              
+            console.log(`CRM Invoice ${invoiceId} marked as paid via Stripe.`);
+          }
+        }
+
+        // Handle Course Enrollment Purchase
+        const courseId = session.metadata?.courseId;
+        const contactId = session.metadata?.contactId;
+
+        if (type === 'course_enrollment' && courseId && contactId) {
+          // Idempotency check: check if already enrolled
+          const { data: existing } = await supabaseAdmin
+            .from('enrollments')
+            .select('id')
+            .eq('course_id', courseId)
+            .eq('contact_id', contactId)
+            .maybeSingle();
+
+          if (!existing) {
+            // Create enrollment
+            await supabaseAdmin.from('enrollments').insert({
+              workspace_id: workspaceId,
+              course_id: courseId,
+              contact_id: contactId,
+              status: 'active',
+              enrolled_at: new Date().toISOString()
+            });
+
+            // Create paid invoice for this purchase
+            await supabaseAdmin.from('invoices').insert({
+              workspace_id: workspaceId,
+              contact_id: contactId,
+              amount_due: session.amount_total / 100,
+              amount_paid: session.amount_total / 100,
+              currency: session.currency,
+              status: 'paid',
+              paid_at: new Date().toISOString(),
+              stripe_invoice_id: session.id // Or actual invoice if exists
+            });
+
+            // Log activity
+            await supabaseAdmin.from('contact_activities').insert({
+              workspace_id: workspaceId,
+              contact_id: contactId,
+              type: 'system',
+              description: `Enrolled in course through Stripe payment`
+            });
+
+            console.log(`Course enrollment ${courseId} created for contact ${contactId}`);
+          }
         }
         break;
       }
