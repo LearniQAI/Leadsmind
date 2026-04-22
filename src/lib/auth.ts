@@ -12,6 +12,10 @@ export async function getSession() {
   const supabase = await createServerClient();
   try {
     const { data: { session } } = await supabase.auth.getSession();
+    // Safety check: ensure user data is valid even if session exists
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) return null;
+    
     return session;
   } catch (error) {
     console.error('[auth] Error fetching session:', error);
@@ -20,8 +24,14 @@ export async function getSession() {
 }
 
 export async function getUser() {
-  const session = await getSession();
-  return session?.user ?? null;
+  const supabase = await createServerClient();
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) return null;
+    return user;
+  } catch (error) {
+      return null;
+  }
 }
 
 export async function requireAuth() {

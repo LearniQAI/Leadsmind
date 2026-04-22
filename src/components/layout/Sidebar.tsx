@@ -23,7 +23,9 @@ import {
   Sparkles,
   Brain,
   Award,
-  BarChart3
+  BarChart3,
+  Globe,
+  Filter
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -110,6 +112,8 @@ const navGroups: NavGroup[] = [
   {
     name: 'Marketing',
     items: [
+      { name: 'Websites', href: '/websites', icon: Globe },
+      { name: 'Funnels', href: '/funnels', icon: Filter },
       { name: 'Social Posts', href: '/social-posts', icon: Share2 },
       { name: 'Lead Forms', href: '/forms', icon: LayoutDashboard },
       { name: 'Workflows', href: '/automations', icon: Zap },
