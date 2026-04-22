@@ -177,3 +177,72 @@ export interface InvoiceSettings {
   company_phone: string | null;
   logo_url: string | null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASES 11 - 20 TYPES
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ReviewRequest {
+  id: string;
+  workspace_id: string;
+  contact_id: string | null;
+  channel: 'email' | 'sms';
+  status: 'sent' | 'opened' | 'clicked' | 'reviewed';
+  sent_at: string;
+  review_received: boolean;
+  created_at: string;
+}
+
+export interface Review {
+  id: string;
+  workspace_id: string;
+  platform: 'google' | 'facebook';
+  external_review_id: string;
+  reviewer_name: string | null;
+  rating: number;
+  body: string | null;
+  replied: boolean;
+  reply_text: string | null;
+  replied_at: string | null;
+  review_date: string | null;
+}
+
+export interface SocialAccount {
+  id: string;
+  workspace_id: string;
+  platform: 'facebook' | 'instagram' | 'linkedin' | 'twitter' | 'google_business' | 'youtube' | 'pinterest' | 'tiktok';
+  account_name: string | null;
+  account_id: string | null;
+  connected_at: string;
+}
+
+export interface SocialPost {
+  id: string;
+  workspace_id: string;
+  platforms: string[];
+  content: string;
+  media_urls: string[];
+  scheduled_for: string | null;
+  published_at: string | null;
+  status: 'draft' | 'scheduled' | 'published' | 'failed';
+  error_message: string | null;
+}
+
+export interface Project {
+  id: string;
+  workspace_id: string;
+  name: string;
+  contact_id: string | null;
+  status: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled';
+  due_date: string | null;
+}
+
+export interface Proposal {
+  id: string;
+  workspace_id: string;
+  contact_id: string | null;
+  title: string;
+  status: 'draft' | 'sent' | 'viewed' | 'signed' | 'declined' | 'expired';
+  total_value: number;
+  signed_at: string | null;
+}

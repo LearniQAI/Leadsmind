@@ -15,6 +15,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface NodeSettingsProps {
   workflowId?: string;
@@ -120,7 +121,10 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
           {data.actionType === 'email' && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Email Subject</label>
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center">
+                  Email Subject
+                  <InfoTooltip content="The subject line of the email. You can use tokens like {{first_name}} to personalize." />
+                </label>
                 <Input
                   value={data.subject || ""}
                   onChange={(e) => handleChange('subject', e.target.value)}
@@ -233,7 +237,10 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
           {type === 'delay' && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed">Wait for how long?</label>
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed flex items-center">
+                  Wait for how long?
+                  <InfoTooltip content="Artificial pauses between steps. Useful for making automation feel more human." />
+                </label>
                 <div className="grid grid-cols-2 gap-2">
                   <Input
                     type="number"
@@ -308,7 +315,10 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
             <div className="space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">Split Distribution</label>
+                  <label className="text-[10px] font-black text-white/40 uppercase tracking-widest flex items-center">
+                    Split Distribution
+                    <InfoTooltip content="Divide your traffic into two paths to test which content performs better." />
+                  </label>
                   <span className="text-xs font-black text-rose-400">{data.splitPercentage || 50}% / {100 - (data.splitPercentage || 50)}%</span>
                 </div>
                 
@@ -603,7 +613,10 @@ export function NodeSettings({ workflowId, node, onUpdate, onClose }: NodeSettin
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-blue-400">
                     <Link size={14} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Your Endpoint</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest flex items-center">
+                      Your Endpoint
+                      <InfoTooltip content="Send data to this URL from your external app (like Webflow or Shopify) to start this workflow." />
+                    </span>
                   </div>
                   <Button
                     variant="ghost"

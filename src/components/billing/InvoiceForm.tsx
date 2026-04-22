@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getRecentClients, createInvoice } from "@/app/actions/invoice";
+import { getRecentClients, saveInvoice as createInvoice } from "@/app/actions/finance";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -72,16 +72,16 @@ export function InvoiceForm({ workspaceId, initialData }: { workspaceId: string,
     
     try {
       setIsSubmitting(true);
-      await createInvoice(workspaceId, {
+      await createInvoice({
+        workspace_id: workspaceId,
         contact_id: selectedClientId,
-        items,
         subtotal,
         tax_total: taxTotal,
         total_amount: total,
         status,
         notes,
         currency: 'ZAR'
-      });
+      }, items);
       toast.success(`Invoice ${status === 'open' ? 'sent' : 'saved'} successfully!`);
       router.push("/invoice/invoices");
     } catch (error) {

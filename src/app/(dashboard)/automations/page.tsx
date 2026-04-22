@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { getWorkflows } from '@/app/actions/automation';
+import { getWorkflows, getAutomationStats } from '@/app/actions/automation';
 import { Button } from '@/components/ui/button';
 import {
   Plus
@@ -14,7 +14,10 @@ export default async function AutomationsPage() {
   const workspace = await getCurrentWorkspace();
   if (!workspace) redirect('/login');
 
-  const workflows = await getWorkflows(workspace.id);
+  const [workflows, stats] = await Promise.all([
+    getWorkflows(workspace.id),
+    getAutomationStats(workspace.id)
+  ]);
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -37,16 +40,18 @@ export default async function AutomationsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-white/5">
         <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
-           <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Total Executions</p>
-           <p className="text-2xl font-bold text-white">1,284</p>
+           <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Total Recent</p>
+           <p className="text-2xl font-bold text-white">{stats.totalRecent.toLocaleString()}</p>
         </div>
         <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
            <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Success Rate</p>
-           <p className="text-2xl font-bold text-emerald-400">99.2%</p>
+           <p className={`text-2xl font-bold ${stats.successRate > 95 ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {stats.successRate}%
+           </p>
         </div>
         <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
            <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Active Workflows</p>
-           <p className="text-2xl font-bold text-blue-400">{workflows.filter(w => w.is_active).length}</p>
+           <p className="text-2xl font-bold text-blue-400">{stats.workflowCount}</p>
         </div>
       </div>
     </div>

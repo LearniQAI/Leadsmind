@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { InboxIcon, MessageSquare, Loader2, ArrowRight } from 'lucide-react';
-import { getConversations } from '@/app/actions/conversations';
+import { getConversations, getMessages, sendChatMessage, syncRecentMessages } from "@/app/actions/messaging";
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';

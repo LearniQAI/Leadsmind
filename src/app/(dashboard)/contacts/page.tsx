@@ -7,7 +7,7 @@ import { Plus, Search, Filter, Tag as TagIcon, X } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ImportContactsModal } from '@/components/crm/ImportContactsModal';
-import { getWorkspaceTags } from '@/app/actions/tags';
+import { getWorkspaceTags } from '@/app/actions/contacts';
 
 export const dynamic = 'force-dynamic';
 

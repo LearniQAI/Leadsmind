@@ -1,38 +1,36 @@
-import { requireAdmin, getCurrentWorkspaceId } from '@/lib/auth';
-import { redirect } from 'next/navigation';
-import { LayoutDashboard, Plus, Info } from 'lucide-react';
-import FormBuilder from '@/components/marketing/FormBuilder';
+import { fetchForms } from '@/app/actions/forms';
+import { FormList } from '@/components/forms/FormList';
 import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import Link from 'next/link';
 
 export default async function FormsPage() {
-  await requireAdmin();
-  const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) redirect('/login');
+  const forms = await fetchForms();
 
   return (
-    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1 text-left">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-500 rounded-lg">
-               <LayoutDashboard className="w-5 h-5 text-white" />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Lead Capture Forms</h2>
-          </div>
-          <p className="text-sm text-muted-foreground max-w-lg">
-            Create high-converting forms to capture leads directly from your website.
-          </p>
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white">Forms & Surveys</h1>
+          <p className="text-white/50">Capture leads and collect feedback with custom forms.</p>
+        </div>
+        <div className="flex gap-4">
+          <Link href="/forms/new?type=survey">
+            <Button variant="outline" className="border-white/10 hover:bg-white/5 text-white gap-2">
+              <Plus className="h-4 w-4" />
+              New Survey
+            </Button>
+          </Link>
+          <Link href="/forms/new?type=form">
+            <Button className="bg-[#6c47ff] hover:bg-[#8b5cf6] text-white gap-2">
+              <Plus className="h-4 w-4" />
+              New Form
+            </Button>
+          </Link>
         </div>
       </div>
 
-      <div className="grid gap-6">
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground ml-1">Create New Form</h3>
-          </div>
-          <FormBuilder workspaceId={workspaceId} />
-        </section>
-      </div>
+      <FormList forms={forms} />
     </div>
   );
 }

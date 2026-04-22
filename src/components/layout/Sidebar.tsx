@@ -39,7 +39,21 @@ import {
   Home,
   MessageCircle,
   KanbanSquare,
-  BookOpen
+  BookOpen,
+  Send,
+  ClipboardList,
+  Star,
+  Megaphone,
+  Package,
+  ShoppingBag,
+  FolderKanban,
+  FileSignature,
+  LifeBuoy,
+  Code2,
+  Webhook,
+  Store,
+  Shield,
+  Plug,
 } from 'lucide-react';
 
 
@@ -50,6 +64,7 @@ import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 import Image from 'next/image';
 
 
@@ -115,34 +130,50 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'Contacts', href: '/contacts', icon: Users },
       { name: 'Pipelines', href: '/pipelines', icon: KanbanSquare },
+      { name: 'Proposals', href: '/proposals', icon: FileSignature },
       { name: 'Invoices', href: '/invoices', icon: Receipt, adminOnly: true },
-      { name: 'AI Accountant', href: '/accountant', icon: Sparkles, adminOnly: true },
     ]
   },
   {
     name: 'Scheduling',
     items: [
       { name: 'Calendars', href: '/calendar', icon: CalendarDays },
-      { name: 'Analytics', href: '/analytics', icon: BarChart3, adminOnly: true },
       { name: 'Waitlists', href: '/calendar/waitlist', icon: Users },
     ]
   },
   {
     name: 'Marketing',
-
     items: [
       { name: 'Websites', href: '/websites', icon: Globe },
       { name: 'Funnels', href: '/funnels', icon: Filter },
-      { name: 'Social Posts', href: '/social-posts', icon: Share2 },
-      { name: 'Workflows', href: '/automations', icon: Zap, adminOnly: true },
+      { name: 'Campaigns', href: '/campaigns', icon: Send },
+      { name: 'Forms', href: '/forms', icon: ClipboardList },
+      { name: 'Social', href: '/social', icon: Share2 },
+      { name: 'Reputation', href: '/reputation', icon: Star },
+      { name: 'Ads', href: '/ads', icon: Megaphone, adminOnly: true },
+    ]
+  },
+  {
+    name: 'Commerce',
+    items: [
+      { name: 'Products', href: '/products', icon: Package },
+      { name: 'Orders', href: '/orders', icon: ShoppingBag },
     ]
   },
   {
     name: 'Business',
     items: [
+      { name: 'Projects', href: '/projects', icon: FolderKanban },
+      { name: 'Support', href: '/support', icon: LifeBuoy },
+      { name: 'Automations', href: '/automations', icon: Zap, adminOnly: true },
       { name: 'Learning', href: '/courses', icon: GraduationCap },
       { name: 'Media Center', href: '/media', icon: FolderOpen },
-      { name: 'Team Members', href: '/team-members', icon: Users2, adminOnly: true },
+    ]
+  },
+  {
+    name: 'Analytics',
+    items: [
+      { name: 'Reporting', href: '/analytics', icon: BarChart3, adminOnly: true },
     ]
   },
   {
@@ -150,8 +181,13 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'Account', href: '/settings/account', icon: User },
       { name: 'Workspace', href: '/settings/workspace', icon: Settings, adminOnly: true },
+      { name: 'Team', href: '/team-members', icon: Users2, adminOnly: true },
       { name: 'Branding', href: '/settings/branding', icon: Palette, adminOnly: true },
       { name: 'Billing', href: '/settings/billing', icon: CreditCard, adminOnly: true },
+      { name: 'API & Webhooks', href: '/settings/api', icon: Code2, adminOnly: true },
+      { name: 'Integrations', href: '/settings/integrations', icon: Plug, adminOnly: true },
+      { name: 'SaaS Mode', href: '/settings/saas', icon: Store, adminOnly: true },
+      { name: 'Compliance', href: '/settings/gdpr', icon: Shield, adminOnly: true },
     ]
   }
 ];
@@ -285,6 +321,19 @@ export function Sidebar({ className, user, workspace, role, isCollapsed = false,
                         <span className="flex items-center gap-2">
                            <div className="w-1 h-3 rounded-full bg-[#6c47ff]/20 group-hover/header:bg-[#6c47ff]/60 transition-all" />
                            {group.name}
+                           <InfoTooltip 
+                             content={
+                               group.name === 'Main' ? 'Core daily operations and messaging.' :
+                               group.name === 'Relations' ? 'Manage your leads, pipelines, and financial documents.' :
+                               group.name === 'Scheduling' ? 'Calendar booking and waitlist management.' :
+                               group.name === 'Marketing' ? 'Social planner, ad manager, and lead capture tools.' :
+                               group.name === 'Commerce' ? 'Product inventory and order tracking.' :
+                               group.name === 'Business' ? 'Projects, learning management, and automations.' :
+                               group.name === 'Account' ? 'Platform settings and developer configurations.' :
+                               'Platform module group'
+                             } 
+                             size={10}
+                           />
                         </span>
                         <div className="p-1 rounded-md group-hover/header:bg-white/5 transition-all">
                            {isGroupCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}

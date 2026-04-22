@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { sendEmail } from '@/lib/email';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
@@ -102,7 +103,28 @@ export async function setupWorkspace(payload: {
       console.warn('[setupWorkspace] Member insert warning:', memberError.message);
     }
 
-    revalidatePath('/', 'layout');
+    revalidatePath('/(dashboard)', 'layout');
+
+    // Send Branded Welcome Email
+    try {
+      await sendEmail({
+        to: payload.email,
+        subject: `Welcome to LeadsMind, ${payload.firstName}!`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
+            <h1 style="font-size: 24px; font-weight: 800; tracking: tight;">Welcome to LeadsMind</h1>
+            <p>Hi ${payload.firstName}, your workspace <strong>${payload.workspaceName}</strong> is ready.</p>
+            <p>You can now start managing your contacts, social media, and reputation from one place.</p>
+            <div style="margin-top: 32px;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" style="background: #6c47ff; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">Go to Dashboard</a>
+            </div>
+          </div>
+        `
+      });
+    } catch (emailErr) {
+      console.error('[setupWorkspace] Welcome email failed:', emailErr);
+    }
+
     return { success: true, workspaceId: workspace.id };
   } catch (err) {
     console.error('[setupWorkspace] Unexpected error:', err);
@@ -143,12 +165,9 @@ export async function forgotPassword(email: string) {
 
   if (error) {
     console.error('Forgot password error:', error.message);
-    if (process.env.NODE_ENV === 'development') {
-      return { success: false, error: error.message };
-    }
+    return { success: false, error: error.message };
   }
 
-  // Always return success in production to prevent email enumeration
   return { success: true };
 }
 

@@ -5,7 +5,7 @@ import { ContactNote } from '@/types/crm.types';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { createNote, deleteNote } from '@/app/actions/crm';
+import { createNote, deleteNote } from '@/app/actions/contacts';
 import { format } from 'date-fns';
 import { Trash2, MessageSquare, Plus } from 'lucide-react';
 

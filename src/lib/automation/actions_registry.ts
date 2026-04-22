@@ -25,10 +25,13 @@ export const AutomationActions = {
       .eq("id", workspaceId)
       .single();
 
+    const isHtml = config.body?.startsWith('<') || config.isHtml;
+
     await sendEmail({
       to: contact.email,
       subject: config.subject || "Important Update",
-      react: config.body || `Hello ${contact.first_name}, this is an automated message.`,
+      react: !isHtml ? (config.body || `Hello ${contact.first_name}, this is an automated message.`) : undefined,
+      html: isHtml ? config.body : undefined,
       config: {
         apiKey: workspace?.resend_api_key,
         fromEmail: workspace?.email_from_address,

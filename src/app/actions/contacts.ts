@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { requireAuth, getCurrentWorkspaceId } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { ActionResult, Contact } from '@/types/crm.types';
+import { sendEmail } from '@/lib/email';
 
 export async function createContact(payload: {
   firstName: string;
@@ -139,6 +140,48 @@ export async function updateContact(id: string, payload: Partial<{
   } catch (err) {
     console.error('Update contact exception:', err);
     return { success: false, error: 'An unexpected error occurred' };
+  }
+}
+
+export async function sendContactEmail(id: string, payload: { subject: string; body: string; isHtml?: boolean }) {
+  const user = await requireAuth();
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, error: 'No active workspace' };
+
+  const supabase = await createServerClient();
+  const { data: contact } = await supabase.from('contacts').select('email, first_name').eq('id', id).single();
+  if (!contact?.email) return { success: false, error: 'Contact has no email address' };
+
+  try {
+    const { data: workspace } = await supabase.from('workspaces').select('resend_api_key, email_from_name, email_from_address').eq('id', workspaceId).single();
+
+    // The system will throw here if delivery fails, which is exactly what we want.
+    await sendEmail({
+      to: contact.email,
+      subject: payload.subject,
+      html: payload.isHtml ? payload.body : undefined,
+      text: !payload.isHtml ? payload.body : undefined,
+      config: {
+        apiKey: workspace?.resend_api_key,
+        fromEmail: workspace?.email_from_address,
+        fromName: workspace?.email_from_name
+      }
+    });
+
+    // Log Activity
+    await supabase.from('contact_activities').insert({
+      workspace_id: workspaceId,
+      contact_id: id,
+      type: 'email',
+      description: `Sent email: ${payload.subject}`,
+      created_by: user.id
+    });
+
+    revalidatePath(`/contacts/${id}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error('[sendContactEmail] Failed:', err.message);
+    return { success: false, error: err.message || 'Failed to deliver email' };
   }
 }
 
@@ -343,5 +386,181 @@ export async function recalculateLeadScore(id: string): Promise<ActionResult<Con
     } catch (err) {
         return { success: false, error: 'Failed to recalculate score' };
     }
+}
+
+// --- CRM Extensions (Notes, Tasks, Activities) ---
+
+export async function createNote(payload: {
+  contactId: string;
+  content: string;
+}): Promise<ActionResult<ContactNote>> {
+  const user = await requireAuth();
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, error: 'No active workspace' };
+  const supabase = await createServerClient();
+
+  try {
+    const { data: note, error } = await supabase
+      .from('contact_notes')
+      .insert({
+          workspace_id: workspaceId,
+          contact_id: payload.contactId,
+          content: payload.content,
+          created_by: user.id
+      })
+      .select()
+      .single();
+
+    if (error) return { success: false, error: 'Failed to create note' };
+
+    await supabase.from('contact_activities').insert({
+        workspace_id: workspaceId,
+        contact_id: payload.contactId,
+        type: 'note',
+        description: `Added a note`,
+        created_by: user.id
+    });
+
+    revalidatePath(`/contacts/${payload.contactId}`);
+    return { success: true, data: note };
+  } catch (err) { return { success: false, error: 'Server error' }; }
+}
+
+export async function deleteNote(id: string, contactId: string): Promise<ActionResult> {
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, error: 'No active workspace' };
+  const supabase = await createServerClient();
+  try {
+    await supabase.from('contact_notes').delete().eq('id', id).eq('workspace_id', workspaceId);
+    revalidatePath(`/contacts/${contactId}`);
+    return { success: true };
+  } catch (err) { return { success: false, error: 'Error' }; }
+}
+
+export async function createTask(payload: {
+  contactId: string;
+  title: string;
+  description?: string;
+  dueDate?: string;
+  assignedTo?: string;
+}): Promise<ActionResult<ContactTask>> {
+  const user = await requireAuth();
+  const workspaceId = await getCurrentWorkspaceId();
+  const supabase = await createServerClient();
+  try {
+    const { data: task, error } = await supabase
+      .from('contact_tasks')
+      .insert({
+          workspace_id: workspaceId,
+          contact_id: payload.contactId,
+          title: payload.title,
+          description: payload.description,
+          due_date: payload.dueDate,
+          assigned_to: payload.assignedTo,
+          created_by: user.id,
+          status: 'todo'
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    revalidatePath(`/contacts/${payload.contactId}`);
+    return { success: true, data: task };
+  } catch (err) { return { success: false, error: 'Error' }; }
+}
+
+export async function toggleTaskStatus(id: string, contactId: string, currentStatus: string): Promise<ActionResult> {
+  const workspaceId = await getCurrentWorkspaceId();
+  const supabase = await createServerClient();
+  const newStatus = currentStatus === 'todo' ? 'completed' : 'todo';
+  try {
+    await supabase.from('contact_tasks').update({ status: newStatus }).eq('id', id).eq('workspace_id', workspaceId);
+    revalidatePath(`/contacts/${contactId}`);
+    return { success: true };
+  } catch (err) { return { success: false, error: 'Error' }; }
+}
+
+export async function getContactActivities(contactId: string) {
+    const supabase = await createServerClient();
+    const { data } = await supabase.from('contact_activities').select('*').eq('contact_id', contactId).order('created_at', { ascending: false });
+    return data || [];
+}
+
+export async function getContactNotes(contactId: string) {
+    const supabase = await createServerClient();
+    const { data } = await supabase.from('contact_notes').select('*').eq('contact_id', contactId).order('created_at', { ascending: false });
+    return data || [];
+}
+
+export async function getContactTasks(contactId: string) {
+    const supabase = await createServerClient();
+    const { data } = await supabase.from('contact_tasks').select('*').eq('contact_id', contactId).order('status', { ascending: false }).order('created_at', { ascending: false });
+    return data || [];
+}
+
+// --- Tag Management ---
+
+export async function bulkAddTag(contactIds: string[], tagName: string) {
+  const supabase = await createServerClient();
+  const tag = tagName.trim();
+  if (!tag) return { success: false, error: "Tag cannot be empty" };
+
+  try {
+    const { data: contacts } = await supabase.from('contacts').select('id, tags').in('id', contactIds);
+    if (!contacts) return { success: false, error: "No contacts found" };
+
+    const updates = contacts.map(c => {
+      const currentTags = c.tags || [];
+      if (currentTags.includes(tag)) return null;
+      return supabase.from('contacts').update({ tags: [...currentTags, tag] }).eq('id', c.id);
+    }).filter(Boolean);
+
+    await Promise.all(updates as any);
+
+    const { triggerWorkflows } = await import('@/lib/automation/executor');
+    const workspaceId = await getCurrentWorkspaceId();
+    if (workspaceId) {
+      await Promise.all(contactIds.map(id => triggerWorkflows(workspaceId, 'tag_added', id)));
+    }
+    revalidatePath('/contacts');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function bulkRemoveTag(contactIds: string[], tagName: string) {
+  const supabase = await createServerClient();
+  try {
+    const { data: contacts } = await supabase.from('contacts').select('id, tags').in('id', contactIds);
+    if (!contacts) return { success: false, error: "No contacts found" };
+
+    const updates = contacts.map(c => {
+      const currentTags = c.tags || [];
+      if (!currentTags.includes(tagName)) return null;
+      return supabase.from('contacts').update({ tags: currentTags.filter((t: string) => t !== tagName) }).eq('id', c.id);
+    }).filter(Boolean);
+
+    await Promise.all(updates as any);
+    revalidatePath('/contacts');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getWorkspaceTags(workspaceId: string) {
+  const supabase = await createServerClient();
+  const { data: contacts } = await supabase.from('contacts').select('tags').eq('workspace_id', workspaceId);
+  const tagCounts: Record<string, number> = {};
+  contacts?.forEach(c => {
+    c.tags?.forEach((t: string) => {
+      tagCounts[t] = (tagCounts[t] || 0) + 1;
+    });
+  });
+  return Object.entries(tagCounts).map(([name, count]) => ({
+    name,
+    count,
+    id: name,
+  })).sort((a, b) => b.count - a.count);
 }
 

@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "../../../../components/providers/AuthProvider";
-import { getInvoiceStats, getRecentInvoices } from "@/app/actions/invoice";
+import { getInvoiceStats, getRecentInvoices } from "@/app/actions/finance";
 import Link from "next/link";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";

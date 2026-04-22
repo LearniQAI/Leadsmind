@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,28 +80,48 @@ export default async function AnalyticsPage({
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
-          title="Total Contacts"
+          title={
+            <span className="flex items-center gap-1.5">
+              Total Contacts
+              <InfoTooltip content="Total number of unique leads and clients in your workspace CRM." />
+            </span>
+          }
           data={metrics.totalContacts}
           format="integer"
           icon={<Users className="h-5 w-5 text-[#6c47ff]" />}
           iconBg="bg-[#6c47ff]/10"
         />
         <KpiCard
-          title="Revenue This Period"
+          title={
+            <span className="flex items-center gap-1.5">
+              Revenue This Period
+              <InfoTooltip content="Total value of paid invoices within the selected date range." />
+            </span>
+          }
           data={metrics.revenueThisPeriod}
           format="currency"
           icon={<DollarSign className="h-5 w-5 text-emerald-400" />}
           iconBg="bg-emerald-500/10"
         />
         <KpiCard
-          title="Open Pipeline Value"
+          title={
+            <span className="flex items-center gap-1.5">
+              Open Pipeline Value
+              <InfoTooltip content="Potential revenue from all active opportunities across all stages of your pipelines." />
+            </span>
+          }
           data={metrics.openPipelineValue}
           format="currency"
           icon={<GitGraph className="h-5 w-5 text-orange-400" />}
           iconBg="bg-orange-500/10"
         />
         <KpiCard
-          title="Course Enrollments"
+          title={
+            <span className="flex items-center gap-1.5">
+              Course Enrollments
+              <InfoTooltip content="Total number of students currently enrolled across all your LMS courses." />
+            </span>
+          }
           data={metrics.courseEnrollments}
           format="integer"
           icon={<GraduationCap className="h-5 w-5 text-sky-400" />}

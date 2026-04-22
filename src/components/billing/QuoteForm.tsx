@@ -22,7 +22,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { getRecentClients, createQuote } from '@/app/actions/invoice';
+import { getRecentClients, createQuote } from '@/app/actions/finance';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 

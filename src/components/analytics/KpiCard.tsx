@@ -5,7 +5,7 @@ import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { ReactNode } from 'react';
 
 interface KpiCardProps {
-  title: string;
+  title: ReactNode;
   data: KpiData;
   icon: ReactNode;
   format?: 'number' | 'currency' | 'integer';

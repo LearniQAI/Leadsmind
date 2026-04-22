@@ -40,6 +40,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { upsertInvoiceSettings } from "@/app/actions/finance";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface InvoiceBuilderProps {
   workspaceId: string;
@@ -220,7 +221,12 @@ export function InvoiceBuilder({ workspaceId, contacts, products, settings, init
                 <h1 className="text-5xl font-black text-white uppercase tracking-tighter opacity-10 leading-none">Invoice</h1>
                 <div className="space-y-4">
                    <div className="flex items-center justify-end gap-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Invoice #</p>
+                       <p className="text-[10px] font-black uppercase tracking-widest text-white/40 flex items-center">
+                          Invoice #
+                          <InfoTooltip content="Unique identifier for this document. Automatically increments from your settings." />
+                       </p>
+
+
                       <Input 
                         value={invoiceNumber} 
                         onChange={(e) => setInvoiceNumber(e.target.value)}
@@ -228,7 +234,11 @@ export function InvoiceBuilder({ workspaceId, contacts, products, settings, init
                       />
                    </div>
                    <div className="flex items-center justify-end gap-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Due Date</p>
+                                             <p className="text-[10px] font-black uppercase tracking-widest text-white/40 flex items-center">
+                          Due Date
+                          <InfoTooltip content="The final date by which payment should be received." />
+                       </p>
+
                       <Input 
                         type="date"
                         value={dueDate}
@@ -243,7 +253,11 @@ export function InvoiceBuilder({ workspaceId, contacts, products, settings, init
           {/* Recipient Selection */}
           <div className="bg-white/[0.02] border border-white/5 rounded-[32px] p-6 space-y-4">
              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6c47ff]">Bill To</p>
+                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6c47ff] flex items-center">
+                    Bill To
+                    <InfoTooltip content="Select a contact from your CRM to populate billing details." />
+                 </p>
+
                 {!selectedContact && <span className="text-[9px] font-bold text-rose-500 uppercase animate-pulse">Required</span>}
              </div>
              
@@ -300,7 +314,11 @@ export function InvoiceBuilder({ workspaceId, contacts, products, settings, init
           {/* Items Editor */}
           <div className="space-y-6">
              <div className="flex items-center justify-between px-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6c47ff]">Line Items</p>
+                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6c47ff] flex items-center">
+                    Line Items
+                    <InfoTooltip content="List the services or products being billed. You can add multiple rows." />
+                 </p>
+
                 <div className="flex gap-4 text-[9px] font-black text-white/20 uppercase tracking-widest leading-none">
                    <p className="w-24 text-center">Price</p>
                    <p className="w-16 text-center">Qty</p>

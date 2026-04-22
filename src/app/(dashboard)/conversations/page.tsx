@@ -34,9 +34,9 @@ import {
   getMessages,
   sendChatMessage,
   getContacts,
-  startConversation
-} from '@/app/actions/conversations';
-import { syncRecentMessages } from '@/app/actions/messaging';
+  startConversation,
+  syncRecentMessages
+} from '@/app/actions/messaging';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

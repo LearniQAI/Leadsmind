@@ -5,7 +5,7 @@ import { ContactTask } from '@/types/crm.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { createTask, toggleTaskStatus, deleteTask } from '@/app/actions/crm';
+import { createTask, toggleTaskStatus, deleteTask } from '@/app/actions/contacts';
 import { format } from 'date-fns';
 import { Trash2, Calendar, Plus, CheckCircle2, Circle, CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';

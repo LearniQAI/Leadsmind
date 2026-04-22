@@ -264,3 +264,18 @@ export async function testTwilioConnection(sid: string, token: string) {
     return { success: false, error: error.message || 'Failed to verify Twilio credentials' };
   }
 }
+
+export async function sendWorkspaceTestEmail(to: string) {
+  try {
+    await requireAdmin();
+    const { sendEmail } = await import('@/lib/email');
+    const result = await sendEmail({
+      to,
+      subject: 'Test Email from LeadsMind',
+      text: 'Integration Successful! Your Resend API key is now configured and working correctly in the Leadsmind codebase.'
+    });
+    return { success: true, id: (result as any).id };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

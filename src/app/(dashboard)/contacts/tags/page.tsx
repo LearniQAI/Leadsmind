@@ -1,5 +1,5 @@
 import { getCurrentWorkspaceId, requireAdmin } from '@/lib/auth';
-import { getWorkspaceTags } from '@/app/actions/tags';
+import { getWorkspaceTags } from '@/app/actions/contacts';
 import { redirect } from 'next/navigation';
 import { 
   Table, 

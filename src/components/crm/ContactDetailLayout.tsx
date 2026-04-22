@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 
 interface ContactDetailLayoutProps {
   contact: Contact;
@@ -69,7 +70,11 @@ export function ContactDetailLayout({ contact, children }: ContactDetailLayoutPr
              <div className="h-10 w-10 rounded-full bg-rose-500/20 flex items-center justify-center mx-auto mb-3">
                <XCircle className="h-5 w-5 text-rose-500" />
              </div>
-             <h4 className="text-sm font-black text-rose-500 uppercase tracking-widest italic mb-1">High Risk Contact</h4>
+                          <h4 className="text-sm font-black text-rose-500 uppercase tracking-widest italic mb-1 flex items-center justify-center gap-2">
+                High Risk Contact
+                <InfoTooltip content="This contact has failed to attend 3 or more scheduled appointments. We recommend confirming their next appointment manually." />
+             </h4>
+
              <p className="text-[11px] text-white/50 leading-relaxed">
                This contact has <strong>{contact.no_show_count}</strong> no-shows. Host discretion advised for future bookings.
              </p>
@@ -107,7 +112,10 @@ export function ContactDetailLayout({ contact, children }: ContactDetailLayoutPr
                   <div className="h-7 w-7 rounded-lg bg-[#6c47ff]/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <Zap className="h-3.5 w-3.5 text-[#6c47ff]" />
                   </div>
-                  <span className="text-[10px] font-bold text-white uppercase tracking-[0.15em]">AI Hotness</span>
+                  <span className="text-[10px] font-bold text-white uppercase tracking-[0.15em] flex items-center">
+                    AI Hotness
+                    <InfoTooltip content="A predictive score based on profile completeness, activity frequency, and engagement history." />
+                  </span>
                 </div>
                 <div className="flex flex-col items-end">
                   <span className={`text-xl font-black leading-none ${

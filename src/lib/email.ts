@@ -3,7 +3,8 @@ import { Resend } from 'resend'
 interface SendEmailProps {
   to: string | string[]
   subject: string
-  react: React.ReactElement
+  react?: React.ReactElement
+  html?: string
   text?: string
   config?: {
     apiKey?: string | null
@@ -18,12 +19,7 @@ export async function sendEmail({ to, subject, react, text, config }: SendEmailP
   const fromName = config?.fromName || 'LeadsMind'
   
   if (!apiKey || apiKey === 're_123' || apiKey.includes('PLACEHOLDER')) {
-    console.log('--- EMAIL SANDBOX MODE ---')
-    console.log(`To: ${to}`)
-    console.log(`Subject: ${subject}`)
-    console.log(`Body (Text): ${text || 'React component provided'}`)
-    console.log('--- CONFIGURE RESEND_API_KEY TO SEND REAL EMAILS ---')
-    return { id: 'mock_id_' + Date.now() }
+    throw new Error('Email service is not configured. Please add your RESEND_API_KEY to settings.');
   }
 
   const resend = new Resend(apiKey)
@@ -33,6 +29,7 @@ export async function sendEmail({ to, subject, react, text, config }: SendEmailP
       to,
       subject,
       react: react as any,
+      html: html || undefined,
       text: text || '',
     })
 

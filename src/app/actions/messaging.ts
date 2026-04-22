@@ -507,3 +507,163 @@ async function syncGmail(workspaceId: string, supabase: any) {
     throw err; // Re-throw to be caught by syncRecentMessages
   }
 }
+
+// --- Conversation & Chat Management ---
+
+export async function getConversations() {
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return [];
+
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('conversations')
+    .select('*, contacts(first_name, last_name, avatar_url)')
+    .eq('workspace_id', workspaceId)
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.error('[messaging] Error fetching conversations:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function getMessages(conversationId: string) {
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return [];
+
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .eq('workspace_id', workspaceId)
+    .order('sent_at', { ascending: true });
+
+  if (error) {
+    console.error('[messaging] Error fetching messages:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function sendChatMessage(conversationId: string, content: string) {
+  try {
+    const workspaceId = await getCurrentWorkspaceId();
+    if (!workspaceId) return { success: false, error: 'No active workspace' };
+
+    const supabase = await createServerClient();
+    const { data: conv } = await supabase.from('conversations').select('*').eq('id', conversationId).single();
+    if (!conv) return { success: false, error: 'Conversation not found' };
+
+    // 1. Save message to DB
+    const { data: msg, error } = await supabase
+      .from('messages')
+      .insert({
+        workspace_id: workspaceId,
+        conversation_id: conversationId,
+        direction: 'outbound',
+        content,
+        status: 'sending',
+        sent_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // 2. Delegate to platform-specific send logic
+    let sendResult = { success: false, error: 'Platform not supported for outgoing messages yet' };
+    
+    if (conv.platform === 'sms' || conv.platform === 'whatsapp') {
+      sendResult = await sendTwilioMessage(conv, content);
+    } else if (conv.platform === 'email') {
+      sendResult = await sendEmailMessage(conv, content);
+    }
+
+    if (sendResult.success) {
+      await supabase.from('messages').update({ status: 'delivered' }).eq('id', msg.id);
+      await supabase.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conversationId);
+    } else {
+      await supabase.from('messages').update({ status: 'failed' }).eq('id', msg.id);
+    }
+
+    revalidatePath('/conversations');
+    return sendResult;
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function getContacts() {
+    const workspaceId = await getCurrentWorkspaceId();
+    if (!workspaceId) return [];
+    const supabase = await createServerClient();
+    const { data } = await supabase.from('contacts').select('*').eq('workspace_id', workspaceId).order('first_name');
+    return data || [];
+}
+
+export async function startConversation(contactId: string, platform: string, externalId: string) {
+    try {
+        const workspaceId = await getCurrentWorkspaceId();
+        if (!workspaceId) return { success: false, error: 'No workspace' };
+        const supabase = await createServerClient();
+
+        const { data, error } = await supabase
+            .from('conversations')
+            .upsert({
+                workspace_id: workspaceId,
+                platform,
+                external_thread_id: externalId,
+                contact_id: contactId,
+                title: externalId,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'workspace_id, platform, external_thread_id' })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, id: data.id };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}
+
+async function sendTwilioMessage(conv: any, content: string) {
+  try {
+    const supabase = await createServerClient();
+    const { data: conn } = await supabase
+      .from('platform_connections')
+      .select('credentials')
+      .eq('workspace_id', conv.workspace_id)
+      .eq('platform', conv.platform)
+      .single();
+
+    if (!conn?.credentials) throw new Error('Platform not connected or credentials missing');
+    
+    const { accountSid, authToken, phoneNumber } = conn.credentials;
+    const twilio = require('twilio');
+    const client = twilio(accountSid, authToken);
+
+    await client.messages.create({
+      body: content,
+      from: conv.platform === 'whatsapp' ? `whatsapp:${phoneNumber}` : phoneNumber,
+      to: conv.platform === 'whatsapp' ? `whatsapp:${conv.external_thread_id}` : conv.external_thread_id
+    });
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('[twilio-send] Failed:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+async function sendEmailMessage(conv: any, content: string) {
+    const { sendEmail } = await import('@/lib/email');
+    await sendEmail({
+        to: conv.external_thread_id, // Assume email is stored here for email platform
+        subject: conv.title || 'New message from platform',
+        text: content
+    });
+    return { success: true };
+}

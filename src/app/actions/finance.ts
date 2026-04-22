@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { stripe } from '@/lib/stripe';
 import { sendEmail } from '@/lib/email';
 import { createNotification } from './notifications';
+import { format } from 'date-fns';
 import React from 'react';
 
 // --- Products ---
@@ -715,4 +716,98 @@ export async function getContactsForInvoicing(workspaceId: string) {
 
   if (error) throw error;
   return data;
+}
+
+export async function getRecentClients(workspaceId: string, limit = 100) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contacts")
+    .select("*, total_invoices:invoices(count)")
+    .eq("workspace_id", workspaceId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data.map((c: any) => ({
+    ...c,
+    total_invoices: c.total_invoices?.[0]?.count || 0
+  }));
+}
+
+export async function getInvoiceStats(workspaceId: string) {
+  const supabase = await createClient();
+
+  // 1. Total Invoiced
+  const { data: allInvoices } = await supabase
+    .from("invoices")
+    .select("total_amount, amount_due, status")
+    .eq("workspace_id", workspaceId);
+
+  if (!allInvoices) return { total_invoiced: 0, collected: 0, outstanding: 0, overdue: 0 };
+
+  const stats = allInvoices.reduce((acc, inv) => {
+    const amount = Number(inv.total_amount || inv.amount_due || 0);
+    acc.total += amount;
+    if (inv.status === 'paid') acc.collected += amount;
+    if (inv.status === 'open' || inv.status === 'sent') acc.outstanding += amount;
+    if (inv.status === 'overdue') acc.overdue += amount;
+    return acc;
+  }, { total: 0, collected: 0, outstanding: 0, overdue: 0 });
+
+  return {
+    total_invoiced: stats.total,
+    collected: stats.collected,
+    outstanding: stats.outstanding,
+    overdue: stats.overdue
+  };
+}
+
+export async function getRecentInvoices(workspaceId: string, limit = 5) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("invoices")
+    .select("*, contact:contacts(first_name, last_name, email)")
+    .eq("workspace_id", workspaceId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data.map(inv => ({
+    ...inv,
+    total_amount: inv.total_amount || inv.amount_due || 0
+  }));
+}
+
+export async function getInvoiceAnalytics(workspaceId: string) {
+  const supabase = await createClient();
+  
+  // Fetch invoices for the last 6 months
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("total_amount, amount_due, status, created_at")
+    .eq("workspace_id", workspaceId)
+    .gte("created_at", sixMonthsAgo.toISOString());
+
+  if (!invoices) return { monthly: [], summary: { total: 0, count: 0 } };
+
+  // Group by month
+  const monthlyData = Object.values(invoices.reduce((acc: any, inv: any) => {
+    const month = format(new Date(inv.created_at), "MMM yyyy");
+    const amount = Number(inv.total_amount || inv.amount_due || 0);
+    if (!acc[month]) acc[month] = { month, total: 0, collected: 0 };
+    acc[month].total += amount;
+    if (inv.status === 'paid') acc[month].collected += amount;
+    return acc;
+  }, {}));
+
+  return {
+    monthly: monthlyData,
+    summary: {
+      total: invoices.reduce((sum, inv) => sum + Number(inv.total_amount || inv.amount_due || 0), 0),
+      count: invoices.length
+    }
+  };
 }

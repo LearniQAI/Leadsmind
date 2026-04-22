@@ -214,7 +214,7 @@ export function ContactTable({ contacts }: ContactTableProps) {
   );
 }
 
-import { bulkAddTag } from '@/app/actions/tags';
+import { bulkAddTag, bulkRemoveTag } from "@/app/actions/contacts";
 import { Tag as TagIcon } from 'lucide-react';
 
 function BulkTagAction({ ids, onComplete }: { ids: string[], onComplete: () => void }) {
