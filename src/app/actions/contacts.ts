@@ -479,24 +479,6 @@ export async function toggleTaskStatus(id: string, contactId: string, currentSta
   } catch (err) { return { success: false, error: 'Error' }; }
 }
 
-export async function getContactActivities(contactId: string) {
-    const supabase = await createServerClient();
-    const { data } = await supabase.from('contact_activities').select('*').eq('contact_id', contactId).order('created_at', { ascending: false });
-    return data || [];
-}
-
-export async function getContactNotes(contactId: string) {
-    const supabase = await createServerClient();
-    const { data } = await supabase.from('contact_notes').select('*').eq('contact_id', contactId).order('created_at', { ascending: false });
-    return data || [];
-}
-
-export async function getContactTasks(contactId: string) {
-    const supabase = await createServerClient();
-    const { data } = await supabase.from('contact_tasks').select('*').eq('contact_id', contactId).order('status', { ascending: false }).order('created_at', { ascending: false });
-    return data || [];
-}
-
 // --- Tag Management ---
 
 export async function bulkAddTag(contactIds: string[], tagName: string) {
