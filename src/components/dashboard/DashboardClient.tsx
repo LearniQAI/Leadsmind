@@ -23,6 +23,7 @@ interface DashboardClientProps {
     opportunities: number;
     revenue: number;
     socialQueue: number;
+    pendingTasks: number;
   };
   recentActivities: any[];
 }
@@ -32,7 +33,7 @@ export function DashboardClient({ stats, recentActivities }: DashboardClientProp
     { label: 'Total Leads', value: stats.contacts, icon: Users, trend: '+5%', status: 'up' },
     { label: 'Opportunities', value: stats.opportunities, icon: Target, trend: '+2%', status: 'up' },
     { label: 'Revenue', value: `$${stats.revenue.toLocaleString()}`, icon: TrendingUp, trend: '-1%', status: 'down' },
-    { label: 'Social Queue', value: stats.socialQueue, icon: Send, trend: 'Active', status: 'neutral' },
+    { label: 'Pending Tasks', value: stats.pendingTasks, icon: Clock, trend: 'Due', status: 'neutral' },
   ];
 
   return (
