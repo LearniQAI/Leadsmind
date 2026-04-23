@@ -11,11 +11,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Loader2, KeyRound } from 'lucide-react';
+import { Loader2, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { resetPassword } from '@/app/actions/auth';
 
 export function ResetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const form = useForm<ResetPasswordValues>({
@@ -59,14 +60,24 @@ export function ResetPasswordForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="password" title="At least 8 characters" className="text-[0.8rem] font-medium text-foreground/60">New Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              className="h-12 border-white/5 bg-white/3 px-4 transition-all focus:border-[#6c47ff]/50 focus:ring-0"
-              {...form.register('password')}
-              disabled={isLoading}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                className="h-12 border-white/5 bg-white/3 px-4 pr-12 transition-all focus:border-[#6c47ff]/50 focus:ring-0"
+                {...form.register('password')}
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors"
+                disabled={isLoading}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {form.formState.errors.password && (
               <p className="text-[0.7rem] font-medium text-destructive/80">{form.formState.errors.password.message}</p>
             )}
@@ -75,7 +86,7 @@ export function ResetPasswordForm() {
             <Label htmlFor="confirmPassword" title="Must match password" className="text-[0.8rem] font-medium text-foreground/60">Confirm New Password</Label>
             <Input
               id="confirmPassword"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               className="h-12 border-white/5 bg-white/3 px-4 transition-all focus:border-[#6c47ff]/50 focus:ring-0"
               {...form.register('confirmPassword')}
