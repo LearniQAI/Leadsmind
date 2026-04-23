@@ -14,7 +14,7 @@ export async function getTickets() {
     .select(`
       *,
       contact:contacts(first_name, last_name, email),
-      assigned_to_user:auth.users!assigned_to(email)
+      assigned_to_user:users!assigned_to(email)
     `)
     .eq('workspace_id', workspaceId)
     .order('created_at', { ascending: false });
