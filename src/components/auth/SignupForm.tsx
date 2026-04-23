@@ -13,10 +13,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isVerificationSent, setIsVerificationSent] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -39,6 +41,7 @@ export function SignupForm() {
         password: values.password,
         options: {
           data: { full_name: values.fullName },
+          emailRedirectTo: 'https://www.leadsmind.io/auth/callback?next=/welcome',
         },
       });
 
@@ -53,11 +56,18 @@ export function SignupForm() {
 
       if (!authData.user) {
         toast.error('Signup succeeded but no user was returned. Please try logging in.');
-        router.push('/login');
         return;
       }
 
       const userId = authData.user.id;
+      const session = authData.session;
+
+      // If no session is returned, it means email confirmation is required
+      if (!session) {
+        setIsVerificationSent(true);
+        toast.success('Verification email sent! Please check your inbox.');
+        return;
+      }
       const nameParts = values.fullName.trim().split(' ');
       const firstName = nameParts[0] ?? values.email.split('@')[0];
       const lastName = nameParts.slice(1).join(' ');
@@ -92,6 +102,42 @@ export function SignupForm() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  if (isVerificationSent) {
+    return (
+      <div className="animate-fade-up text-center">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-500/10 text-emerald-500 shadow-xl shadow-emerald-500/5">
+          <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <CardHeader className="space-y-1 px-0 pb-6">
+          <CardTitle className="text-3xl font-extrabold tracking-tight text-white line-clamp-1">Check your email</CardTitle>
+          <CardDescription className="text-sm font-light text-white/40">
+            We've sent a verification link to <span className="font-bold text-white/60">{form.getValues('email')}</span>. 
+            Click the link in the email to activate your account.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-0 space-y-6">
+          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-xs text-white/30 leading-relaxed text-left">
+            <p className="mb-2 font-bold text-white/40 uppercase tracking-widest text-[9px]">Didn't receive the email?</p>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>Check your spam folder</li>
+              <li>Wait a few minutes (it can take time)</li>
+              <li>Ensure your email address is correct</li>
+            </ul>
+          </div>
+          <Button 
+            variant="outline" 
+            className="w-full h-12 rounded-full border-white/10 hover:bg-white/5 font-bold"
+            onClick={() => setIsVerificationSent(false)}
+          >
+            ← Back to signup
+          </Button>
+        </CardContent>
+      </div>
+    );
   }
 
   return (
@@ -133,14 +179,24 @@ export function SignupForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password" className="text-[0.8rem] font-medium text-foreground/60">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              className="h-12 border-white/5 bg-white/3 px-4 transition-all focus:border-[#6c47ff]/50 focus:ring-0"
-              {...form.register('password')}
-              disabled={isLoading}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                className="h-12 border-white/5 bg-white/3 px-4 pr-12 transition-all focus:border-[#6c47ff]/50 focus:ring-0"
+                {...form.register('password')}
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors"
+                disabled={isLoading}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {form.formState.errors.password && (
               <p className="text-[0.7rem] font-medium text-destructive/80">{form.formState.errors.password.message}</p>
             )}
@@ -149,7 +205,7 @@ export function SignupForm() {
             <Label htmlFor="confirmPassword" className="text-[0.8rem] font-medium text-foreground/60">Confirm Password</Label>
             <Input
               id="confirmPassword"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               className="h-12 border-white/5 bg-white/3 px-4 transition-all focus:border-[#6c47ff]/50 focus:ring-0"
               {...form.register('confirmPassword')}

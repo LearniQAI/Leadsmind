@@ -59,8 +59,14 @@ export async function proxy(request: NextRequest) {
   const url = new URL(request.url)
   const pathname = url.pathname
 
+  // Global WWW Redirect for leadsmind.io
+  if (url.hostname === 'leadsmind.io') {
+    url.hostname = 'www.leadsmind.io'
+    return NextResponse.redirect(url)
+  }
+
   // Protection Level Map
-  const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname)
+  const isAuthPage = ['/login', '/signup', '/forgot-password'].includes(pathname)
   // Protected pages are anything under dashboard, settings, contacts, pipelines, etc.
   const isProtectedPage = 
     pathname.startsWith('/dashboard') || 

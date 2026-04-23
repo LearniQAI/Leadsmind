@@ -296,31 +296,77 @@ const BuilderEditorContent = ({ type }: { type: 'website' | 'funnel' }) => {
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
       
-      const { data } = await supabase
+      // Fetch Page Content with website/funnel details
+      const { data, error: pageError } = await supabase
         .from('pages')
-        .select('content, workspace:workspaces(slug), website_page:website_pages(website:websites(*))')
+        .select(`
+          content, 
+          workspace:workspaces(slug), 
+          website_page:website_pages(
+            id,
+            name,
+            path_name,
+            website:websites(*)
+          ),
+          funnel_step:funnel_steps(
+            id,
+            name,
+            path_name,
+            funnel:funnels(*)
+          )
+        `)
         .eq('id', pageId)
         .single();
 
+      if (pageError || !data) {
+        console.error('Builder load error:', pageError);
+        toast.error('Failed to load page content');
+        return;
+      }
+
+      // Handle Resource Data (Website or Funnel)
       const rawWebsitePage = (data as any)?.website_page;
       const website = Array.isArray(rawWebsitePage) ? rawWebsitePage[0]?.website : rawWebsitePage?.website;
-      const finalWebsite = Array.isArray(website) ? website[0] : website;
-      
-      if (finalWebsite) {
-        const workspace = (data as any)?.workspace;
-        setWebsiteData({ ...finalWebsite, workspaceSlug: workspace?.slug });
 
-        const { data: siblingPages } = await supabase
-            .from('website_pages')
-            .select(`id, name, path_name, pages (id)`)
-            .eq('website_id', finalWebsite.id);
-        
-        if (siblingPages) {
-            setPages(siblingPages.map(p => ({
-                id: (p.pages as any)?.[0]?.id || p.id,
-                name: p.name,
-                slug: p.path_name.replace('/', '') || 'home'
-            })));
+      const rawFunnelStep = (data as any)?.funnel_step;
+      const funnel = Array.isArray(rawFunnelStep) ? rawFunnelStep[0]?.funnel : rawFunnelStep?.funnel;
+
+      const finalResource = Array.isArray(website) ? website[0] : (website || (Array.isArray(funnel) ? funnel[0] : funnel));
+      
+      if (finalResource) {
+        // Attach workspace info for URL resolution
+        const workspace = (data as any)?.workspace;
+        const resourceWithWorkspace = { ...finalResource, workspaceSlug: workspace?.slug };
+        setWebsiteData(resourceWithWorkspace);
+
+        // Fetch sibling steps/pages
+        if (type === 'website') {
+            const { data: siblingPages } = await supabase
+                .from('website_pages')
+                .select(`id, name, path_name, pages (id)`)
+                .eq('website_id', finalResource.id);
+            
+            if (siblingPages) {
+                setPages(siblingPages.map(p => ({
+                    id: (p.pages as any)?.[0]?.id || p.id,
+                    name: p.name,
+                    slug: p.path_name.replace('/', '') || 'home'
+                })));
+            }
+        } else {
+            const { data: siblingSteps } = await supabase
+                .from('funnel_steps')
+                .select(`id, name, path_name, pages (id)`)
+                .eq('funnel_id', finalResource.id)
+                .order('order', { ascending: true });
+            
+            if (siblingSteps) {
+                setPages(siblingSteps.map(s => ({
+                    id: (s.pages as any)?.[0]?.id || s.id,
+                    name: s.name,
+                    slug: s.path_name.replace('/', '') || 'step'
+                })));
+            }
         }
       }
 
@@ -367,7 +413,7 @@ const BuilderEditorContent = ({ type }: { type: 'website' | 'funnel' }) => {
                     <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground mr-1">Editing:</span>
                     <select 
                         value={pageId as string}
-                        onChange={(e) => router.push(`/editor/website/${websiteData?.id}/${e.target.value}`)}
+                        onChange={(e) => router.push(`/editor/${type}/${websiteData?.id}/${e.target.value}`)}
                         className="bg-white/5 border-none rounded-md px-3 py-1.5 text-xs font-bold text-white outline-none cursor-pointer hover:bg-white/10 transition-colors"
                     >
                         {pages.map((p) => (
