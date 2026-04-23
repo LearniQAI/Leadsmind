@@ -573,7 +573,7 @@ export async function sendChatMessage(conversationId: string, content: string) {
     if (error) throw error;
 
     // 2. Delegate to platform-specific send logic
-    let sendResult = { success: false, error: 'Platform not supported for outgoing messages yet' };
+    let sendResult: { success: boolean; error?: string } = { success: false, error: 'Platform not supported for outgoing messages yet' };
     
     if (conv.platform === 'sms' || conv.platform === 'whatsapp') {
       sendResult = await sendTwilioMessage(conv, content);
