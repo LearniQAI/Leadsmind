@@ -54,6 +54,11 @@ export function SignupForm() {
         return;
       }
 
+      if (!authData.user) {
+        toast.error('Signup succeeded but no user was returned. Please try logging in.');
+        return;
+      }
+
       const userId = authData.user.id;
       const session = authData.session;
 
