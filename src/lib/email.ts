@@ -13,7 +13,7 @@ interface SendEmailProps {
   }
 }
 
-export async function sendEmail({ to, subject, react, text, config }: SendEmailProps) {
+export async function sendEmail({ to, subject, react, html, text, config }: SendEmailProps) {
   const apiKey = config?.apiKey || process.env.RESEND_API_KEY
   const fromAddress = config?.fromEmail || process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
   const fromName = config?.fromName || 'LeadsMind'
