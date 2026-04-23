@@ -18,6 +18,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isVerificationSent, setIsVerificationSent] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -53,13 +54,15 @@ export function SignupForm() {
         return;
       }
 
-      if (!authData.user) {
-        toast.error('Signup succeeded but no user was returned. Please try logging in.');
-        router.push('/login');
+      const userId = authData.user.id;
+      const session = authData.session;
+
+      // If no session is returned, it means email confirmation is required
+      if (!session) {
+        setIsVerificationSent(true);
+        toast.success('Verification email sent! Please check your inbox.');
         return;
       }
-
-      const userId = authData.user.id;
       const nameParts = values.fullName.trim().split(' ');
       const firstName = nameParts[0] ?? values.email.split('@')[0];
       const lastName = nameParts.slice(1).join(' ');
@@ -94,6 +97,42 @@ export function SignupForm() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  if (isVerificationSent) {
+    return (
+      <div className="animate-fade-up text-center">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-500/10 text-emerald-500 shadow-xl shadow-emerald-500/5">
+          <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <CardHeader className="space-y-1 px-0 pb-6">
+          <CardTitle className="text-3xl font-extrabold tracking-tight text-white line-clamp-1">Check your email</CardTitle>
+          <CardDescription className="text-sm font-light text-white/40">
+            We've sent a verification link to <span className="font-bold text-white/60">{form.getValues('email')}</span>. 
+            Click the link in the email to activate your account.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-0 space-y-6">
+          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-xs text-white/30 leading-relaxed text-left">
+            <p className="mb-2 font-bold text-white/40 uppercase tracking-widest text-[9px]">Didn't receive the email?</p>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>Check your spam folder</li>
+              <li>Wait a few minutes (it can take time)</li>
+              <li>Ensure your email address is correct</li>
+            </ul>
+          </div>
+          <Button 
+            variant="outline" 
+            className="w-full h-12 rounded-full border-white/10 hover:bg-white/5 font-bold"
+            onClick={() => setIsVerificationSent(false)}
+          >
+            ← Back to signup
+          </Button>
+        </CardContent>
+      </div>
+    );
   }
 
   return (
