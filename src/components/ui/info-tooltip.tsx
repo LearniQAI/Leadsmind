@@ -26,7 +26,7 @@ export function InfoTooltip({
   const Icon = icon === 'info' ? Info : HelpCircle;
 
   return (
-    <TooltipProvider delayDuration={200}>
+    <TooltipProvider delay={200}>
       <Tooltip>
         <TooltipTrigger render={
           <button 
