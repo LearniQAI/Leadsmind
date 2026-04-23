@@ -82,9 +82,9 @@ export function QuoteForm({ workspaceId, initialData }: { workspaceId: string, i
     
     try {
       setIsSubmitting(true);
-      await createQuote(workspaceId, {
+      await createQuote({
+        workspace_id: workspaceId,
         contact_id: selectedClientId,
-        items,
         subtotal,
         tax_total: taxTotal,
         total_amount: total,
@@ -92,7 +92,7 @@ export function QuoteForm({ workspaceId, initialData }: { workspaceId: string, i
         notes,
         valid_until: validUntil || null,
         currency: 'ZAR'
-      });
+      }, items);
       toast.success(`Quote ${status === 'sent' ? 'sent' : 'saved'} successfully!`);
       router.push("/invoice/quotes");
     } catch (error) {
