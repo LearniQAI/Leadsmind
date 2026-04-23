@@ -1,4 +1,11 @@
--- Phase 27: CRM Missing Features Migration
+-- Phase 27: CRM Missing Features Migration (Robust Version)
+
+-- 0. DEFENSIVE INFRASTRUCTURE (Ensures dependencies exist)
+CREATE TABLE IF NOT EXISTS workspaces (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT, created_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE IF NOT EXISTS contacts (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), workspace_id UUID REFERENCES workspaces(id), first_name TEXT, last_name TEXT, email TEXT, created_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE IF NOT EXISTS courses (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), workspace_id UUID REFERENCES workspaces(id), title TEXT, created_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE IF NOT EXISTS course_modules (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), course_id UUID REFERENCES courses(id), title TEXT, created_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE IF NOT EXISTS invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), workspace_id UUID REFERENCES workspaces(id), contact_id UUID REFERENCES contacts(id), total_amount NUMERIC(15, 2), status TEXT, created_at TIMESTAMPTZ DEFAULT now());
 
 -- 1. CRM-1: Two-Way Email Sync
 CREATE TABLE IF NOT EXISTS email_accounts (
