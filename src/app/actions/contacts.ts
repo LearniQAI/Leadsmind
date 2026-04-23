@@ -3,7 +3,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { requireAuth, getCurrentWorkspaceId } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
-import { ActionResult, Contact } from '@/types/crm.types';
+import { ActionResult, Contact, ContactNote, ContactTask } from '@/types/crm.types';
 import { sendEmail } from '@/lib/email';
 
 export async function createContact(payload: {
