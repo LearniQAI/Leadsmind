@@ -584,15 +584,22 @@ export async function getContactActivities(contactId: string) {
   return { success: true, data: data || [] };
 }
 
-export async function deleteTask(taskId: string) {
+export async function deleteTask(taskId: string): Promise<ActionResult> {
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, error: 'No active workspace' };
   const supabase = await createServerClient();
-  const { error } = await supabase
-    .from('contact_tasks')
-    .delete()
-    .eq('id', taskId);
+  try {
+    const { error } = await supabase
+      .from('contact_tasks')
+      .delete()
+      .eq('id', taskId)
+      .eq('workspace_id', workspaceId);
 
-  if (error) throw error;
-  revalidatePath('/contacts/[id]');
-  return { success: true };
+    if (error) return { success: false, error: error.message };
+    revalidatePath('/contacts/[id]');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Error deleting task' };
+  }
 }
 
