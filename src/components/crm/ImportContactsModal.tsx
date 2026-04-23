@@ -206,7 +206,7 @@ export function ImportContactsModal() {
                   </div>
                   <Select 
                     value={mapping[header] || 'none'} 
-                    onValueChange={(val) => setMapping(prev => ({ ...prev, [header]: val === 'none' ? '' : val }))}
+                    onValueChange={(val) => setMapping(prev => ({ ...prev, [header]: (val || '') === 'none' ? '' : (val || '') }))}
                   >
                     <SelectTrigger className="bg-[#08080f] border-white/5 h-9 rounded-lg">
                       <SelectValue placeholder="Select field..." />
