@@ -262,13 +262,18 @@ export function FormBuilder({ initialForm }: FormBuilderProps) {
                            ...f, 
                            settings: { 
                              ...f.settings, 
-                             emailResponder: { ...(f.settings.emailResponder || {}), enabled: e.target.checked } 
+                             emailResponder: { 
+                               subject: '',
+                               body: '',
+                               ...(f.settings.emailResponder || {}), 
+                               enabled: e.target.checked 
+                             } 
                            }
                          }))}
                          className="h-4 w-4 accent-[#6c47ff]"
                        />
                      </div>
-
+ 
                      {form.settings.emailResponder?.enabled && (
                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                          <div className="space-y-2">
@@ -279,7 +284,12 @@ export function FormBuilder({ initialForm }: FormBuilderProps) {
                                ...f, 
                                settings: { 
                                  ...f.settings, 
-                                 emailResponder: { ...(f.settings.emailResponder || {}), subject: e.target.value } 
+                                 emailResponder: { 
+                                   enabled: false,
+                                   body: '',
+                                   ...(f.settings.emailResponder || {}), 
+                                   subject: e.target.value 
+                                 } 
                                }
                              }))}
                              placeholder="Thanks for reaching out!"
@@ -294,7 +304,12 @@ export function FormBuilder({ initialForm }: FormBuilderProps) {
                                ...f, 
                                settings: { 
                                  ...f.settings, 
-                                 emailResponder: { ...(f.settings.emailResponder || {}), body: e.target.value } 
+                                 emailResponder: { 
+                                   enabled: false,
+                                   subject: '',
+                                   ...(f.settings.emailResponder || {}), 
+                                   body: e.target.value 
+                                 } 
                                }
                              }))}
                              placeholder="Hi {first_name}, thanks for your interest..."
