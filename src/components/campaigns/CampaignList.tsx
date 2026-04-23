@@ -119,11 +119,11 @@ export function CampaignList({ campaigns }: CampaignListProps) {
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                    <DropdownMenuTrigger render={
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
-                    </DropdownMenuTrigger>
+                    } />
                     <DropdownMenuContent align="end" className="w-48 bg-[#1a1a24] border-white/10 text-white">
                       <DropdownMenuItem className="gap-2 cursor-pointer">
                         <Eye className="h-4 w-4" /> View Details

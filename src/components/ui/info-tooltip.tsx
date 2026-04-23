@@ -28,7 +28,7 @@ export function InfoTooltip({
   return (
     <TooltipProvider delayDuration={200}>
       <Tooltip>
-        <TooltipTrigger asChild>
+        <TooltipTrigger render={
           <button 
             type="button" 
             className={cn(
@@ -39,7 +39,7 @@ export function InfoTooltip({
             <Icon size={size} />
             <span className="sr-only">Information</span>
           </button>
-        </TooltipTrigger>
+        } />
         <TooltipContent 
           side="top" 
           className="max-w-[250px] bg-[#1a1a24] border-white/10 text-white p-3 text-xs leading-relaxed shadow-xl rounded-xl"
