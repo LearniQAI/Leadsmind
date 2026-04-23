@@ -26,9 +26,10 @@ export default async function EmailSyncSettingsPage() {
       id: 'gmail',
       name: 'Gmail / Google Workspace',
       description: 'Connect your business Gmail account for two-way sync.',
-      icon: '/icons/google.svg', // Assuming these exist or using Lucide
+      icon: '/icons/google.svg',
       color: 'bg-[#EA4335]/10 text-[#EA4335] border-[#EA4335]/20',
-      connected: accounts.some(a => a.provider === 'gmail')
+      connected: accounts.some(a => a.provider === 'gmail'),
+      url: await getOAuthUrl('gmail')
     },
     {
       id: 'outlook',
@@ -36,7 +37,8 @@ export default async function EmailSyncSettingsPage() {
       description: 'Sync your Microsoft Outlook emails directly to Leadsmind.',
       icon: '/icons/microsoft.svg',
       color: 'bg-[#0078D4]/10 text-[#0078D4] border-[#0078D4]/20',
-      connected: accounts.some(a => a.provider === 'outlook')
+      connected: accounts.some(a => a.provider === 'outlook'),
+      url: await getOAuthUrl('outlook')
     }
   ];
 
@@ -79,32 +81,25 @@ export default async function EmailSyncSettingsPage() {
             </div>
 
             <div className="mt-auto">
-                <form action={async () => {
-                    'use server';
-                    const url = await getOAuthUrl(provider.id as any);
-                    // This won't work directly in a server action like this without redirect, 
-                    // but I'll handle the redirect logic in a client component or use a specialized action.
-                }}>
-                    <Button 
-                        disabled={provider.connected}
-                        className={cn(
-                            "w-full h-12 rounded-xl font-bold gap-2 transition-all",
-                            provider.connected 
-                                ? "bg-white/5 text-white/20 border border-white/5" 
-                                : "bg-white text-black hover:bg-white/90"
-                        )}
-                        asChild={!provider.connected}
-                    >
-                        {provider.connected ? (
-                            <span>Account Linked</span>
-                        ) : (
-                            <Link href={await getOAuthUrl(provider.id as any)}>
-                                <Plus className="h-4 w-4" />
-                                Connect {provider.id === 'gmail' ? 'Gmail' : 'Outlook'}
-                            </Link>
-                        )}
-                    </Button>
-                </form>
+                <Button 
+                    disabled={provider.connected}
+                    className={cn(
+                        "w-full h-12 rounded-xl font-bold gap-2 transition-all",
+                        provider.connected 
+                            ? "bg-white/5 text-white/20 border border-white/5" 
+                            : "bg-white text-black hover:bg-white/90"
+                    )}
+                    asChild={!provider.connected}
+                >
+                    {provider.connected ? (
+                        <span>Account Linked</span>
+                    ) : (
+                        <Link href={provider.url}>
+                            <Plus className="h-4 w-4" />
+                            Connect {provider.id === 'gmail' ? 'Gmail' : 'Outlook'}
+                        </Link>
+                    )}
+                </Button>
             </div>
 
             {/* Micro-animations Background */}
