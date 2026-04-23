@@ -67,8 +67,7 @@ export function SocialPostComposer({ connectedPlatforms, onClose, onPostCreated 
       const result = await createSocialPost({
         content,
         platforms: selectedPlatforms,
-        scheduled_at: publishNow ? null : scheduledAt,
-        status: publishNow ? 'published' : 'scheduled'
+        scheduled_at: publishNow ? undefined : (scheduledAt || undefined),
       });
 
       if (result.success && result.id) {
