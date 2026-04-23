@@ -60,7 +60,7 @@ export default function QuotesListPage() {
     if (!workspace?.id) return;
     try {
       setConvertingId(quoteId);
-      const invoice = await convertToInvoice(workspace.id, quoteId);
+      const invoice = await convertToInvoice(quoteId);
       toast.success("Quote converted to invoice successfully!");
       router.push("/invoice/invoices");
     } catch (error) {
