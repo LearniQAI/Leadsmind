@@ -56,6 +56,7 @@ import {
   Plug,
   Mail,
   Box,
+  CheckSquare,
 } from 'lucide-react';
 
 
