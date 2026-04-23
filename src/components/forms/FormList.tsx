@@ -108,33 +108,42 @@ export function FormList({ forms }: FormListProps) {
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                    <DropdownMenuTrigger render={
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
-                    </DropdownMenuTrigger>
+                    } />
                     <DropdownMenuContent align="end" className="w-56 bg-[#1a1a24] border-white/10 text-white">
-                      <DropdownMenuItem className="gap-2 cursor-pointer" asChild>
-                        <Link href={`/forms/${form.id}/builder`}>
-                          <ClipboardList className="h-4 w-4" /> Edit Builder
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 cursor-pointer" asChild>
-                        <Link href={`/forms/${form.id}/submissions`}>
-                          <FileText className="h-4 w-4" /> View Submissions
-                        </Link>
-                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        render={
+                          <Link href={`/forms/${form.id}/builder`} className="flex items-center w-full">
+                            <ClipboardList className="h-4 w-4 mr-2" /> Edit Builder
+                          </Link>
+                        }
+                        className="gap-2 cursor-pointer"
+                      />
+                      <DropdownMenuItem
+                        render={
+                          <Link href={`/forms/${form.id}/submissions`} className="flex items-center w-full">
+                            <FileText className="h-4 w-4 mr-2" /> View Submissions
+                          </Link>
+                        }
+                        className="gap-2 cursor-pointer"
+                      />
                       <DropdownMenuItem 
                         className="gap-2 cursor-pointer"
                         onClick={() => copyEmbedCode(form.id)}
                       >
                         <Code2 className="h-4 w-4" /> Copy Embed Code
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 cursor-pointer" asChild>
-                        <a href={`/f/${form.id}`} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-4 w-4" /> View Live Form
-                        </a>
-                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        render={
+                          <a href={`/f/${form.id}`} target="_blank" rel="noopener noreferrer" className="flex items-center w-full">
+                            <ExternalLink className="h-4 w-4 mr-2" /> View Live Form
+                          </a>
+                        }
+                        className="gap-2 cursor-pointer"
+                      />
                       <DropdownMenuItem className="gap-2 cursor-pointer text-red-400 focus:text-red-400">
                         <Trash2 className="h-4 w-4" /> Delete
                       </DropdownMenuItem>
