@@ -6,13 +6,13 @@ import { ActionResult } from '@/types/crm.types';
 import { revalidatePath } from 'next/cache';
 
 // --- Courses ---
-export async function getCourses() {
-  const workspaceId = await getCurrentWorkspaceId();
+export async function getCourses(workspaceId?: string) {
+  const finalWorkspaceId = workspaceId || await getCurrentWorkspaceId();
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from('courses')
     .select('*')
-    .eq('workspace_id', workspaceId!)
+    .eq('workspace_id', finalWorkspaceId!)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
