@@ -161,6 +161,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'Products', href: '/products', icon: Package },
       { name: 'Orders', href: '/orders', icon: ShoppingBag },
+      { name: 'Expenses', href: '/finance/expenses', icon: Receipt, adminOnly: true },
     ]
   },
   {
@@ -170,6 +171,8 @@ const navGroups: NavGroup[] = [
       { name: 'Support', href: '/support', icon: LifeBuoy },
       { name: 'Automations', href: '/automations', icon: Zap, adminOnly: true },
       { name: 'Learning', href: '/courses', icon: GraduationCap },
+      { name: 'Certificates', href: '/courses/certificates', icon: Award },
+      { name: 'Community', href: '/community/forums', icon: MessageSquare },
       { name: 'Media Center', href: '/media', icon: FolderOpen },
     ]
   },
