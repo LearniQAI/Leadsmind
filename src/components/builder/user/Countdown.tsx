@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNode } from '@craftjs/core';
 
-export const Countdown = ({ endDate, title, ...props }: any) => {
+export const Countdown = ({ endDate, title, dragRef, ...props }: any) => {
   const { connectors: { connect, drag } } = useNode();
   const [timeLeft, setTimeLeft] = useState<any>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
@@ -33,10 +33,15 @@ export const Countdown = ({ endDate, title, ...props }: any) => {
 
   return (
     <div
+      {...props}
       ref={(ref) => {
         if (ref) {
             connect(ref);
             drag(ref);
+            if (dragRef) {
+                if (typeof dragRef === 'function') dragRef(ref);
+                else dragRef.current = ref;
+            }
         }
       }}
       className="p-6 text-center space-y-4"

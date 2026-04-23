@@ -24,6 +24,7 @@ export const Columns = ({
     children, 
     canvas,
     isCanvas,
+    dragRef,
     ...props 
 }: ColumnsProps & any) => {
   const { connectors: { connect, drag } } = useNode();
@@ -42,10 +43,14 @@ export const Columns = ({
   return (
     <div
       {...props}
-      ref={(ref) => {
-        if (ref) {
-            connect(ref);
-            drag(ref);
+      ref={(el) => {
+        if (el) {
+            connect(el);
+            drag(el);
+            if (dragRef) {
+              if (typeof dragRef === 'function') dragRef(el);
+              else dragRef.current = el;
+            }
         }
       }}
       className={cn("w-full grid transition-all", gridStyle, props.className)}

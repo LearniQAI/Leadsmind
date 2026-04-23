@@ -53,6 +53,7 @@ export const Footer = ({
   newsletterDescription,
   isGlobal,
   globalId,
+  dragRef,
   ...props
 }: FooterProps & any) => {
   const { connectors: { connect, drag } } = useNode();
@@ -79,10 +80,15 @@ export const Footer = ({
 
   return (
     <footer
+      {...props}
       ref={(ref) => {
         if (ref) {
           connect(ref);
           drag(ref);
+          if (dragRef) {
+            if (typeof dragRef === 'function') dragRef(ref);
+            else dragRef.current = ref;
+          }
         }
       }}
       className="w-full flex flex-col transition-all duration-300"

@@ -6,7 +6,7 @@ import ContentEditable from 'react-contenteditable';
 import { TextSettings } from './TextSettings';
 import { replaceMergeTags } from '@/lib/builder/utils';
 
-export const Text = ({ text, fontSize, textAlign, color, ...props }: any) => {
+export const Text = ({ text, fontSize, textAlign, color, dragRef, ...props }: any) => {
   const { connectors: { connect, drag }, actions: { setProp } } = useNode();
   const { enabled } = useEditor((state) => ({
     enabled: state.options.enabled
@@ -16,10 +16,15 @@ export const Text = ({ text, fontSize, textAlign, color, ...props }: any) => {
 
   return (
     <div
-      ref={(ref) => {
-        if (ref) {
-          connect(ref);
-          drag(ref);
+      {...props}
+      ref={(el) => {
+        if (el) {
+          connect(el);
+          drag(el);
+          if (dragRef) {
+            if (typeof dragRef === 'function') dragRef(el);
+            else dragRef.current = el;
+          }
         }
       }}
       style={{

@@ -54,7 +54,7 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const url = new URL(request.url)
   const pathname = url.pathname
@@ -73,12 +73,12 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/invite')
 
   // Rule 1: Redirect to /dashboard if already logged in and accessing auth pages
-  if (session && isAuthPage) {
+  if (user && isAuthPage) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   // Rule 2: Redirect to /login if not logged in and accessing protected pages
-  if (!session && isProtectedPage && !pathname.startsWith('/invite/accept')) {
+  if (!user && isProtectedPage && !pathname.startsWith('/invite/accept')) {
     const redirectUrl = new URL('/login', request.url)
     redirectUrl.searchParams.set('next', pathname)
     return NextResponse.redirect(redirectUrl)
@@ -87,8 +87,8 @@ export async function proxy(request: NextRequest) {
   // ────────────────────────────────────────────────────────
   // Rule 3: Phase 6 Client Isolation Logic
   // ────────────────────────────────────────────────────────
-  if (session?.user) {
-    const isClient = session.user.user_metadata?.role === 'client' || request.cookies.get('active_role')?.value === 'client'
+  if (user) {
+    const isClient = user.user_metadata?.role === 'client' || request.cookies.get('active_role')?.value === 'client'
     
     if (isClient) {
       if (!pathname.startsWith('/portal') && !pathname.startsWith('/learn') && !pathname.startsWith('/api') && !pathname.includes('.')) {

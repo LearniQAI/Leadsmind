@@ -5,14 +5,24 @@ import { useNode } from '@craftjs/core';
 import { ColorPicker } from '../ColorPicker';
 import { Label } from '@/components/ui/label';
 
+import { useResponsiveSetProp } from '@/lib/builder/hooks';
+import { useBuilder } from '../BuilderContext';
+
 export const HeadingSettings = () => {
-    const { actions: { setProp }, level, fontWeight, textAlign, color, fontSize } = useNode((node) => ({
-        level: node.data.props.level,
-        fontWeight: node.data.props.fontWeight,
-        textAlign: node.data.props.textAlign,
-        color: node.data.props.color,
-        fontSize: node.data.props.fontSize,
+    const { actions: { setProp }, props } = useNode((node) => ({
+        props: node.data.props,
     }));
+    const { viewMode } = useBuilder();
+    const { setResponsiveValue } = useResponsiveSetProp();
+
+    const { level, fontWeight, textAlign, color, fontSize } = props;
+
+    // Helper to get current display value for a prop
+    const getDisplayValue = (propName: string, baseValue: any) => {
+        if (viewMode === 'mobile') return props[`${propName}_mobile`] ?? baseValue;
+        if (viewMode === 'tablet') return props[`${propName}_tablet`] ?? baseValue;
+        return baseValue;
+    };
 
     return (
         <div className="space-y-4">
@@ -37,8 +47,8 @@ export const HeadingSettings = () => {
                     {['normal', 'medium', 'semibold', 'bold', 'black'].map((w) => (
                         <button
                             key={w}
-                            onClick={() => setProp((props: any) => props.fontWeight = w)}
-                            className={`flex-1 text-[9px] py-1.5 rounded capitalize ${fontWeight === w ? 'bg-primary text-white shadow font-bold' : 'text-muted-foreground hover:text-white'}`}
+                            onClick={() => setResponsiveValue('fontWeight', w)}
+                            className={`flex-1 text-[9px] py-1.5 rounded capitalize ${getDisplayValue('fontWeight', fontWeight) === w ? 'bg-primary text-white shadow font-bold' : 'text-muted-foreground hover:text-white'}`}
                         >
                             {w}
                         </button>
@@ -54,12 +64,15 @@ export const HeadingSettings = () => {
                 />
                 
                 <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground block">Size Custom Override (px)</Label>
+                    <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground block flex justify-between">
+                        <span>Size Custom Override (px)</span>
+                        <span className="text-primary">{getDisplayValue('fontSize', fontSize) || 'Auto'}</span>
+                    </Label>
                     <input 
                         type="number" 
                         placeholder="Auto"
-                        value={fontSize || ''}
-                        onChange={(e) => setProp((props: any) => props.fontSize = e.target.value ? Number(e.target.value) : undefined)}
+                        value={getDisplayValue('fontSize', fontSize) || ''}
+                        onChange={(e) => setResponsiveValue('fontSize', e.target.value ? Number(e.target.value) : undefined)}
                         className="w-full h-8 bg-white/5 border border-white/10 rounded px-2 text-xs text-white"
                     />
                 </div>
@@ -71,8 +84,8 @@ export const HeadingSettings = () => {
                     {['left', 'center', 'right', 'justify'].map((align) => (
                         <button
                             key={align}
-                            onClick={() => setProp((props: any) => props.textAlign = align)}
-                            className={`flex-1 text-[10px] py-1 rounded capitalize ${textAlign === align ? 'bg-primary text-white shadow font-bold' : 'text-muted-foreground hover:text-white'}`}
+                            onClick={() => setResponsiveValue('textAlign', align)}
+                            className={`flex-1 text-[10px] py-1 rounded capitalize ${getDisplayValue('textAlign', textAlign) === align ? 'bg-primary text-white shadow font-bold' : 'text-muted-foreground hover:text-white'}`}
                         >
                             {align}
                         </button>

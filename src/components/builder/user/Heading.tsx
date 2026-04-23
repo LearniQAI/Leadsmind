@@ -5,6 +5,8 @@ import { useNode, useEditor } from '@craftjs/core';
 import ContentEditable from 'react-contenteditable';
 import { HeadingSettings } from './HeadingSettings';
 import { replaceMergeTags } from '@/lib/builder/utils';
+import { useResponsiveValue } from '@/lib/builder/hooks';
+import { useBuilder } from '../BuilderContext';
 
 export interface HeadingProps {
   text: string;
@@ -15,14 +17,36 @@ export interface HeadingProps {
   fontSize?: number; // Optional override
 }
 
-export const Heading = ({ text, level, fontWeight, textAlign, color, fontSize, ...props }: HeadingProps & any) => {
+export const Heading = (allProps: HeadingProps & any) => {
+  const { 
+    text, 
+    level, 
+    fontWeight: _fw,
+    fontWeight_mobile,
+    fontWeight_tablet,
+    textAlign: _ta,
+    textAlign_mobile,
+    textAlign_tablet,
+    color, 
+    fontSize: _fs,
+    fontSize_mobile,
+    fontSize_tablet,
+    dragRef, 
+    ...props 
+  } = allProps;
   const { connectors: { connect, drag }, actions: { setProp } } = useNode();
+  const { viewMode } = useBuilder();
   const { enabled } = useEditor((state) => ({
     enabled: state.options.enabled
   }));
 
   const Tag = level;
   const displayText = enabled ? text : replaceMergeTags(text);
+
+  // Responsive values
+  const fontSize = useResponsiveValue(allProps, 'fontSize', undefined);
+  const fontWeight = useResponsiveValue(allProps, 'fontWeight', _fw);
+  const textAlign = useResponsiveValue(allProps, 'textAlign', _ta);
   
   // Base scales for sizes based on level if fontSize is not strictly provided
   const baseSizes = {
@@ -52,10 +76,14 @@ export const Heading = ({ text, level, fontWeight, textAlign, color, fontSize, .
   return (
     <div
       {...props}
-      ref={(ref) => {
-        if (ref) {
-            connect(ref);
-            drag(ref);
+      ref={(el) => {
+        if (el) {
+            connect(el);
+            drag(el);
+            if (dragRef) {
+              if (typeof dragRef === 'function') dragRef(el);
+              else dragRef.current = el;
+            }
         }
       }}
       className={`w-full outline-dashed outline-1 outline-transparent hover:outline-blue-500/50 transition-all ${baseSizes[level as keyof typeof baseSizes]} ${weights[fontWeight as keyof typeof weights]} ${alignments[textAlign as keyof typeof alignments]} ${props.className || ''}`}

@@ -2,8 +2,12 @@
 
 import React from 'react';
 import { useNode } from '@craftjs/core';
-import { Calendar, User, ArrowRight } from 'lucide-react';
+import { Calendar, User, ArrowRight, Loader2 } from 'lucide-react';
 import { BlogFeedSettings } from './BlogFeedSettings';
+import { useBuilder } from '../BuilderContext';
+import { useEditor } from '@craftjs/core';
+import { createClient } from '@/lib/supabase/client';
+import { useParams } from 'next/navigation';
 
 export interface BlogFeedProps {
   columns: number;
@@ -29,9 +33,16 @@ export const BlogFeed = ({
     showAuthor,
     showReadTime,
     paginationType,
+    dragRef,
     ...props 
 }: BlogFeedProps & any) => {
   const { connectors: { connect, drag } } = useNode();
+  const { enabled } = useEditor((state) => ({ enabled: state.options.enabled }));
+  const { websiteData } = useBuilder();
+  const { workspaceSlug } = useParams();
+  
+  const [posts, setPosts] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(!enabled);
 
   // Mock data for the builder preview
   const mockPosts = [
@@ -61,19 +72,53 @@ export const BlogFeed = ({
           image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=2532&auto=format&fit=crop',
           category: 'Technology',
           readTime: '6 min read'
-      },
-      {
-          title: 'Building Predictable Revenue Streams',
-          excerpt: 'A deep dive into the metrics that matter most for long-term business stability.',
-          date: 'Aug 30, 2024',
-          author: 'Sam Wilson',
-          image: 'https://images.unsplash.com/photo-1553729459-efe14ef6055d?q=80&w=2340&auto=format&fit=crop',
-          category: 'Revenue',
-          readTime: '7 min read'
       }
   ];
 
-  const posts = mockPosts.slice(0, postCount);
+  React.useEffect(() => {
+    if (enabled) {
+        setPosts(mockPosts.slice(0, postCount));
+        setLoading(false);
+        return;
+    }
+
+    async function fetchRealPosts() {
+        const workspaceId = websiteData?.workspace_id;
+        if (!workspaceId) return;
+
+        const supabase = createClient();
+        let query = supabase
+            .from('pages')
+            .select('*')
+            .eq('workspace_id', workspaceId)
+            .eq('type', 'blog_post')
+            .eq('is_published', true)
+            .order('created_at', { ascending: false })
+            .limit(postCount);
+
+        if (queryLogic === 'category' && category !== 'all') {
+            query = query.eq('category', category);
+        }
+
+        const { data, error } = await query;
+        
+        if (data) {
+            setPosts(data.map(p => ({
+                title: p.name,
+                excerpt: p.excerpt || p.seo_description || 'Click to read more...',
+                date: new Date(p.created_at).toLocaleDateString(),
+                author: p.author || 'Author',
+                image: p.og_image_url || 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2426',
+                category: p.category || 'General',
+                readTime: p.read_time ? `${p.read_time} min read` : '5 min read',
+                slug: p.id // Future: use path_name
+            })));
+        }
+        setLoading(false);
+    }
+
+    fetchRealPosts();
+  }, [enabled, postCount, queryLogic, category, websiteData?.workspace_id]);
 
   const gridCols = {
       1: 'grid-cols-1',
@@ -82,12 +127,26 @@ export const BlogFeed = ({
       4: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4',
   };
 
+  if (loading) {
+      return (
+          <div className="w-full py-20 flex flex-col items-center justify-center gap-4 opacity-50">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Fetching Latest Insights...</span>
+          </div>
+      );
+  }
+
   return (
     <div
+      {...props}
       ref={(ref) => {
         if (ref) {
             connect(ref);
             drag(ref);
+            if (dragRef) {
+                if (typeof dragRef === 'function') dragRef(ref);
+                else dragRef.current = ref;
+            }
         }
       }}
       className="w-full py-8 transition-all outline-dashed outline-1 outline-transparent hover:outline-blue-500/50"
@@ -124,7 +183,16 @@ export const BlogFeed = ({
                         <span className="text-xs font-bold opacity-80">{post.author}</span>
                     </div>
                 )}
-                <button className="text-xs font-black uppercase tracking-widest text-primary hover:underline group-hover:translate-x-2 transition-transform">Read More →</button>
+                <button 
+                    onClick={() => {
+                        if (!enabled && post.slug) {
+                            window.location.href = `/p/${workspaceSlug}/${post.slug}`;
+                        }
+                    }}
+                    className="text-xs font-black uppercase tracking-widest text-primary hover:underline group-hover:translate-x-2 transition-transform"
+                >
+                    Read More →
+                </button>
               </div>
             </div>
           </div>

@@ -5,15 +5,20 @@ import { useNode } from '@craftjs/core';
 import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export const PricingTable = ({ plans, ...props }: any) => {
+export const PricingTable = ({ plans, dragRef, ...props }: any) => {
   const { connectors: { connect, drag } } = useNode();
 
   return (
     <div
+      {...props}
       ref={(ref) => {
         if (ref) {
             connect(ref);
             drag(ref);
+            if (dragRef) {
+                if (typeof dragRef === 'function') dragRef(ref);
+                else dragRef.current = ref;
+            }
         }
       }}
       className="grid grid-cols-1 md:grid-cols-3 gap-6 p-8"

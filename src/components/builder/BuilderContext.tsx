@@ -2,12 +2,16 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 
+export type ViewMode = 'desktop' | 'tablet' | 'mobile';
+
 interface BuilderContextType {
     pages: { id: string; name: string; slug: string }[];
     websiteId: string | null;
     funnelId: string | null;
     websiteData: any;
     onUpdateWebsite: (updates: any) => void;
+    viewMode: ViewMode;
+    setViewMode: (mode: ViewMode) => void;
 }
 
 
@@ -28,8 +32,18 @@ export const BuilderProvider = ({
     websiteData?: any;
     onUpdateWebsite?: (updates: any) => void;
 }) => {
+    const [viewMode, setViewMode] = React.useState<ViewMode>('desktop');
+
     return (
-        <BuilderContext.Provider value={{ pages, websiteId, funnelId, websiteData, onUpdateWebsite }}>
+        <BuilderContext.Provider value={{ 
+            pages, 
+            websiteId, 
+            funnelId, 
+            websiteData, 
+            onUpdateWebsite,
+            viewMode,
+            setViewMode
+        }}>
             {children}
         </BuilderContext.Provider>
     );
@@ -45,7 +59,9 @@ export const useBuilder = () => {
             websiteId: null, 
             funnelId: null, 
             websiteData: null, 
-            onUpdateWebsite: () => {} 
+            onUpdateWebsite: () => {},
+            viewMode: 'desktop' as ViewMode,
+            setViewMode: () => {}
         };
     }
     return context;

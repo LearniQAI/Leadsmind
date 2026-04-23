@@ -21,6 +21,7 @@ export const Divider = ({
     alignment, 
     paddingTop, 
     paddingBottom, 
+    dragRef,
     ...props 
 }: DividerProps & any) => {
   const { connectors: { connect, drag } } = useNode();
@@ -36,6 +37,10 @@ export const Divider = ({
         if (ref) {
             connect(ref);
             drag(ref);
+            if (dragRef) {
+                if (typeof dragRef === 'function') dragRef(ref);
+                else dragRef.current = ref;
+            }
         }
       }}
       className={`w-full outline-dashed outline-1 outline-transparent hover:outline-blue-500/50 transition-all ${props.className || ''}`}

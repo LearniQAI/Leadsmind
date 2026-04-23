@@ -63,6 +63,7 @@ export const Navbar = ({
   hamburgerColor,
   isGlobal,
   globalId,
+  dragRef,
   ...props
 }: NavbarProps & any) => {
   const { connectors: { connect, drag } } = useNode();
@@ -98,10 +99,15 @@ export const Navbar = ({
 
   return (
     <nav
+      {...props}
       ref={(ref) => {
         if (ref) {
           connect(ref);
           drag(ref);
+          if (dragRef) {
+            if (typeof dragRef === 'function') dragRef(ref);
+            else dragRef.current = ref;
+          }
         }
       }}
       className={`w-full transition-all duration-300 z-[100] ${sticky ? 'sticky top-0' : 'relative'} ${isScrolled ? 'shadow-lg backdrop-blur-md' : ''}`}

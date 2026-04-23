@@ -14,10 +14,9 @@ export default async function DashboardLayout({
 }) {
   // 1. Parallelize Auth, Profile, and Workspace fetching to eliminate waterfalls
   const supabase = await createServerClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
   
-  if (!session) redirect('/login');
-  const authUser = session.user;
+  if (!authUser) redirect('/login');
 
   const [profile, workspace, role] = await Promise.all([
     getCurrentProfile(authUser),

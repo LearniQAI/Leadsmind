@@ -9,10 +9,15 @@ import { ColorPicker } from '../ColorPicker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 
+import { useResponsiveSetProp } from '@/lib/builder/hooks';
+import { useBuilder } from '../BuilderContext';
+
 export const HeroSettings = () => {
     const { actions: { setProp }, props } = useNode((node) => ({
         props: node.data.props,
     }));
+    const { viewMode } = useBuilder();
+    const { setResponsiveValue } = useResponsiveSetProp();
 
     const { 
         layout, 
@@ -34,6 +39,13 @@ export const HeroSettings = () => {
         animation,
         showSecondaryButton
     } = props;
+
+    // Helper to get current display value for a prop
+    const getDisplayValue = (propName: string, baseValue: any) => {
+        if (viewMode === 'mobile') return props[`${propName}_mobile`] ?? baseValue;
+        if (viewMode === 'tablet') return props[`${propName}_tablet`] ?? baseValue;
+        return baseValue;
+    };
 
     return (
         <Tabs defaultValue="layout" className="w-full">
@@ -135,20 +147,40 @@ export const HeroSettings = () => {
 
                 <div className="space-y-4 pt-2">
                     <div className="space-y-2">
-                         <Label className="text-[10px] uppercase font-bold text-muted-foreground">Content Max Width ({contentMaxWidth}px)</Label>
-                         <input type="range" min="400" max="1400" step="50" value={contentMaxWidth} onChange={(e) => setProp((p: any) => p.contentMaxWidth = Number(e.target.value))} className="w-full accent-primary" />
+                         <Label className="text-[10px] uppercase font-bold text-muted-foreground flex justify-between">
+                            <span>Content Max Width</span>
+                            <span className="text-primary">{getDisplayValue('contentMaxWidth', contentMaxWidth)}px</span>
+                         </Label>
+                         <input 
+                            type="range" min="400" max="1400" step="50" 
+                            value={getDisplayValue('contentMaxWidth', contentMaxWidth)} 
+                            onChange={(e) => setResponsiveValue('contentMaxWidth', Number(e.target.value))} 
+                            className="w-full accent-primary" 
+                         />
                     </div>
                     <div className="space-y-2">
-                         <Label className="text-[10px] uppercase font-bold text-muted-foreground">Section Padding ({padding}px)</Label>
-                         <input type="range" min="20" max="200" step="10" value={padding} onChange={(e) => setProp((p: any) => p.padding = Number(e.target.value))} className="w-full accent-primary" />
+                         <Label className="text-[10px] uppercase font-bold text-muted-foreground flex justify-between">
+                            <span>Section Padding</span>
+                            <span className="text-primary">{getDisplayValue('padding', padding)}px</span>
+                         </Label>
+                         <input 
+                            type="range" min="20" max="200" step="10" 
+                            value={getDisplayValue('padding', padding)} 
+                            onChange={(e) => setResponsiveValue('padding', Number(e.target.value))} 
+                            className="w-full accent-primary" 
+                         />
                     </div>
                     <div className="space-y-2">
-                         <Label className="text-[10px] uppercase font-bold text-muted-foreground">Section Padding ({padding}px)</Label>
-                         <input type="range" min="20" max="200" step="10" value={padding} onChange={(e) => setProp((p: any) => p.padding = Number(e.target.value))} className="w-full accent-primary" />
-                    </div>
-                    <div className="space-y-2">
-                         <Label className="text-[10px] uppercase font-bold text-muted-foreground">Inner Gap ({gap}px)</Label>
-                         <input type="range" min="0" max="100" step="8" value={gap} onChange={(e) => setProp((p: any) => p.gap = Number(e.target.value))} className="w-full accent-primary" />
+                         <Label className="text-[10px] uppercase font-bold text-muted-foreground flex justify-between">
+                            <span>Inner Gap</span>
+                            <span className="text-primary">{getDisplayValue('gap', gap)}px</span>
+                         </Label>
+                         <input 
+                            type="range" min="0" max="100" step="8" 
+                            value={getDisplayValue('gap', gap)} 
+                            onChange={(e) => setResponsiveValue('gap', Number(e.target.value))} 
+                            className="w-full accent-primary" 
+                         />
                     </div>
                 </div>
             </TabsContent>

@@ -15,16 +15,18 @@ export interface VideoProps {
   borderRadius: number;
 }
 
-export const Video = ({ 
-    url, 
-    provider, 
-    autoPlay, 
-    controls, 
-    loop, 
-    muted, 
-    borderRadius, 
-    ...props 
-}: VideoProps & any) => {
+export const Video = (allProps: VideoProps & any) => {
+    const { 
+        url, 
+        provider, 
+        autoPlay, 
+        controls, 
+        loop, 
+        muted, 
+        borderRadius, 
+        dragRef,
+        ...props 
+    } = allProps;
   const { connectors: { connect, drag } } = useNode();
   
   const getEmbedUrl = () => {
@@ -44,8 +46,11 @@ export const Video = ({
       {...props}
       ref={(ref) => {
         if (ref) {
-            connect(ref);
-            drag(ref);
+            connect(drag(ref));
+            if (dragRef) {
+                if (typeof dragRef === 'function') dragRef(ref);
+                else dragRef.current = ref;
+            }
         }
       }}
       className={`w-full relative pt-[56.25%] overflow-hidden outline-dashed outline-1 outline-transparent hover:outline-blue-500/50 transition-all ${props.className || ''}`}

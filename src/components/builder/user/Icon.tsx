@@ -14,7 +14,7 @@ export interface IconProps {
   fill?: boolean;
 }
 
-export const Icon = ({ name, size, color, strokeWidth, alignment, fill, ...props }: IconProps & any) => {
+export const Icon = ({ name, size, color, strokeWidth, alignment, fill, dragRef, ...props }: IconProps & any) => {
   const { connectors: { connect, drag } } = useNode();
   
   // Dynamically resolve the Lucide icon by name
@@ -34,6 +34,10 @@ export const Icon = ({ name, size, color, strokeWidth, alignment, fill, ...props
         if (ref) {
             connect(ref);
             drag(ref);
+            if (dragRef) {
+                if (typeof dragRef === 'function') dragRef(ref);
+                else dragRef.current = ref;
+            }
         }
       }}
       className={`inline-flex outline-dashed outline-1 outline-transparent hover:outline-blue-500/50 transition-all ${alignments[alignment as keyof typeof alignments]} ${props.className || ''}`}

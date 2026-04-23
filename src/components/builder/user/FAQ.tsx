@@ -16,27 +16,39 @@ export interface FAQProps {
   padding: number;
 }
 
-export const FAQ = ({ 
-    items, 
-    itemBg, 
-    borderColor, 
-    questionColor, 
-    answerColor, 
-    iconColor, 
-    borderRadius, 
-    gap,
-    padding,
-    ...props 
-}: FAQProps & any) => {
+export const FAQ = (allProps: FAQProps & any) => {
+    const { 
+        items, 
+        itemBg, 
+        borderColor, 
+        questionColor, 
+        answerColor, 
+        iconColor, 
+        borderRadius, 
+        gap,
+        padding,
+        // Style Props (Catch these so they don't leak to DOM)
+        maxWidth,
+        custom,
+        hidden,
+        // Craft Props
+        dragRef,
+        ...props 
+    } = allProps;
   const { connectors: { connect, drag } } = useNode();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
     <div
+      {...props}
       ref={(ref) => {
         if (ref) {
             connect(ref);
             drag(ref);
+            if (dragRef) {
+                if (typeof dragRef === 'function') dragRef(ref);
+                else dragRef.current = ref;
+            }
         }
       }}
       className="max-w-4xl mx-auto transition-all outline-dashed outline-1 outline-transparent hover:outline-blue-500/50"

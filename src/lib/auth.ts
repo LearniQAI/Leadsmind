@@ -11,11 +11,10 @@ import { cookies } from 'next/headers';
 export async function getSession() {
   const supabase = await createServerClient();
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    // Safety check: ensure user data is valid even if session exists
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error || !user) return null;
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
+    if (userError || !user) return null;
     return session;
   } catch (error) {
     console.error('[auth] Error fetching session:', error);
@@ -35,11 +34,11 @@ export async function getUser() {
 }
 
 export async function requireAuth() {
-  const session = await getSession();
-  if (!session) {
+  const user = await getUser();
+  if (!user) {
     redirect('/login');
   }
-  return session.user;
+  return user;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

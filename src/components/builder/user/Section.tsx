@@ -5,6 +5,8 @@ import { useNode } from '@craftjs/core';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { SectionSettings } from './SectionSettings';
+import { useResponsiveValue } from '@/lib/builder/hooks';
+import { useBuilder } from '../BuilderContext';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -20,25 +22,46 @@ export interface SectionProps {
   canvas?: boolean;
 }
 
-export const Section = ({ 
-    paddingTop, 
-    paddingBottom, 
-    paddingLeft, 
-    paddingRight, 
-    backgroundColor,
-    children, 
-    canvas, 
-    ...props 
-}: SectionProps) => {
+export const Section = (allProps: SectionProps & any) => {
+    const { 
+        backgroundColor,
+        paddingTop: _pt,
+        paddingBottom: _pb,
+        paddingLeft: _pl,
+        paddingRight: _pr,
+        paddingTop_mobile,
+        paddingTop_tablet,
+        paddingBottom_mobile,
+        paddingBottom_tablet,
+        paddingLeft_mobile,
+        paddingLeft_tablet,
+        paddingRight_mobile,
+        paddingRight_tablet,
+        children, 
+        canvas, 
+        dragRef,
+        ...props 
+    } = allProps;
   const { connectors: { connect, drag } } = useNode();
+  const { viewMode } = useBuilder();
+
+  // Responsive values
+  const paddingTop = useResponsiveValue(allProps, 'paddingTop', 64);
+  const paddingBottom = useResponsiveValue(allProps, 'paddingBottom', 64);
+  const paddingLeft = useResponsiveValue(allProps, 'paddingLeft', 24);
+  const paddingRight = useResponsiveValue(allProps, 'paddingRight', 24);
   
   return (
     <section
       {...props}
-      ref={(ref) => {
-        if (ref) {
-            connect(ref);
-            drag(ref);
+      ref={(el) => {
+        if (el) {
+          connect(el);
+          drag(el);
+          if (dragRef) {
+            if (typeof dragRef === 'function') dragRef(el);
+            else dragRef.current = el;
+          }
         }
       }}
       className="w-full relative"

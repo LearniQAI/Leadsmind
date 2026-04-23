@@ -4,8 +4,11 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { renderCraftToHtml } from '@/lib/builder/renderer';
 import { getCurrentWorkspaceId } from '@/lib/auth';
+import { getTemplateById } from '@/lib/builder/templates';
 
-export async function createWebsite(name: string, subdomain: string) {
+const BLANK_PAGE = '{"ROOT":{"type":{"resolvedName":"Container"},"isCanvas":true,"props":{"className":"min-h-screen bg-white"},"nodes":[]}}';
+
+export async function createWebsite(name: string, subdomain: string, templateId?: string) {
   const supabase = await createClient();
   const workspaceId = await getCurrentWorkspaceId();
 
@@ -16,6 +19,7 @@ export async function createWebsite(name: string, subdomain: string) {
         workspace_id: workspaceId,
         name,
         subdomain,
+        is_published: false
       })
       .select()
       .single();
@@ -34,23 +38,38 @@ export async function createWebsite(name: string, subdomain: string) {
       .single();
 
     // Initialize content
-    await supabase.from('pages').insert({
+    let initialContent = BLANK_PAGE;
+    if (templateId) {
+        const hardcoded = getTemplateById(templateId);
+        if (hardcoded) {
+            initialContent = hardcoded.content;
+        } else {
+            const { data: dbTpl } = await supabase
+                .from('templates')
+                .select('content')
+                .eq('id', templateId)
+                .single();
+            if (dbTpl) initialContent = typeof dbTpl.content === 'string' ? dbTpl.content : JSON.stringify(dbTpl.content);
+        }
+    }
+
+    const { data: newPage } = await supabase.from('pages').insert({
         workspace_id: workspaceId,
         website_page_id: page.id,
         name: 'Home Page',
-        is_published: true,
-        is_draft: false,
-        content: { ROOT: { type: { resolvedName: 'Container' }, props: { className: 'p-8 flex flex-col gap-4 min-h-screen' }, nodes: [] } }
-    });
+        is_published: !!templateId,
+        is_draft: !templateId,
+        content: initialContent || BLANK_PAGE
+    }).select().single();
 
     revalidatePath('/websites');
-    return { success: true, websiteId: website.id };
+    return { success: true, websiteId: website.id, pageId: newPage.id };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
-export async function createFunnel(name: string) {
+export async function createFunnel(name: string, templateId?: string) {
     const supabase = await createClient();
     const workspaceId = await getCurrentWorkspaceId();
   
@@ -60,6 +79,7 @@ export async function createFunnel(name: string) {
         .insert({
           workspace_id: workspaceId,
           name,
+          is_published: false
         })
         .select()
         .single();
@@ -79,18 +99,33 @@ export async function createFunnel(name: string) {
         .single();
   
       // Initialize content
-      await supabase.from('pages').insert({
+      let initialContent = BLANK_PAGE;
+      if (templateId) {
+          const hardcoded = getTemplateById(templateId);
+          if (hardcoded) {
+              initialContent = hardcoded.content;
+          } else {
+              const { data: dbTpl } = await supabase
+                  .from('templates')
+                  .select('content')
+                  .eq('id', templateId)
+                  .single();
+              if (dbTpl) initialContent = typeof dbTpl.content === 'string' ? dbTpl.content : JSON.stringify(dbTpl.content);
+          }
+      }
+
+      const { data: newPage } = await supabase.from('pages').insert({
           workspace_id: workspaceId,
           funnel_step_id: step.id,
           name: 'Opt-in',
-          is_published: true,
-          is_draft: false,
-          content: { ROOT: { type: { resolvedName: 'Container' }, props: { className: 'p-8 flex flex-col gap-4 min-h-screen' }, nodes: [] } }
-      });
+          is_published: !!templateId,
+          is_draft: !templateId,
+          content: initialContent || BLANK_PAGE
+      }).select().single();
 
   
       revalidatePath('/funnels');
-      return { success: true, funnelId: funnel.id };
+      return { success: true, funnelId: funnel.id, pageId: newPage.id };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
@@ -297,6 +332,22 @@ export async function updateWebsiteSettings(websiteId: string, updates: { name?:
     return { success: true };
 }
 
+export async function updateFunnelSettings(funnelId: string, updates: { name?: string, config?: any }) {
+    const supabase = await createClient();
+    
+    const { error } = await supabase
+        .from('funnels')
+        .update(updates)
+        .eq('id', funnelId);
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath('/builder');
+    revalidatePath(`/funnels`);
+    
+    return { success: true };
+}
+
 export async function createPage(name: string, websiteId?: string, funnelId?: string) {
   const supabase = await createClient();
   const workspaceId = await getCurrentWorkspaceId();
@@ -359,7 +410,17 @@ export async function createPage(name: string, websiteId?: string, funnelId?: st
   }
 }
 
-export async function updatePageSettings(pageId: string, settings: { name?: string, seo_title?: string, seo_description?: string, og_image_url?: string }) {
+export async function updatePageSettings(pageId: string, settings: { 
+    name?: string, 
+    seo_title?: string, 
+    seo_description?: string, 
+    og_image_url?: string,
+    type?: string,
+    author?: string,
+    category?: string,
+    tags?: string[],
+    excerpt?: string
+}) {
     const supabase = await createClient();
     
     const { error } = await supabase
@@ -371,4 +432,163 @@ export async function updatePageSettings(pageId: string, settings: { name?: stri
     
     revalidatePath('/builder');
     return { success: true };
+}
+
+export async function deleteWebsite(id: string) {
+    const supabase = await createClient();
+    const { error } = await supabase.from('websites').delete().eq('id', id);
+    if (error) return { success: false, error: error.message };
+    revalidatePath('/websites');
+    return { success: true };
+}
+
+export async function deleteFunnel(id: string) {
+    const supabase = await createClient();
+    const { error } = await supabase.from('funnels').delete().eq('id', id);
+    if (error) return { success: false, error: error.message };
+    revalidatePath('/funnels');
+    return { success: true };
+}
+
+export async function duplicateWebsite(id: string) {
+    const supabase = await createClient();
+    const workspaceId = await getCurrentWorkspaceId();
+
+    try {
+        // 1. Get original website
+        const { data: original, error: fetchError } = await supabase
+            .from('websites')
+            .select('*, website_pages(*, pages(*))')
+            .eq('id', id)
+            .single();
+
+        if (fetchError || !original) throw new Error("Website not found");
+
+        // 2. Create new website
+        const { data: newWs, error: wsError } = await supabase
+            .from('websites')
+            .insert({
+                workspace_id: workspaceId,
+                name: `${original.name} (Copy)`,
+                subdomain: `${original.subdomain}-copy-${Math.random().toString(36).substr(2, 4)}`,
+                config: original.config,
+                favicon_url: original.favicon_url,
+                is_published: false
+            })
+            .select()
+            .single();
+
+        if (wsError) throw wsError;
+
+        // 3. Clone pages
+        if (original.website_pages) {
+            for (const wp of original.website_pages) {
+                const { data: newWp } = await supabase
+                    .from('website_pages')
+                    .insert({
+                        website_id: newWs.id,
+                        name: wp.name,
+                        path_name: wp.path_name,
+                    })
+                    .select()
+                    .single();
+
+                if (newWp && wp.pages) {
+                    for (const page of wp.pages) {
+                        await supabase.from('pages').insert({
+                            workspace_id: workspaceId,
+                            website_page_id: newWp.id,
+                            name: page.name,
+                            content: page.content,
+                            is_published: false,
+                            is_draft: true
+                        });
+                    }
+                }
+            }
+        }
+
+        revalidatePath('/websites');
+        return { success: true, websiteId: newWs.id };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function duplicateFunnel(id: string) {
+    const supabase = await createClient();
+    const workspaceId = await getCurrentWorkspaceId();
+
+    try {
+        // 1. Get original funnel
+        const { data: original, error: fetchError } = await supabase
+            .from('funnels')
+            .select('*, funnel_steps(*, pages(*))')
+            .eq('id', id)
+            .single();
+
+        if (fetchError || !original) throw new Error("Funnel not found");
+
+        // 2. Create new funnel
+        const { data: newFn, error: fnError } = await supabase
+            .from('funnels')
+            .insert({
+                workspace_id: workspaceId,
+                name: `${original.name} (Copy)`,
+                is_published: false
+            })
+            .select()
+            .single();
+
+        if (fnError) throw fnError;
+
+        // 3. Clone steps
+        if (original.funnel_steps) {
+            for (const step of original.funnel_steps) {
+                const { data: newStep } = await supabase
+                    .from('funnel_steps')
+                    .insert({
+                        funnel_id: newFn.id,
+                        name: step.name,
+                        path_name: step.path_name,
+                        order: step.order
+                    })
+                    .select()
+                    .single();
+
+                if (newStep && step.pages) {
+                    for (const page of step.pages) {
+                        await supabase.from('pages').insert({
+                            workspace_id: workspaceId,
+                            funnel_step_id: newStep.id,
+                            name: page.name,
+                            content: page.content,
+                            is_published: false,
+                            is_draft: true
+                        });
+                    }
+                }
+            }
+        }
+
+        revalidatePath('/funnels');
+        return { success: true, funnelId: newFn.id };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function getTemplates(category?: 'website' | 'funnel' | 'both') {
+    const supabase = await createClient();
+    
+    let query = supabase.from('templates').select('*');
+    
+    if (category && category !== 'both') {
+        query = query.or(`category.eq.${category},category.eq.both`);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) throw new Error(error.message);
+    return data || [];
 }

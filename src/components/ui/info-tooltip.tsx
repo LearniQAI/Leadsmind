@@ -29,16 +29,15 @@ export function InfoTooltip({
     <TooltipProvider delay={0}>
       <Tooltip>
         <TooltipTrigger render={
-          <button 
-            type="button" 
+          <span 
             className={cn(
-              "inline-flex items-center justify-center text-white/30 hover:text-white transition-colors focus:outline-none ml-1",
+              "inline-flex items-center justify-center text-white/30 hover:text-white transition-colors focus:outline-none ml-1 cursor-help",
               className
             )}
           >
             <Icon size={size} />
             <span className="sr-only">Information</span>
-          </button>
+          </span>
         } />
         <TooltipContent 
           side="top" 

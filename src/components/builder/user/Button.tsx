@@ -22,19 +22,21 @@ export interface ButtonProps {
   iconPosition: 'left' | 'right';
 }
 
-export const UserButton = ({ 
-    text, 
-    size, 
-    variant, 
-    color, 
-    textColor, 
-    borderRadius, 
-    width, 
-    link, 
-    icon, 
-    iconPosition,
-    ...props 
-}: ButtonProps & any) => {
+export const UserButton = (allProps: ButtonProps & any) => {
+    const { 
+        text, 
+        size, 
+        variant, 
+        color, 
+        textColor, 
+        borderRadius, 
+        width, 
+        link, 
+        icon, 
+        iconPosition,
+        dragRef,
+        ...props 
+    } = allProps;
   const { connectors: { connect, drag } } = useNode();
   const { websiteData } = useBuilder();
   
@@ -66,6 +68,10 @@ export const UserButton = ({
         if (ref) {
             connect(ref);
             drag(ref);
+            if (dragRef) {
+                if (typeof dragRef === 'function') dragRef(ref);
+                else dragRef.current = ref;
+            }
         }
       }}
       className={`inline-block ${width === 'full' ? 'w-full' : 'w-fit'} outline-dashed outline-1 outline-transparent hover:outline-blue-500/50 transition-all`}

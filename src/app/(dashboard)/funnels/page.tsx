@@ -6,26 +6,70 @@ import { Plus, Filter, MoreVertical, Layers, Loader2, ExternalLink } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { createFunnel } from '@/app/actions/builder';
+import { createFunnel, duplicateFunnel, deleteFunnel, updateFunnelSettings, getTemplates } from '@/app/actions/builder';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { BUILDER_TEMPLATES } from '@/lib/builder/templates';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
+import { Check, AlertCircle } from 'lucide-react';
 
 export default function FunnelsPage() {
   const [funnels, setFunnels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newFunnelName, setNewFunnelName] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+
+  // Rename & Delete State
+  const [renameFunnel, setRenameFunnel] = useState<any>(null);
+  const [deleteFunnelObj, setDeleteFunnelObj] = useState<any>(null);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [dbTemplates, setDbTemplates] = useState<any[]>([]);
+  const [templateError, setTemplateError] = useState<string | null>(null);
+
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
     fetchFunnels();
+    fetchTemplates();
   }, []);
 
+  const fetchTemplates = async () => {
+    setTemplateError(null);
+    try {
+        const templates = await getTemplates('funnel');
+        setDbTemplates(templates);
+    } catch (err: any) {
+        console.error('Error fetching templates:', err);
+        setTemplateError(err.message || 'Failed to load templates');
+    }
+  };
+
   const fetchFunnels = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from('funnels')
-      .select('*, workspace:workspaces!inner(slug), steps:funnel_steps(path_name)')
+      .select('*, workspace:workspaces!inner(slug), funnel_steps(id, pages(id))')
       .order('created_at', { ascending: false });
     
     if (data) setFunnels(data);
@@ -33,14 +77,65 @@ export default function FunnelsPage() {
   };
 
   const handleCreate = async () => {
+    if (!newFunnelName) {
+        toast.error('Please enter a funnel name');
+        return;
+    }
     setCreating(true);
-    const result = await createFunnel('New Sales Funnel');
+    const result = await createFunnel(newFunnelName, selectedTemplate || undefined);
+    
     if (result.success) {
-      router.push(`/editor/funnel/${result.funnelId}`);
+      toast.success('Funnel created successfully');
+      router.push(`/editor/funnel/${result.funnelId}/${result.pageId}`);
     } else {
       setCreating(false);
-      alert(result.error);
+      toast.error(result.error);
     }
+  };
+
+  const handleDuplicate = async (id: string) => {
+    toast.promise(duplicateFunnel(id), {
+        loading: 'Duplicating funnel...',
+        success: (res) => {
+            if (res.success) {
+                fetchFunnels();
+                return 'Funnel duplicated';
+            }
+            throw new Error(res.error);
+        },
+        error: (err) => err.message
+    });
+  };
+
+  const handleRename = async () => {
+    if (!renameFunnel || !renameFunnel.name) return;
+    setIsRenaming(true);
+    const result = await updateFunnelSettings(renameFunnel.id, { name: renameFunnel.name });
+    if (result.success) {
+        toast.success('Funnel renamed');
+        fetchFunnels();
+        setRenameFunnel(null);
+    } else {
+        toast.error('Failed to rename');
+    }
+    setIsRenaming(false);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteFunnelObj) return;
+    
+    toast.promise(deleteFunnel(deleteFunnelObj.id), {
+        loading: 'Deleting...',
+        success: (res) => {
+            if (res.success) {
+                fetchFunnels();
+                setDeleteFunnelObj(null);
+                return 'Funnel deleted';
+            }
+            throw new Error(res.error);
+        },
+        error: (err) => err.message
+    });
   };
 
   if (loading) {
@@ -58,8 +153,8 @@ export default function FunnelsPage() {
           <h1 className="text-3xl font-bold tracking-tight text-white">Funnels</h1>
           <p className="text-muted-foreground mt-1 text-sm">Create high-converting sales and lead generation funnels.</p>
         </div>
-        <Button onClick={handleCreate} disabled={creating} className="rounded-xl bg-[#6c47ff] hover:bg-[#6c47ff]/90">
-          {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+        <Button onClick={() => setIsModalOpen(true)} className="rounded-xl bg-[#6c47ff] hover:bg-[#6c47ff]/90">
+          <Plus className="mr-2 h-4 w-4" />
           New Funnel
         </Button>
       </div>
@@ -72,15 +167,57 @@ export default function FunnelsPage() {
                 <div className="p-2 rounded-lg bg-primary/10 text-primary">
                   <Filter className="w-5 h-5" />
                 </div>
+                <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={cn(
+                        "text-[10px] font-bold uppercase tracking-wider",
+                        funnel.is_published ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                    )}>
+                        {funnel.is_published ? 'published' : 'draft'}
+                    </Badge>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger render={
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-white/40 hover:text-white">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        } />
+                        <DropdownMenuContent align="end" className="w-48 bg-[#0b0b10] border-white/10 text-white">
+                            <DropdownMenuItem onClick={() => {
+                                const pageId = funnel.funnel_steps?.[0]?.pages?.[0]?.id;
+                                router.push(`/editor/funnel/${funnel.id}/${pageId}`);
+                            }}>
+                                Edit Builder
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setRenameFunnel({ id: funnel.id, name: funnel.name })}>
+                                Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDuplicate(funnel.id)}>
+                                Duplicate
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                                const pageId = funnel.funnel_steps?.[0]?.pages?.[0]?.id;
+                                router.push(`/editor/funnel/${funnel.id}/${pageId}?tab=settings`);
+                            }}>
+                                Settings
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-white/5" />
+                            <DropdownMenuItem onClick={() => setDeleteFunnelObj(funnel)} className="text-destructive focus:text-destructive">
+                                Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
               </div>
-              <CardTitle className="mt-4 text-white uppercase tracking-tight">{funnel.name}</CardTitle>
-              <CardDescription className="flex items-center gap-1">
+              <CardTitle className="mt-4 text-white uppercase tracking-tight text-lg">{funnel.name}</CardTitle>
+              <CardDescription className="flex items-center gap-1 text-white/40 text-xs">
                 <Layers className="w-3 h-3" /> {funnel.steps?.length || 0} Steps
               </CardDescription>
+              <div className="mt-4 flex items-center gap-2 text-[10px] text-white/20 font-medium uppercase tracking-tighter">
+                <span>Updated {formatDistanceToNow(new Date(funnel.updated_at || funnel.created_at))} ago</span>
+              </div>
             </CardHeader>
             <CardFooter className="pt-4 border-t border-white/5 flex gap-2">
-              <Link href={`/editor/funnel/${funnel.id}`} className="flex-1">
-                <Button variant="outline" className="w-full text-xs font-bold rounded-lg border-white/5 hover:bg-white/5">
+              <Link href={`/editor/funnel/${funnel.id}/${funnel.funnel_steps?.[0]?.pages?.[0]?.id}`} className="flex-1">
+                <Button variant="outline" className="w-full text-xs font-bold rounded-lg border-white/5 hover:bg-white/5 text-white/60">
                   Manage Steps
                 </Button>
               </Link>
@@ -94,16 +231,179 @@ export default function FunnelsPage() {
         ))}
 
         <button
-          onClick={handleCreate}
-          disabled={creating}
+          onClick={() => setIsModalOpen(true)}
           className="border-2 border-dashed border-white/5 rounded-xl p-8 flex flex-col items-center justify-center gap-3 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all group"
         >
           <div className="p-3 rounded-full bg-white/5 group-hover:bg-primary/10">
-            {creating ? <Loader2 className="w-6 h-6 animate-spin text-primary" /> : <Plus className="w-6 h-6" />}
+            <Plus className="w-6 h-6" />
           </div>
           <span className="font-semibold text-sm">Create Funnel</span>
         </button>
       </div>
+
+      {/* New Funnel Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 bg-[#0b0b10] border-white/10 text-white overflow-hidden">
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle className="text-2xl font-bold">Create New Funnel</DialogTitle>
+            <DialogDescription className="text-white/40">
+              Select a conversion-optimized template to launch your funnel.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="space-y-2">
+                <Label htmlFor="name">Funnel Name</Label>
+                <Input 
+                    id="name" 
+                    placeholder="E-book Lead Magnet" 
+                    value={newFunnelName}
+                    onChange={(e) => setNewFunnelName(e.target.value)}
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/20"
+                />
+            </div>
+
+            <div className="space-y-4">
+                <Label>Choose a Starting Point</Label>
+                
+                {templateError ? (
+                    <div className="p-8 rounded-xl border-2 border-dashed border-red-500/20 bg-red-500/5 flex flex-col items-center justify-center gap-4 text-center">
+                        <div className="p-3 rounded-full bg-red-500/10 text-red-500">
+                            <AlertCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-white">Template loading failed</h4>
+                            <p className="text-xs text-white/40 mt-1">{templateError}</p>
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={fetchTemplates}
+                            className="border-red-500/20 hover:bg-red-500/10 text-red-500 font-bold uppercase tracking-widest text-[10px]"
+                        >
+                            Retry Connection
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <div 
+                            onClick={() => setSelectedTemplate(null)}
+                            className={cn(
+                                "cursor-pointer rounded-xl border-2 p-4 transition-all flex flex-col items-center justify-center gap-2 aspect-video",
+                                selectedTemplate === null ? "border-[#6c47ff] bg-[#6c47ff]/10" : "border-white/5 bg-white/5 hover:border-white/10"
+                            )}
+                        >
+                            <div className="w-8 h-8 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center">
+                                <Plus className="w-4 h-4" />
+                            </div>
+                            <span className="font-bold text-xs text-white">Blank Page</span>
+                        </div>
+
+                        {dbTemplates.filter(t => t.category === 'funnel' || t.category === 'both').map((t) => (
+                            <div 
+                                key={t.id}
+                                onClick={() => setSelectedTemplate(t.id)}
+                                className={cn(
+                                    "cursor-pointer rounded-xl border-2 transition-all flex flex-col justify-end aspect-video group relative overflow-hidden",
+                                    selectedTemplate === t.id ? "border-[#6c47ff]" : "border-white/5 hover:border-white/10"
+                                )}
+                            >
+                                {(t.thumbnail_url || t.preview_image) && (
+                                    <img 
+                                        src={t.thumbnail_url || t.preview_image} 
+                                        alt={t.name}
+                                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                    />
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10" />
+                                <div className="relative z-20 p-4">
+                                    <span className="font-bold text-xs block text-white">{t.name}</span>
+                                    <span className="text-[10px] text-white/60 line-clamp-1">{t.description}</span>
+                                </div>
+                                {selectedTemplate === t.id && (
+                                    <div className="absolute top-2 right-2 z-20 w-6 h-6 rounded-full bg-[#6c47ff] border-2 border-white flex items-center justify-center shadow-xl">
+                                        <Check className="w-3 h-3 text-white" />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+          </div>
+
+          <DialogFooter className="p-6 pt-2 border-t border-white/5 bg-white/[0.02]">
+            <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="text-white/40 hover:text-white hover:bg-white/5">
+                Cancel
+            </Button>
+            <Button 
+                onClick={handleCreate} 
+                disabled={creating || !newFunnelName}
+                className="bg-[#6c47ff] hover:bg-[#6c47ff]/90 px-8 shadow-lg shadow-[#6c47ff]/20"
+            >
+                {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                Create Funnel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Modal */}
+      <Dialog open={!!renameFunnel} onOpenChange={(open) => !open && setRenameFunnel(null)}>
+        <DialogContent className="sm:max-w-[425px] bg-[#0b0b10] border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle>Rename Funnel</DialogTitle>
+            <DialogDescription className="text-white/40">
+              Enter a new name for your funnel.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="rename-name">Name</Label>
+              <Input
+                id="rename-name"
+                value={renameFunnel?.name || ''}
+                onChange={(e) => setRenameFunnel({ ...renameFunnel, name: e.target.value })}
+                className="bg-white/5 border-white/10 text-white"
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRenameFunnel(null)} className="text-white/40 hover:text-white">
+              Cancel
+            </Button>
+            <Button onClick={handleRename} disabled={isRenaming} className="bg-[#6c47ff] hover:bg-[#6c47ff]/90">
+              {isRenaming ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={!!deleteFunnelObj} onOpenChange={(open) => !open && setDeleteFunnelObj(null)}>
+        <DialogContent className="sm:max-w-[425px] bg-[#0b0b10] border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                Delete Funnel
+            </DialogTitle>
+            <DialogDescription className="text-white/40 pt-2">
+              Are you sure you want to delete <span className="text-white font-bold">"{deleteFunnelObj?.name}"</span>? 
+              This action is permanent and will remove all steps, pages, and analytics associated with this funnel.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="ghost" onClick={() => setDeleteFunnelObj(null)} className="text-white/40 hover:text-white">
+              Keep Funnel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete} className="bg-red-500 hover:bg-red-600">
+              Delete Permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

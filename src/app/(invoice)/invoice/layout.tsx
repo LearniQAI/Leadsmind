@@ -10,10 +10,9 @@ export default async function InvoiceLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createServerClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
 
-  if (!session) redirect('/login');
-  const authUser = session.user;
+  if (!authUser) redirect('/login');
 
   const [profile, workspace] = await Promise.all([
     getCurrentProfile(authUser),

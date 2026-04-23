@@ -12,6 +12,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: "Leadsmind | The Ultra-Premium CRM & CRM Automation Platform",
   description: "Capture, automate, and close more deals with the world's most intelligent CRM. Built for high-performance sales, marketing, and course creators.",
   keywords: ["CRM", "Marketing Automation", "LMS", "Lead Capture", "Sales Pipeline", "Email Marketing", "Automation Workflow"],
@@ -47,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={poppins.variable}>
-      <head>
+      <body className="antialiased font-sans">
         <Script
           id="ld-json"
           type="application/ld+json"
@@ -68,8 +69,6 @@ export default function RootLayout({
             `,
           }}
         />
-      </head>
-      <body className="antialiased font-sans">
         <ThemeProvider>
           {children}
           <Toaster position="top-right" richColors />

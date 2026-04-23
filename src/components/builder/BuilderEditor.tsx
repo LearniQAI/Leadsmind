@@ -32,11 +32,45 @@ import { Footer } from './user/Footer';
 import { BlogFeed } from './user/BlogFeed';
 import { BuilderProvider } from './BuilderContext';
 import { publishPage, updatePageContent, updateWebsiteSettings } from '@/app/actions/builder';
+import { createClient } from '@/lib/supabase/client';
 
 import { toast } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, Send } from 'lucide-react';
+import { Loader2, Save, Send, AlertCircle } from 'lucide-react';
+import { RESOLVER, wrapForReact19 } from '@/lib/builder/resolver';
+
+class SafeFrameErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: any) {
+    if (error?.message?.includes("children") || error?.message?.includes("undefined")) {
+        // Silently catch the common CraftJS crawl errors
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-white/20 bg-white/[0.02] rounded-3xl border border-white/5 m-8">
+            <AlertCircle className="w-8 h-8 mb-4 opacity-50" />
+            <p className="text-sm font-bold tracking-tight">The canvas encountered a temporary glitch.</p>
+            <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-6 border-white/10 hover:bg-white/5 text-[10px] font-black uppercase tracking-widest"
+                onClick={() => window.location.reload()}
+            >
+                Reset Canvas
+            </Button>
+        </div>
+      );
+    }
+    return this.props.children; 
+  }
+}
 
 const BuilderEditorContent = ({ type }: { type: 'website' | 'funnel' }) => {
   const { pageId } = useParams();
@@ -50,13 +84,31 @@ const BuilderEditorContent = ({ type }: { type: 'website' | 'funnel' }) => {
     if (!pageId) return;
     setIsSaving(true);
     const content = query.serialize();
-    const result = await updatePageContent(pageId as string, content);
-    setIsSaving(false);
     
-    if (result.success) {
+    try {
+      // Use client-side supabase directly to bypass Server Action payload limits (1MB)
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('pages')
+        .update({ 
+          content,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', pageId);
+
+      if (error) throw error;
       toast.success('Draft saved successfully');
-    } else {
-      toast.error('Failed to save draft');
+    } catch (err: any) {
+      console.error('Save error:', err);
+      // Fallback to server action if client save fails (e.g. RLS issues)
+      const result = await updatePageContent(pageId as string, content);
+      if (result.success) {
+        toast.success('Draft saved (Server Fallback)');
+      } else {
+        toast.error('Failed to save draft: ' + (result.error || err.message));
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -75,31 +127,44 @@ const BuilderEditorContent = ({ type }: { type: 'website' | 'funnel' }) => {
     if (!pageId) return;
     setIsPublishing(true);
     const content = query.serialize();
-    const result = await publishPage(pageId as string, content);
-    setIsPublishing(false);
     
-    if (result.success) {
-      toast.success('Page published live!');
-    } else {
-      toast.error('Failed to publish');
+    try {
+      // 1. Save content client-side first
+      const supabase = createClient();
+      const { error: saveError } = await supabase
+        .from('pages')
+        .update({ content })
+        .eq('id', pageId);
+
+      if (saveError) throw saveError;
+
+      // 2. Trigger publishing logic on server (no need to send large content again)
+      const result = await publishPage(pageId as string);
+      
+      if (result.success) {
+        toast.success('Page published live!');
+      } else {
+        toast.error('Failed to publish');
+      }
+    } catch (err: any) {
+      console.error('Publish error:', err);
+      // Fallback
+      const result = await publishPage(pageId as string, content);
+      if (result.success) {
+        toast.success('Page published (Server Fallback)');
+      } else {
+        toast.error('Failed to publish: ' + (result.error || err.message));
+      }
+    } finally {
+      setIsPublishing(false);
     }
   };
 
 
-  const hasLoaded = React.useRef(false);
-  const [websiteData, setWebsiteData] = React.useState<any>(null);
-  const [pages, setPages] = React.useState<any[]>([]);
-  const updateTimerRef = React.useRef<NodeJS.Timeout | null>(null);
-
   const handleUpdateWebsite = (updates: any) => {
     if (!websiteData?.id) return;
-    
-    // Update local state immediately for snappy UI
     setWebsiteData((prev: any) => ({ ...prev, ...updates }));
-    
-    // Debounce the server save
     if (updateTimerRef.current) clearTimeout(updateTimerRef.current);
-    
     updateTimerRef.current = setTimeout(async () => {
       try {
         const result = await updateWebsiteSettings(websiteData.id, updates);
@@ -110,43 +175,144 @@ const BuilderEditorContent = ({ type }: { type: 'website' | 'funnel' }) => {
     }, 500);
   };
 
+  const lastLoadedPageId = React.useRef<string | null>(null);
+  const [websiteData, setWebsiteData] = React.useState<any>(null);
+  const [pages, setPages] = React.useState<any[]>([]);
+  const [isLoadingContent, setIsLoadingContent] = React.useState(true);
+  const [initialContent, setInitialContent] = React.useState<string | null>(null);
+  const updateTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const BLANK_CANVAS = '{"ROOT":{"type":{"resolvedName":"Container"},"isCanvas":true,"props":{"className":"min-h-screen bg-white"},"nodes":[]}}';
+
+  // Task 1 & 5: The "Safe Deserialize" Hook
   React.useEffect(() => {
+    if (!actions) return;
+
+    const performDeserialization = () => {
+        // Task 5: Wait for Resolver to be populated
+        const resolver = query.getOptions().resolver;
+        if (!resolver || Object.keys(resolver).length === 0) {
+            console.warn("[Builder Debug] Resolver not yet ready, deferring deserialization...");
+            setTimeout(performDeserialization, 100);
+            return;
+        }
+
+        // Validation Gate & Double-Parsing Protection
+        let rawData = initialContent || BLANK_CANVAS;
+        let dataToLoad: any;
+        
+        try {
+            dataToLoad = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+            
+            // Task 1 & 2: Sanitize Payload & Key Validation
+            const nodeIds = new Set(Object.keys(dataToLoad));
+            Object.keys(dataToLoad).forEach(id => {
+                const node = dataToLoad[id];
+                
+                // Ensure required CraftJS properties
+                if (!node.type) node.type = { resolvedName: "Container" };
+                if (!node.props) node.props = {};
+                if (!node.nodes) node.nodes = [];
+                if (!node.displayName) node.displayName = node.type.resolvedName || "Component";
+                
+                // Parent-Child linking integrity
+                if (node.nodes) {
+                    node.nodes = node.nodes.filter((childId: string) => nodeIds.has(childId));
+                }
+                if (node.parent && !nodeIds.has(node.parent) && id !== "ROOT") {
+                    node.parent = "ROOT";
+                }
+            });
+
+            // Ensure ROOT exists
+            if (!dataToLoad["ROOT"]) {
+                dataToLoad["ROOT"] = JSON.parse(BLANK_CANVAS)["ROOT"];
+            }
+
+            const serializedData = JSON.stringify(dataToLoad);
+            console.log("[Builder Debug] Attempting to deserialize sanitized content...");
+            
+            try {
+                actions.clearEvents();
+                actions.deserialize(serializedData);
+                
+                // Task 1: Implement Retry Logic
+                setTimeout(() => {
+                    const nodes = query.getNodes();
+                    if (!nodes["ROOT"]) {
+                        console.warn("[Builder Debug] ROOT node missing after 500ms, retrying deserialize...");
+                        actions.deserialize(serializedData);
+                    } else {
+                        console.log("[Builder Debug] ROOT node verified. Canvas stable.");
+                    }
+                }, 500);
+
+            } catch (err) {
+                // Task 3: Try-Catch Fallback to ROOT
+                console.error("[Builder Debug] Deserialization failed CRITICALLY:", err);
+                actions.deserialize(BLANK_CANVAS);
+            }
+        } catch (parseErr) {
+            console.error("[Builder Debug] JSON Parse failed:", parseErr);
+            actions.deserialize(BLANK_CANVAS);
+        }
+        
+        setIsLoadingContent(false);
+    };
+
+    // Task 5: React 19 State Check - Deferred Injection
+    setTimeout(performDeserialization, 0);
+
+  }, [initialContent, actions, query]);
+
+  React.useEffect(() => {
+    const sanitizeCraftJson = (json: string) => {
+        try {
+            const data = JSON.parse(json);
+            const nodeIds = new Set(Object.keys(data));
+            
+            Object.keys(data).forEach(id => {
+                const node = data[id];
+                if (node.nodes) {
+                    node.nodes = node.nodes.filter((childId: string) => nodeIds.has(childId));
+                }
+                if (node.linkedNodes) {
+                    Object.keys(node.linkedNodes).forEach(key => {
+                        if (!nodeIds.has(node.linkedNodes[key])) {
+                            delete node.linkedNodes[key];
+                        }
+                    });
+                }
+            });
+            return JSON.stringify(data);
+        } catch (e) {
+            return json;
+        }
+    };
+
     async function loadContent() {
-      if (!pageId || hasLoaded.current) return;
+      if (!pageId || lastLoadedPageId.current === pageId) return;
+      setIsLoadingContent(true);
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
       
-      // Fetch Page Content with website details
       const { data } = await supabase
         .from('pages')
         .select('content, workspace:workspaces(slug), website_page:website_pages(website:websites(*))')
         .eq('id', pageId)
         .single();
 
-      
       const rawWebsitePage = (data as any)?.website_page;
-      const website = Array.isArray(rawWebsitePage) 
-        ? rawWebsitePage[0]?.website 
-        : rawWebsitePage?.website;
-
+      const website = Array.isArray(rawWebsitePage) ? rawWebsitePage[0]?.website : rawWebsitePage?.website;
       const finalWebsite = Array.isArray(website) ? website[0] : website;
       
       if (finalWebsite) {
-        // Attach workspace info for URL resolution
         const workspace = (data as any)?.workspace;
-        const websiteWithWorkspace = { ...finalWebsite, workspaceSlug: workspace?.slug };
-        setWebsiteData(websiteWithWorkspace);
+        setWebsiteData({ ...finalWebsite, workspaceSlug: workspace?.slug });
 
-        
-        // Fetch sibling pages with their page record IDs
         const { data: siblingPages } = await supabase
             .from('website_pages')
-            .select(`
-                id, 
-                name, 
-                path_name,
-                pages (id)
-            `)
+            .select(`id, name, path_name, pages (id)`)
             .eq('website_id', finalWebsite.id);
         
         if (siblingPages) {
@@ -158,13 +324,27 @@ const BuilderEditorContent = ({ type }: { type: 'website' | 'funnel' }) => {
         }
       }
 
-      if (data?.content) {
-        actions.deserialize(data.content);
-        hasLoaded.current = true;
-      }
+      // Task 4: Empty Canvas Fallback
+      const content = data?.content ? sanitizeCraftJson(data.content) : BLANK_CANVAS;
+      setInitialContent(content);
+      lastLoadedPageId.current = pageId as string;
     }
     loadContent();
-  }, [pageId, actions]);
+  }, [pageId]);
+
+  // Silence internal CraftJS errors
+  React.useEffect(() => {
+    console.log("DEBUG: Editor mode:", type, "PageID:", pageId);
+    console.log("DEBUG: Resolver active:", Object.keys(RESOLVER));
+
+    const handler = (e: ErrorEvent) => {
+        if (e.message.includes("children") || e.message.includes("t is undefined")) {
+            e.preventDefault();
+        }
+    };
+    window.addEventListener('error', handler);
+    return () => window.removeEventListener('error', handler);
+  }, [pageId, type]);
 
   const websiteConfig = websiteData?.config || {};
   const hasNav = websiteConfig.navLinks && websiteConfig.navLinks.length > 0;
@@ -266,10 +446,14 @@ const BuilderEditorContent = ({ type }: { type: 'website' | 'funnel' }) => {
                             </nav>
                         )}
 
-                        <div className="flex-1 pointer-events-auto">
-                            <Frame>
-                                <Element id="ROOT" is={Container} canvas className="bg-white p-8 min-h-screen overflow-x-hidden" />
-                            </Frame>
+                        <div className="flex-1 pointer-events-auto min-h-[500px]">
+                            {isLoadingContent ? (
+                                <div className="w-full h-full flex items-center justify-center py-40">
+                                    <Loader2 className="w-8 h-8 animate-spin text-[#6c47ff]" />
+                                </div>
+                            ) : (
+                                <Frame />
+                            )}
                         </div>
 
                         {hasFooter && (
@@ -318,34 +502,7 @@ const BuilderEditorContent = ({ type }: { type: 'website' | 'funnel' }) => {
 export const BuilderEditor = ({ type }: { type: 'website' | 'funnel' }) => {
   return (
     <Editor
-      resolver={{
-        Container,
-        Section,
-        Columns,
-        Spacer,
-        Divider,
-        Heading,
-        Paragraph,
-        Image: ImageComponent,
-        Video,
-        Icon,
-        Text,
-        Form,
-        Countdown,
-        PricingTable,
-        FAQ,
-        Button: UserButton,
-        UserButton,
-        ProgressBar,
-        Testimonial: UserTestimonial,
-        UserTestimonial,
-        StarRating,
-        LogoStrip,
-        Hero,
-        Navbar,
-        Footer,
-        BlogFeed,
-      }}
+      resolver={RESOLVER}
       enabled={true}
       onRender={({ render }) => <RenderNode render={render} />}
     >

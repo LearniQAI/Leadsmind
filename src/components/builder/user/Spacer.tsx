@@ -8,16 +8,20 @@ export interface SpacerProps {
   height: number;
 }
 
-export const Spacer = ({ height, canvas, isCanvas, ...props }: SpacerProps & any) => {
+export const Spacer = ({ height, canvas, isCanvas, dragRef, ...props }: SpacerProps & any) => {
   const { connectors: { connect, drag } } = useNode();
   
   return (
     <div
       {...props}
-      ref={(ref) => {
-        if (ref) {
-            connect(ref);
-            drag(ref);
+      ref={(el) => {
+        if (el) {
+            connect(el);
+            drag(el);
+            if (dragRef) {
+              if (typeof dragRef === 'function') dragRef(el);
+              else dragRef.current = el;
+            }
         }
       }}
       className={`w-full outline-dashed outline-1 outline-transparent hover:outline-blue-500/50 transition-all ${props.className || ''}`}

@@ -15,7 +15,18 @@ export interface ImageProps {
   shape?: 'square' | 'circle';
 }
 
-export const Image = ({ src, alt, borderRadius, objectFit, width, height, shape = 'square', ...props }: ImageProps & any) => {
+export const Image = (allProps: ImageProps & any) => {
+  const { 
+    src, 
+    alt, 
+    borderRadius, 
+    objectFit, 
+    width, 
+    height, 
+    shape = 'square', 
+    dragRef, 
+    ...props 
+  } = allProps;
   const { connectors: { connect, drag } } = useNode();
   
   return (
@@ -25,6 +36,10 @@ export const Image = ({ src, alt, borderRadius, objectFit, width, height, shape 
         if (ref) {
             connect(ref);
             drag(ref);
+            if (dragRef) {
+                if (typeof dragRef === 'function') dragRef(ref);
+                else dragRef.current = ref;
+            }
         }
       }}
       className={`relative justify-center flex outline-dashed outline-1 outline-transparent hover:outline-blue-500/50 transition-all ${shape === 'circle' ? 'rounded-full aspect-square overflow-hidden' : ''} ${props.className || ''}`}

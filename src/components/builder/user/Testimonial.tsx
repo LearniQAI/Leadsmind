@@ -30,16 +30,22 @@ export const UserTestimonial = ({
   padding,
   textAlign,
   borderOpacity,
+  dragRef,
   ...props
 }: TestimonialProps & any) => {
   const { connectors: { connect, drag } } = useNode();
 
   return (
     <div
+      {...props}
       ref={(ref) => {
         if (ref) {
           connect(ref);
           drag(ref);
+          if (dragRef) {
+            if (typeof dragRef === 'function') dragRef(ref);
+            else dragRef.current = ref;
+          }
         }
       }}
       className="w-full flex transition-all outline-dashed outline-1 outline-transparent hover:outline-blue-500/50"

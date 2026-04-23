@@ -13,7 +13,7 @@ export interface ProgressBarProps {
   borderRadius: number;
 }
 
-export const ProgressBar = ({ value, color, height, showLabel, label, borderRadius, ...props }: ProgressBarProps & any) => {
+export const ProgressBar = ({ value, color, height, showLabel, label, borderRadius, dragRef, ...props }: ProgressBarProps & any) => {
   const { connectors: { connect, drag } } = useNode();
   
   return (
@@ -23,6 +23,10 @@ export const ProgressBar = ({ value, color, height, showLabel, label, borderRadi
         if (ref) {
             connect(ref);
             drag(ref);
+            if (dragRef) {
+                if (typeof dragRef === 'function') dragRef(ref);
+                else dragRef.current = ref;
+            }
         }
       }}
       className={`w-full py-4 outline-dashed outline-1 outline-transparent hover:outline-blue-500/50 transition-all`}

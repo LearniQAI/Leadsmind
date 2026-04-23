@@ -23,6 +23,7 @@ export const StarRating = ({
   alignment,
   showLabel,
   labelText,
+  dragRef,
   ...props
 }: StarRatingProps & any) => {
   const { connectors: { connect, drag } } = useNode();
@@ -35,10 +36,14 @@ export const StarRating = ({
 
   return (
     <div
+      {...props}
       ref={(ref) => {
         if (ref) {
-          connect(ref);
-          drag(ref);
+          connect(drag(ref));
+          if (dragRef) {
+            if (typeof dragRef === 'function') dragRef(ref);
+            else dragRef.current = ref;
+          }
         }
       }}
       className={`w-full py-4 flex flex-col gap-2 transition-all outline-dashed outline-1 outline-transparent hover:outline-blue-500/50 ${alignmentMap[alignment as keyof typeof alignmentMap]}`}

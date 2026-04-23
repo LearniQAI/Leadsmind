@@ -23,8 +23,8 @@ export function Navbar() {
   const supabase = createClient()
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setSession(user ? { user } as any : null)
     })
 
     const {

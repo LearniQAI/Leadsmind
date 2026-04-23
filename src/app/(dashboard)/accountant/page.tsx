@@ -5,10 +5,10 @@ import { getAccountantOnboarding } from "@/app/actions/accountant";
 
 export default async function AccountantGatewayPage() {
   const supabase = await createServerClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
-  const workspace = await getCurrentWorkspace(session.user);
+  const workspace = await getCurrentWorkspace(user);
   if (!workspace) redirect("/dashboard");
 
   const onboarding = await getAccountantOnboarding(workspace.id);

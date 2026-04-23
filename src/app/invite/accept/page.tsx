@@ -93,11 +93,11 @@ export default async function InviteAcceptPage({ searchParams }: InvitePageProps
   }
 
   // 3. Check auth state
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (session) {
+  if (user) {
     // If logged in as the invited user
-    if (session.user.email === invite.email) {
+    if (user.email === invite.email) {
       // Direct accept if already logged in as the correct user
       const result = await acceptInvitationAction({ token });
       if (result.success) {
@@ -111,13 +111,13 @@ export default async function InviteAcceptPage({ searchParams }: InvitePageProps
             <AlertCircle className="h-12 w-12 text-orange-500 mx-auto" />
             <h1 className="text-2xl font-bold">Wrong Account</h1>
             <p className="text-muted-foreground">
-              This invitation was sent to <strong>{invite.email}</strong>, but you are logged in as <strong>{session.user.email}</strong>.
+              This invitation was sent to <strong>{invite.email}</strong>, but you are logged in as <strong>{user.email}</strong>.
             </p>
             <p className="text-sm text-muted-foreground">
               Please logout from your current account and click the invitation link again.
             </p>
             <Button asChild variant="outline">
-              <Link href="/dashboard">Continue as {session.user.email?.split('@')[0] || 'User'}</Link>
+              <Link href="/dashboard">Continue as {user.email?.split('@')[0] || 'User'}</Link>
             </Button>
           </div>
         </div>

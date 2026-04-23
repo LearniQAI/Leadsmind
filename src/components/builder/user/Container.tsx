@@ -5,6 +5,8 @@ import { useNode } from '@craftjs/core';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ContainerSettings } from './ContainerSettings';
+import { useResponsiveValue } from '@/lib/builder/hooks';
+import { useBuilder } from '../BuilderContext';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -18,25 +20,40 @@ export interface ContainerProps {
   children?: React.ReactNode;
 }
 
-export const Container = ({ 
-    layoutType,
-    maxWidth,
-    backgroundColor,
-    padding,
-    children, 
-    canvas, 
-    isCanvas,
-    ...props 
-}: ContainerProps & any) => {
+export const Container = (allProps: ContainerProps & any) => {
+    const { 
+        layoutType,
+        backgroundColor,
+        padding: _p,
+        padding_mobile,
+        padding_tablet,
+        maxWidth: _mw,
+        maxWidth_mobile,
+        maxWidth_tablet,
+        children, 
+        canvas, 
+        isCanvas,
+        dragRef,
+        ...props 
+    } = allProps;
   const { connectors: { connect, drag } } = useNode();
+  const { viewMode } = useBuilder();
+
+  // Responsive values
+  const padding = useResponsiveValue(allProps, 'padding', 16);
+  const maxWidth = useResponsiveValue(allProps, 'maxWidth', '1200px');
   
   return (
     <div
       {...props}
-      ref={(ref) => {
-        if (ref) {
-            connect(ref);
-            drag(ref);
+      ref={(el) => {
+        if (el) {
+          connect(el);
+          drag(el);
+          if (dragRef) {
+            if (typeof dragRef === 'function') dragRef(el);
+            else dragRef.current = el;
+          }
         }
       }}
       className={cn(

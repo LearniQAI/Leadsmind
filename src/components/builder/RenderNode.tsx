@@ -25,6 +25,7 @@ export const RenderNode = ({ render }: { render: React.ReactNode }) => {
 
   useEffect(() => {
     if (isHovered) console.log(`DEBUG: Hovering over ${name} (ID: ${id}, Canvas: ${isCanvas})`);
+    console.log(`DEBUG: Rendering Node ${id} (${name})`);
   }, [isHovered, name, id, isCanvas]);
 
 
