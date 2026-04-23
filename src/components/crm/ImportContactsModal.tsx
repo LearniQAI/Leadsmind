@@ -137,12 +137,14 @@ export function ImportContactsModal() {
       setOpen(val);
       if (!val) setTimeout(reset, 300);
     }}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="border-white/5 bg-white/3 hover:bg-white/5 text-white/80 h-11 px-5 rounded-xl gap-2 font-semibold">
-          <Upload className="h-4 w-4" />
-          <span>Import CSV</span>
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger 
+        render={
+          <Button variant="outline" className="border-white/5 bg-white/3 hover:bg-white/5 text-white/80 h-11 px-5 rounded-xl gap-2 font-semibold">
+            <Upload className="h-4 w-4" />
+            <span>Import CSV</span>
+          </Button>
+        }
+      />
       <DialogContent className="bg-[#0b0b10] border-white/10 text-white max-w-2xl overflow-hidden p-0 gap-0">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="text-2xl font-black uppercase italic flex items-center gap-2">
