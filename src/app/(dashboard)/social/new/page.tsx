@@ -1,5 +1,5 @@
 import React from 'react';
-import { SocialPostComposer } from '@/components/social/SocialPostComposer';
+import { SocialPostNewClient } from '@/components/social/SocialPostNewClient';
 import { createServerClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { getCurrentWorkspaceId } from '@/lib/auth';
@@ -26,7 +26,7 @@ export default async function NewSocialPostPage() {
   return (
     <div className="py-12">
       <div className="max-w-5xl mx-auto">
-        <SocialPostComposer initialPlatforms={connectedPlatforms} />
+        <SocialPostNewClient connectedPlatforms={connectedPlatforms} />
       </div>
     </div>
   );
