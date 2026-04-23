@@ -54,6 +54,8 @@ import {
   Store,
   Shield,
   Plug,
+  Mail,
+  Box,
 } from 'lucide-react';
 
 
@@ -121,6 +123,7 @@ const navGroups: NavGroup[] = [
     name: 'Main',
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: Home },
+      { name: 'Tasks', href: '/tasks', icon: CheckSquare },
       { name: 'Conversations', href: '/conversations', icon: MessageSquare },
       { name: 'Inbox', href: '/inbox', icon: MessageCircle },
     ]
@@ -184,6 +187,8 @@ const navGroups: NavGroup[] = [
       { name: 'Team', href: '/team-members', icon: Users2, adminOnly: true },
       { name: 'Branding', href: '/settings/branding', icon: Palette, adminOnly: true },
       { name: 'Billing', href: '/settings/billing', icon: CreditCard, adminOnly: true },
+      { name: 'Email Sync', href: '/settings/emails', icon: Mail, adminOnly: true },
+      { name: 'Custom Objects', href: '/settings/objects', icon: Box, adminOnly: true },
       { name: 'API & Webhooks', href: '/settings/api', icon: Code2, adminOnly: true },
       { name: 'Integrations', href: '/settings/integrations', icon: Plug, adminOnly: true },
       { name: 'SaaS Mode', href: '/settings/saas', icon: Store, adminOnly: true },

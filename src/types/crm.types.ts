@@ -51,19 +51,32 @@ export interface ContactNote {
   updated_at: string;
 }
 
-export interface ContactTask {
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled';
+export type TaskRelatedType = 'invoice' | 'ticket' | 'deal' | 'quote' | 'contact';
+
+export interface Task {
   id: string;
   workspace_id: string;
-  contact_id: string;
   title: string;
   description: string | null;
-  due_date: string | null;
-  status: 'todo' | 'completed';
   assigned_to: string | null;
-  created_by: string | null;
+  contact_id: string | null;
+  related_type: TaskRelatedType | null;
+  related_id: string | null;
+  priority: TaskPriority;
+  status: TaskStatus;
+  due_date: string | null;
+  due_time: string | null;
+  is_recurring: boolean;
+  recurrence_rule: string | null;
+  completed_at: string | null;
   created_at: string;
   updated_at: string;
 }
+
+// Keeping ContactTask for backward compatibility if needed, but aliasing to Task
+export type ContactTask = Task;
 
 export interface Pipeline {
   id: string;
@@ -94,6 +107,8 @@ export interface Opportunity {
   tags: string[];
   stage_entered_at: string;
   position: number;
+  expected_close_date: string | null;
+  probability: number;
   created_at: string;
   updated_at: string;
   contact?: {

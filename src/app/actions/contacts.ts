@@ -393,12 +393,13 @@ export async function recalculateLeadScore(id: string): Promise<ActionResult<Con
 export async function createNote(payload: {
   contactId: string;
   content: string;
+  isPinned?: boolean;
 }): Promise<ActionResult<ContactNote>> {
   const user = await requireAuth();
   const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) return { success: false, error: 'No active workspace' };
-  const supabase = await createServerClient();
+  if (!workspaceId) return { success: false, error: 'No workspace' };
 
+  const supabase = await createServerClient();
   try {
     const { data: note, error } = await supabase
       .from('contact_notes')
@@ -406,24 +407,45 @@ export async function createNote(payload: {
           workspace_id: workspaceId,
           contact_id: payload.contactId,
           content: payload.content,
+          is_pinned: payload.isPinned || false,
           created_by: user.id
       })
       .select()
       .single();
 
-    if (error) return { success: false, error: 'Failed to create note' };
+    if (error) return { success: false, error: error.message };
 
+    // Log Activity
     await supabase.from('contact_activities').insert({
         workspace_id: workspaceId,
         contact_id: payload.contactId,
         type: 'note',
-        description: `Added a note`,
+        description: 'New note added',
         created_by: user.id
     });
 
     revalidatePath(`/contacts/${payload.contactId}`);
     return { success: true, data: note };
-  } catch (err) { return { success: false, error: 'Server error' }; }
+  } catch (err) { return { success: false, error: 'Error adding note' }; }
+}
+
+export async function toggleNotePin(noteId: string, contactId: string, currentPinned: boolean): Promise<ActionResult> {
+    const workspaceId = await getCurrentWorkspaceId();
+    if (!workspaceId) return { success: false, error: 'No workspace' };
+
+    const supabase = await createServerClient();
+    try {
+        const { error } = await supabase
+            .from('contact_notes')
+            .update({ is_pinned: !currentPinned })
+            .eq('id', noteId)
+            .eq('workspace_id', workspaceId);
+
+        if (error) return { success: false, error: error.message };
+        
+        revalidatePath(`/contacts/${contactId}`);
+        return { success: true };
+    } catch (err) { return { success: false, error: 'Error' }; }
 }
 
 export async function deleteNote(id: string, contactId: string): Promise<ActionResult> {
@@ -438,45 +460,122 @@ export async function deleteNote(id: string, contactId: string): Promise<ActionR
 }
 
 export async function createTask(payload: {
-  contactId: string;
   title: string;
   description?: string;
   dueDate?: string;
+  dueTime?: string;
   assignedTo?: string;
-}): Promise<ActionResult<ContactTask>> {
+  contactId?: string;
+  relatedType?: TaskRelatedType;
+  relatedId?: string;
+  priority?: TaskPriority;
+}): Promise<ActionResult<Task>> {
   const user = await requireAuth();
   const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, error: 'No active workspace' };
+  
   const supabase = await createServerClient();
   try {
     const { data: task, error } = await supabase
-      .from('contact_tasks')
+      .from('tasks')
       .insert({
           workspace_id: workspaceId,
-          contact_id: payload.contactId,
+          contact_id: payload.contactId || null,
           title: payload.title,
-          description: payload.description,
-          due_date: payload.dueDate,
-          assigned_to: payload.assignedTo,
-          created_by: user.id,
+          description: payload.description || null,
+          due_date: payload.dueDate || null,
+          due_time: payload.dueTime || null,
+          assigned_to: payload.assignedTo || null,
+          related_type: payload.relatedType || (payload.contactId ? 'contact' : null),
+          related_id: payload.relatedId || payload.contactId || null,
+          priority: payload.priority || 'medium',
           status: 'todo'
       })
       .select()
       .single();
-    if (error) throw error;
-    revalidatePath(`/contacts/${payload.contactId}`);
+
+    if (error) {
+        console.error('Error creating task:', error);
+        return { success: false, error: 'Failed to create task' };
+    }
+
+    // Log Activity if contact is linked
+    if (payload.contactId) {
+        await supabase.from('contact_activities').insert({
+            workspace_id: workspaceId,
+            contact_id: payload.contactId,
+            type: 'system',
+            description: `Task created: ${payload.title}`,
+            created_by: user.id
+        });
+    }
+
+    revalidatePath('/tasks');
+    if (payload.contactId) revalidatePath(`/contacts/${payload.contactId}`);
+    
     return { success: true, data: task };
+  } catch (err) { 
+      console.error('Create task exception:', err);
+      return { success: false, error: 'An unexpected error occurred' }; 
+  }
+}
+
+export async function toggleTaskStatus(id: string, newStatus: TaskStatus, contactId?: string): Promise<ActionResult> {
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, error: 'No active workspace' };
+  
+  const supabase = await createServerClient();
+  try {
+    const { error } = await supabase
+        .from('tasks')
+        .update({ 
+            status: newStatus,
+            completed_at: newStatus === 'done' ? new Date().toISOString() : null
+        })
+        .eq('id', id)
+        .eq('workspace_id', workspaceId);
+
+    if (error) return { success: false, error: error.message };
+    
+    revalidatePath('/tasks');
+    if (contactId) revalidatePath(`/contacts/${contactId}`);
+    
+    return { success: true };
   } catch (err) { return { success: false, error: 'Error' }; }
 }
 
-export async function toggleTaskStatus(id: string, contactId: string, currentStatus: string): Promise<ActionResult> {
-  const workspaceId = await getCurrentWorkspaceId();
-  const supabase = await createServerClient();
-  const newStatus = currentStatus === 'todo' ? 'completed' : 'todo';
-  try {
-    await supabase.from('contact_tasks').update({ status: newStatus }).eq('id', id).eq('workspace_id', workspaceId);
-    revalidatePath(`/contacts/${contactId}`);
-    return { success: true };
-  } catch (err) { return { success: false, error: 'Error' }; }
+export async function getTasks(filters?: {
+    status?: TaskStatus;
+    assignedTo?: string;
+    contactId?: string;
+    relatedType?: TaskRelatedType;
+    relatedId?: string;
+}): Promise<ActionResult<Task[]>> {
+    const workspaceId = await getCurrentWorkspaceId();
+    if (!workspaceId) return { success: false, error: 'No active workspace' };
+
+    const supabase = await createServerClient();
+    try {
+        let query = supabase
+            .from('tasks')
+            .select('*')
+            .eq('workspace_id', workspaceId)
+            .order('due_date', { ascending: true, nullsFirst: false })
+            .order('priority', { ascending: false });
+
+        if (filters?.status) query = query.eq('status', filters.status);
+        if (filters?.assignedTo) query = query.eq('assigned_to', filters.assignedTo);
+        if (filters?.contactId) query = query.eq('contact_id', filters.contactId);
+        if (filters?.relatedType) query = query.eq('related_type', filters.relatedType);
+        if (filters?.relatedId) query = query.eq('related_id', filters.relatedId);
+
+        const { data, error } = await query;
+        if (error) return { success: false, error: error.message };
+        
+        return { success: true, data: data || [] };
+    } catch (err) {
+        return { success: false, error: 'Failed to fetch tasks' };
+    }
 }
 
 // --- Tag Management ---
@@ -563,7 +662,7 @@ export async function getContactNotes(contactId: string) {
 export async function getContactTasks(contactId: string) {
   const supabase = await createServerClient();
   const { data, error } = await supabase
-    .from('contact_tasks')
+    .from('tasks')
     .select('*')
     .eq('contact_id', contactId)
     .order('due_date', { ascending: true });
@@ -590,12 +689,13 @@ export async function deleteTask(taskId: string): Promise<ActionResult> {
   const supabase = await createServerClient();
   try {
     const { error } = await supabase
-      .from('contact_tasks')
+      .from('tasks')
       .delete()
       .eq('id', taskId)
       .eq('workspace_id', workspaceId);
 
     if (error) return { success: false, error: error.message };
+    revalidatePath('/tasks');
     revalidatePath('/contacts/[id]');
     return { success: true };
   } catch (err: any) {
@@ -603,3 +703,83 @@ export async function deleteTask(taskId: string): Promise<ActionResult> {
   }
 }
 
+
+export async function bulkImportContacts(payload: {
+  contacts: any[];
+  mapping: Record<string, string>;
+  options: {
+    duplicateHandler: 'skip' | 'update' | 'create';
+    tags?: string[];
+  };
+}): Promise<{ success: boolean; stats: { success: number; skipped: number; updated: number; failed: number } }> {
+  const user = await requireAuth();
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) return { success: false, stats: { success: 0, skipped: 0, updated: 0, failed: 0 } as any };
+
+  const supabase = await createServerClient();
+  const stats = { success: 0, skipped: 0, updated: 0, failed: 0 };
+
+  for (const rawData of payload.contacts) {
+    try {
+      const contactData: any = {
+        workspace_id: workspaceId,
+        source: 'CSV Import'
+      };
+
+      // Apply mapping
+      Object.entries(payload.mapping).forEach(([csvCol, crmField]) => {
+        if (crmField && rawData[csvCol]) {
+          contactData[crmField] = rawData[csvCol];
+        }
+      });
+
+      if (!contactData.first_name) {
+        stats.failed++;
+        continue;
+      }
+
+      // Handle tags
+      const importTags = payload.options.tags || [];
+      contactData.tags = Array.from(new Set([...(contactData.tags || []), ...importTags]));
+
+      // Duplicate detection
+      if (contactData.email) {
+        const { data: existing } = await supabase
+          .from('contacts')
+          .select('id, tags')
+          .eq('workspace_id', workspaceId)
+          .eq('email', contactData.email)
+          .maybeSingle();
+
+        if (existing) {
+          if (payload.options.duplicateHandler === 'skip') {
+            stats.skipped++;
+            continue;
+          } else if (payload.options.duplicateHandler === 'update') {
+            const mergedTags = Array.from(new Set([...(existing.tags || []), ...importTags]));
+            const { error: updateError } = await supabase
+              .from('contacts')
+              .update({ ...contactData, tags: mergedTags })
+              .eq('id', existing.id);
+
+            if (updateError) stats.failed++;
+            else stats.updated++;
+            continue;
+          }
+          // If 'create', proceed to insert (Supabase unique constraint might still catch it if workspace+email unique)
+        }
+      }
+
+      const { error } = await supabase.from('contacts').insert(contactData);
+      if (error) stats.failed++;
+      else stats.success++;
+
+    } catch (err) {
+      console.error('Import row failed:', err);
+      stats.failed++;
+    }
+  }
+
+  revalidatePath('/contacts');
+  return { success: true, stats };
+}

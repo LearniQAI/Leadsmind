@@ -18,13 +18,15 @@ export default async function DashboardPage() {
     { count: opportunityCount },
     { data: recentActivities },
     { data: revenueData },
-    { count: activeSocialPosts }
+    { count: activeSocialPosts },
+    { count: taskCount }
   ] = await Promise.all([
     supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
     supabase.from('opportunities').select('*', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
     supabase.from('contact_activities').select('*').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(5),
     supabase.from('invoices').select('total_amount').eq('workspace_id', workspaceId).eq('status', 'paid'),
-    supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('workspace_id', workspaceId).eq('status', 'scheduled')
+    supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('workspace_id', workspaceId).eq('status', 'scheduled'),
+    supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('workspace_id', workspaceId).neq('status', 'done')
   ]);
 
   const totalRevenue = revenueData?.reduce((acc, curr) => acc + (curr.total_amount || 0), 0) || 0;
@@ -35,7 +37,8 @@ export default async function DashboardPage() {
         contacts: contactCount || 0,
         opportunities: opportunityCount || 0,
         revenue: totalRevenue,
-        socialQueue: activeSocialPosts || 0
+        socialQueue: activeSocialPosts || 0,
+        pendingTasks: taskCount || 0
       }}
       recentActivities={recentActivities || []}
     />
