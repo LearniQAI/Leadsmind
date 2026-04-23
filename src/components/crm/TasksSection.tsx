@@ -52,7 +52,7 @@ export function TasksSection({ contactId, tasks }: TasksSectionProps) {
 
   async function handleDelete(id: string) {
     try {
-      const result = await deleteTask(id, contactId);
+      const result = await deleteTask(id);
       if (result.success) {
         toast.success('Task deleted');
       } else {
