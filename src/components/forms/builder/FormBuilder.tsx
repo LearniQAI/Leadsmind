@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Form, FormField, FormSettings } from '@/types/forms.types';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -88,6 +89,19 @@ export function FormBuilder({ initialForm }: FormBuilderProps) {
       fields: prev.fields.filter(f => f.id !== id)
     }));
     if (selectedFieldId === id) setSelectedFieldId(null);
+  };
+  
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    
+    const items = Array.from(form.fields);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    
+    setForm(prev => ({
+      ...prev,
+      fields: items
+    }));
   };
 
   const handleSave = async () => {
@@ -360,38 +374,58 @@ export function FormBuilder({ initialForm }: FormBuilderProps) {
                       <p className="text-white/20 text-sm italic">Add fields from the sidebar to begin</p>
                     </div>
                   ) : (
-                    form.fields.map((field) => (
-                      <div 
-                        key={field.id}
-                        onClick={() => {
-                          setSelectedFieldId(field.id);
-                          setActiveTab('field');
-                        }}
-                        className={cn(
-                          "relative group transition-all rounded-xl p-4 -mx-4 cursor-pointer",
-                          selectedFieldId === field.id ? "bg-white/5 border border-white/10" : "hover:bg-white/[0.02]"
-                        )}
-                      >
-                         <label className="text-sm font-semibold text-white/70 block mb-2">
-                           {field.label}
-                           {field.required && <span className="text-red-400 ml-1">*</span>}
-                         </label>
-                         
-                         {field.type === 'textarea' ? (
-                           <div className="h-24 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-white/30 text-sm">
-                             {field.placeholder || 'Long text entries...'}
-                           </div>
-                         ) : (
-                           <div className="h-11 w-full rounded-xl bg-white/5 border border-white/10 px-4 flex items-center text-white/30 text-sm">
-                             {field.placeholder || `Type your ${field.label.toLowerCase()}...`}
-                           </div>
-                         )}
-
-                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <GripVertical className="h-4 w-4 text-white/20" />
-                         </div>
-                      </div>
-                    ))
+                  <DragDropContext onDragEnd={onDragEnd}>
+                    <Droppable droppableId="form-fields">
+                      {(provided) => (
+                        <div 
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          className="space-y-6"
+                        >
+                          {form.fields.map((field, index) => (
+                            <Draggable key={field.id} draggableId={field.id} index={index}>
+                              {(provided, snapshot) => (
+                                <div 
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  onClick={() => {
+                                    setSelectedFieldId(field.id);
+                                    setActiveTab('field');
+                                  }}
+                                  className={cn(
+                                    "relative group transition-all rounded-xl p-4 -mx-4 cursor-pointer",
+                                    selectedFieldId === field.id ? "bg-white/5 border border-white/10" : "hover:bg-white/[0.02]",
+                                    snapshot.isDragging && "bg-white/10 border-[#6c47ff]/50 shadow-2xl z-50"
+                                  )}
+                                >
+                                   <div className="flex justify-between mb-2">
+                                     <label className="text-sm font-semibold text-white/70 block">
+                                       {field.label}
+                                       {field.required && <span className="text-red-400 ml-1">*</span>}
+                                     </label>
+                                     <div {...provided.dragHandleProps} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/5 rounded-md">
+                                        <GripVertical className="h-4 w-4 text-white/20" />
+                                     </div>
+                                   </div>
+                                   
+                                   {field.type === 'textarea' ? (
+                                     <div className="h-24 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-white/30 text-sm">
+                                       {field.placeholder || 'Long text entries...'}
+                                     </div>
+                                   ) : (
+                                     <div className="h-11 w-full rounded-xl bg-white/5 border border-white/10 px-4 flex items-center text-white/30 text-sm">
+                                       {field.placeholder || `Type your ${field.label.toLowerCase()}...`}
+                                     </div>
+                                   )}
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
                   )}
 
                   <div className="pt-8">

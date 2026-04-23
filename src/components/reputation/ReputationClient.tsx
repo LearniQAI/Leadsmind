@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Star, 
   Search, 
@@ -36,6 +37,7 @@ export function ReputationClient({ initialReviews }: ReputationClientProps) {
   const [reviews, setReviews] = useState(initialReviews);
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
+  const router = useRouter();
 
   const averageRating = reviews.length > 0 
     ? (reviews.reduce((acc, curr) => acc + (curr.rating || 0), 0) / reviews.length).toFixed(1)
@@ -70,10 +72,17 @@ export function ReputationClient({ initialReviews }: ReputationClientProps) {
           <p className="text-white/40 text-sm mt-1">Monitor and respond to your customer feedback across all channels.</p>
         </div>
         <div className="flex gap-4">
-           <Button variant="outline" className="border-white/5 bg-white/5 text-white/60 hover:bg-white/10 rounded-xl h-11 px-6 font-bold">
+           <Button 
+             variant="outline" 
+             onClick={() => router.push('/settings/integrations')}
+             className="border-white/5 bg-white/5 text-white/60 hover:bg-white/10 rounded-xl h-11 px-6 font-bold"
+           >
               Connect Channels
            </Button>
-           <Button className="bg-[#6c47ff] hover:bg-[#8b5cf6] text-white rounded-xl h-11 px-6 font-bold shadow-lg shadow-[#6c47ff]/20">
+           <Button 
+             onClick={() => toast.info('Opening review request builder (Simulated)')}
+             className="bg-[#6c47ff] hover:bg-[#8b5cf6] text-white rounded-xl h-11 px-6 font-bold shadow-lg shadow-[#6c47ff]/20"
+           >
               <Mail className="h-4 w-4 mr-2" /> Request Review
            </Button>
         </div>
@@ -203,7 +212,10 @@ export function ReputationClient({ initialReviews }: ReputationClientProps) {
                  <p className="text-white/60 text-xs leading-relaxed mb-6">
                     Connect your CRM to automatically request reviews after a successful appointment or purchase.
                  </p>
-                 <Button className="w-full bg-white text-[#6c47ff] hover:bg-white/90 font-bold text-xs uppercase tracking-widest rounded-xl h-11">
+                 <Button 
+                   onClick={() => router.push('/automations/new?template=reputation')}
+                   className="w-full bg-white text-[#6c47ff] hover:bg-white/90 font-bold text-xs uppercase tracking-widest rounded-xl h-11"
+                 >
                     Setup Workflow
                  </Button>
               </CardContent>

@@ -884,3 +884,65 @@ export async function convertToInvoice(quoteId: string) {
 
   return result;
 }
+
+export async function getOrders(workspaceId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      contact:contacts(first_name, last_name, email),
+      items:order_items(
+        *,
+        product:products(name)
+      )
+    `)
+    .eq('workspace_id', workspaceId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function createOrder(orderData: any, items: any[]) {
+  const supabase = await createClient();
+  const workspaceId = orderData.workspace_id;
+
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .insert(orderData)
+    .select()
+    .single();
+
+  if (orderError) throw orderError;
+
+  if (items && items.length > 0) {
+    const itemsWithOrderId = items.map(item => ({
+      ...item,
+      order_id: order.id,
+      workspace_id: workspaceId
+    }));
+
+    await supabase.from('order_items').insert(itemsWithOrderId);
+  }
+
+  revalidatePath('/orders');
+  return { success: true, data: order };
+}
+
+export async function getOrdersStats(workspaceId: string) {
+  const supabase = await createClient();
+  const { data: orders } = await supabase
+    .from('orders')
+    .select('total, status')
+    .eq('workspace_id', workspaceId);
+
+  if (!orders) return { total_sales: 0, count: 0, pending: 0 };
+
+  return orders.reduce((acc, order) => {
+    acc.total_sales += Number(order.total || 0);
+    acc.count += 1;
+    if (order.status === 'pending') acc.pending += 1;
+    return acc;
+  }, { total_sales: 0, count: 0, pending: 0 });
+}

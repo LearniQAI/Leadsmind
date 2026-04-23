@@ -164,6 +164,9 @@ export async function forgotPassword(email: string) {
   });
 
   if (error) {
+    if (error.message.includes('rate limit')) {
+      return { success: false, error: 'Too many requests. Please try again in a few minutes.' };
+    }
     console.error('Forgot password error:', error.message);
     return { success: false, error: error.message };
   }

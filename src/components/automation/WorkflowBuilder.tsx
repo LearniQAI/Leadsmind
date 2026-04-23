@@ -253,64 +253,64 @@ export function WorkflowBuilder({
       <div className="absolute top-6 left-6 right-6 z-10 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-3 pointer-events-auto">
           <Button
-            className="bg-[#6c47ff] hover:bg-[#5b3ce0] text-white gap-2 shadow-lg shadow-[#6c47ff]/20 rounded-2xl h-11 px-6 transition-all"
+            className="bg-primary hover:bg-primary/90 text-white gap-2 rounded-xl h-10 px-4 transition-all"
             onClick={() => setShowPanel(!showPanel)}
           >
             <Plus size={16} />
-            <span className="text-xs font-bold uppercase tracking-wider">Add Action</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Add Step</span>
           </Button>
 
           <div className="h-4 w-px bg-white/10 mx-1" />
 
           <Button
             variant="secondary"
-            className="bg-[#1a1a24] border-white/5 text-white gap-2 hover:bg-white/10 rounded-2xl"
+            className="bg-[#1a1a24] border-white/5 text-white gap-2 hover:bg-white/10 rounded-xl"
             onClick={() => setIsAnalyticsMode(!isAnalyticsMode)}
           >
             <BarChart2 className={isAnalyticsMode ? "text-emerald-400" : "text-white/40"} size={16} />
             <span className="text-xs font-bold uppercase tracking-wider">
-              {isAnalyticsMode ? "Live Data" : "Insights"}
+              Stats
             </span>
           </Button>
 
           <Button
             variant="secondary"
-            className="bg-[#1a1a24] border-white/5 text-white gap-2 hover:bg-white/10 rounded-2xl"
+            className="bg-[#1a1a24] border-white/5 text-white gap-2 hover:bg-white/10 rounded-xl"
             onClick={() => setShowLogs(!showLogs)}
           >
             <History className={showLogs ? "text-blue-400" : "text-white/40"} size={16} />
             <span className="text-xs font-bold uppercase tracking-wider">
-              {showLogs ? "Active Runs" : "History"}
+              Runs
             </span>
           </Button>
 
           <Button
-            className="bg-amber-500/10 border border-amber-500/20 text-amber-500 gap-2 hover:bg-amber-500/20 rounded-2xl animate-pulse"
+            className="bg-amber-500/10 border border-amber-500/20 text-amber-500 gap-2 hover:bg-amber-500/20 rounded-xl"
             onClick={() => setShowGuide(true)}
           >
             <HelpCircle size={16} />
-            <span className="text-xs font-black uppercase tracking-wider">
-              How-To Guide
+            <span className="text-xs font-bold uppercase tracking-wider">
+              Guide
             </span>
           </Button>
 
           <Button
-            className="bg-primary/10 border border-primary/20 text-primary gap-2 hover:bg-primary/20 rounded-2xl"
+            className="bg-primary/10 border border-primary/20 text-primary gap-2 hover:bg-primary/20 rounded-xl"
             onClick={() => setShowLibrary(true)}
           >
             <Sparkles size={16} />
-            <span className="text-xs font-black uppercase tracking-wider">
-              Blueprints
+            <span className="text-xs font-bold uppercase tracking-wider">
+              Templates
             </span>
           </Button>
 
           <Button
             variant="secondary"
-            className="bg-[#1a1a24] border-white/5 text-white gap-2 hover:bg-white/10 rounded-2xl"
+            className="bg-[#1a1a24] border-white/5 text-white gap-2 hover:bg-white/10 rounded-xl"
             onClick={() => setShowSettings(true)}
           >
-            <Settings size={16} className={showSettings ? "text-primary animate-spin" : "text-white/40"} />
-            <span className="text-xs font-black uppercase tracking-wider">
+            <Settings size={16} className={showSettings ? "text-primary" : "text-white/40"} />
+            <span className="text-xs font-bold uppercase tracking-wider">
               Logic
             </span>
           </Button>
@@ -346,32 +346,19 @@ export function WorkflowBuilder({
         <div className="h-4 w-px bg-white/10 mx-1" />
 
         <div className="flex items-center gap-2 pointer-events-auto">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md mr-4">
-            <Shield className="text-blue-400" size={14} />
-            <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">Automation Secure</span>
-          </div>
-
-          <Button variant="ghost" className="text-white/40 hover:text-white hover:bg-white/5 gap-2 h-10 px-4 rounded-2xl">
-            <Play size={16} />
-            <span className="text-xs font-bold uppercase tracking-wide">Simulate</span>
-          </Button>
-
           <Button
-            className="bg-white/5 border border-white/10 hover:bg-white/10 text-white gap-2 h-10 px-4 rounded-2xl"
+            className="bg-primary hover:bg-primary/90 text-white gap-2 h-10 px-6 rounded-xl font-bold uppercase tracking-widest text-[10px]"
             onClick={handleManualSave}
           >
-            <Save size={16} />
-            <span className="text-xs font-bold uppercase tracking-wide">Push Changes</span>
+            <Save size={14} />
+            Save Changes
           </Button>
         </div>
       </div>
 
 
 
-      <div className="h-full w-full relative overflow-hidden">
-        {/* Subtle Depth Layers */}
-        <div className="absolute inset-0 bg-[#020205]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(108,71,255,0.05),transparent_70%)]" />
+      <div className="h-full w-full relative overflow-hidden bg-[#030303]">
 
         <ReactFlow
           nodes={nodes}
