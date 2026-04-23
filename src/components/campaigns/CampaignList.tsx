@@ -125,11 +125,14 @@ export function CampaignList({ campaigns }: CampaignListProps) {
                       </Button>
                     } />
                     <DropdownMenuContent align="end" className="w-48 bg-[#1a1a24] border-white/10 text-white">
-                      <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                        <Link href={`/campaigns/${campaign.id}/builder`} className="flex items-center w-full">
-                          <Eye className="h-4 w-4 mr-2" /> Edit Campaign
-                        </Link>
-                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        render={
+                          <Link href={`/campaigns/${campaign.id}/builder`} className="flex items-center w-full">
+                            <Eye className="h-4 w-4 mr-2" /> Edit Campaign
+                          </Link>
+                        }
+                        className="gap-2 cursor-pointer"
+                      />
                       <DropdownMenuItem className="gap-2 cursor-pointer">
                         <BarChart2 className="h-4 w-4" /> Analytics
                       </DropdownMenuItem>
