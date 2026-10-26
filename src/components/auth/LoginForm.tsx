@@ -46,7 +46,15 @@ export function LoginForm() {
       });
 
       if (authError) {
-        toast.error('Incorrect email or password. Please try again.');
+        // email_not_confirmed only ever fires once Supabase has already verified the password
+        // is correct, so distinguishing it here doesn't give an attacker anything they don't
+        // already have — unlike a generic "no such account" leak, this requires knowing the
+        // right password.
+        if (authError.code === 'email_not_confirmed') {
+          toast.error('Please verify your email before signing in. Check your inbox for the confirmation link.');
+        } else {
+          toast.error('Incorrect email or password. Please try again.');
+        }
         return;
       }
 

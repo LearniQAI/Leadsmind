@@ -5,6 +5,12 @@ import { revalidatePath } from 'next/cache';
 import { sendEmail } from '@/lib/email';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { createClient } from '@supabase/supabase-js';
+import { createElement } from 'react';
+import { isDuplicateSignupError } from '@/lib/auth/isDuplicateSignupError';
+import { safeInternalPath } from '@/lib/security/safeInternalPath';
+import { VerificationEmail } from '@/emails/verification';
+import { PasswordResetEmail } from '@/emails/password-reset';
 
 function slugify(text: string) {
   return text
@@ -155,23 +161,108 @@ export async function setActiveWorkspace(workspaceId: string) {
   return { success: true };
 }
 
-export async function forgotPassword(email: string) {
-  const supabase = await createServerClient();
+/**
+ * Creates the Auth user and sends the branded confirmation email via the app's own Resend path
+ * (admin.generateLink()) instead of the client-side supabase.auth.signUp() call this replaces.
+ *
+ * Two independent reasons for this, not just branding:
+ * 1. Email confirmation is mandatory on this project, so signUp() never returns a session
+ *    anyway — there's nothing to gain from a client-side call.
+ * 2. supabase.auth.signUp() with the browser client's default PKCE flow produces a code=...
+ *    confirmation link, which only works from the SAME browser that started the signup (the
+ *    PKCE code verifier lives in that browser's storage) — it fails with
+ *    AuthPKCECodeVerifierMissingError the moment it's opened elsewhere (a different browser,
+ *    device, or the user's mail-client browser). generateLink()'s token_hash is a stateless
+ *    OTP, so the confirmation link works from any device/browser.
+ */
+export async function signUpBasic(payload: { email: string; password: string; fullName: string; next?: string }) {
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
+  const next = safeInternalPath(payload.next, '/dashboard');
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://www.leadsmind.io/auth/callback?next=/reset-password',
-  });
+  try {
+    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'signup',
+      email: payload.email,
+      password: payload.password,
+      options: {
+        data: { full_name: payload.fullName },
+        redirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
+    });
 
-  if (error) {
-    if (error.message.includes('rate limit')) {
-      return { success: false, error: 'Too many requests. Please try again in a few minutes.' };
+    if (error) {
+      if (isDuplicateSignupError(error)) {
+        return { success: false, error: 'An account with this email already exists. Try logging in.' };
+      }
+      console.error('[signUpBasic] generateLink failed:', error.message);
+      return { success: false, error: 'Something went wrong. Please try again.' };
     }
-    console.error('Forgot password error:', error.message);
-    return { success: false, error: error.message };
-  }
 
-  return { success: true };
+    const verificationLink = `${appUrl}/auth/callback?token_hash=${data.properties.hashed_token}&type=signup&next=${encodeURIComponent(next)}`;
+
+    try {
+      await sendEmail({
+        to: payload.email,
+        subject: 'Confirm your LeadsMind account',
+        react: createElement(VerificationEmail, { verificationLink }),
+      });
+    } catch (emailErr) {
+      console.error('[signUpBasic] Verification email failed:', emailErr);
+      return { success: false, error: 'Account created, but the confirmation email failed to send. Please contact support.' };
+    }
+
+    return { success: true, userId: data.user.id };
+  } catch (error) {
+    console.error('[signUpBasic] Unexpected error:', error);
+    return { success: false, error: 'Something went wrong. Please try again.' };
+  }
+}
+
+// Always returns the same generic response regardless of whether the email is registered —
+// generateLink() errors (e.g. "user not found") differ observably from the success path, so
+// branching the response on them would let an attacker enumerate registered emails.
+const FORGOT_PASSWORD_GENERIC_RESPONSE: { success: boolean; error?: string } = { success: true };
+
+export async function forgotPassword(email: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
+  try {
+    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo: `${appUrl}/auth/callback?next=/reset-password` },
+    });
+
+    if (error) {
+      console.error('[forgotPassword] generateLink failed:', error.message);
+      return FORGOT_PASSWORD_GENERIC_RESPONSE;
+    }
+
+    const resetLink = `${appUrl}/auth/callback?token_hash=${data.properties.hashed_token}&type=recovery&next=/reset-password`;
+
+    await sendEmail({
+      to: email,
+      subject: 'Reset your LeadsMind password',
+      react: createElement(PasswordResetEmail, { resetLink }),
+    });
+
+    return FORGOT_PASSWORD_GENERIC_RESPONSE;
+  } catch (error) {
+    console.error('[forgotPassword] Unexpected error:', error);
+    return FORGOT_PASSWORD_GENERIC_RESPONSE;
+  }
 }
 
 export async function resetPassword(password: string) {

@@ -1,13 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signupSchema, SignupValues } from '@/lib/validations/auth.schema';
-import { createClient } from '@/lib/supabase/client';
-import { setupWorkspace, setActiveWorkspace } from '@/app/actions/auth';
+import { signUpBasic } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,8 +17,6 @@ export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isVerificationSent, setIsVerificationSent] = useState(false);
-  const router = useRouter();
-  const supabase = createClient();
 
   const form = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
@@ -35,67 +31,26 @@ export function SignupForm() {
   async function onSubmit(values: SignupValues) {
     setIsLoading(true);
     try {
-      // Step 1: Sign up via Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Email confirmation is mandatory on this project, so signup always goes through the
+      // app's own generateLink()+Resend path (src/app/actions/auth.ts#signUpBasic) rather than
+      // the client-side supabase.auth.signUp() call this replaces — that call's PKCE
+      // confirmation link only works from the same browser that started the signup. Workspace
+      // provisioning happens once the user confirms (DB trigger / dashboard auto-create), not
+      // here, since there is never an immediate session to act on.
+      const result = await signUpBasic({
         email: values.email,
         password: values.password,
-        options: {
-          data: { full_name: values.fullName },
-          emailRedirectTo: 'https://www.leadsmind.io/auth/callback?next=/welcome',
-        },
+        fullName: values.fullName,
+        next: '/welcome',
       });
 
-      if (authError) {
-        if (authError.message.toLowerCase().includes('already registered')) {
-          toast.error('An account with this email already exists. Try logging in.');
-        } else {
-          toast.error(authError.message);
-        }
+      if (!result.success) {
+        toast.error(result.error ?? 'Something went wrong. Please try again.');
         return;
       }
 
-      if (!authData.user) {
-        toast.error('Signup succeeded but no user was returned. Please try logging in.');
-        return;
-      }
-
-      const userId = authData.user.id;
-      const session = authData.session;
-
-      // If no session is returned, it means email confirmation is required
-      if (!session) {
-        setIsVerificationSent(true);
-        toast.success('Verification email sent! Please check your inbox.');
-        return;
-      }
-      const nameParts = values.fullName.trim().split(' ');
-      const firstName = nameParts[0] ?? values.email.split('@')[0];
-      const lastName = nameParts.slice(1).join(' ');
-
-
-      try {
-        const result = await setupWorkspace({
-          userId,
-          email: values.email,
-          firstName,
-          lastName,
-          workspaceName: `${values.fullName}'s Workspace`,
-        });
-
-        if (result.success && result.workspaceId) {
-          await setActiveWorkspace(result.workspaceId);
-        } else {
-          console.warn('[SignupForm] setupWorkspace non-success:', result.error);
-          // Don't block — dashboard handles missing workspace gracefully
-        }
-      } catch (setupErr) {
-        console.warn('[SignupForm] setupWorkspace threw (non-blocking):', setupErr);
-        // Still proceed — dashboard & auth.ts will auto-create workspace
-      }
-
-      toast.success('Account created! Welcome to LeadsMind.');
-      router.push('/welcome');
-      router.refresh();
+      setIsVerificationSent(true);
+      toast.success('Verification email sent! Please check your inbox.');
     } catch (error) {
       console.error('[SignupForm] Unexpected error:', error);
       toast.error(error instanceof Error ? error.message : 'Something went wrong. Please try again.');

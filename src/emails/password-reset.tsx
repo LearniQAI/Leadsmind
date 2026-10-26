@@ -80,7 +80,7 @@ const buttonContainer = {
 };
 
 const button = {
-  backgroundColor: '#2563eb',
+  backgroundColor: '#6c47ff',
   borderRadius: '5px',
   color: '#fff',
   fontSize: '16px',
