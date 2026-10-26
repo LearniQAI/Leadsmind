@@ -184,7 +184,7 @@ export async function createNewWorkspace(name: string) {
 
   const { data: workspace, error: createError } = await supabase
     .from('workspaces')
-    .insert({ name, slug, owner_id: user.id, plan: 'free' })
+    .insert({ name, slug, owner_id: user.id, plan: 'spark' })
     .select()
     .single();
 

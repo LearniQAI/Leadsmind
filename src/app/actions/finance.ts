@@ -133,7 +133,7 @@ export async function createCheckoutSession(tierId: string, interval: 'month' | 
 
     if (selectedTier.monthlyPrice === 0) {
       // If it's the free tier, just update immediately without Stripe
-      await supabase.from('workspaces').update({ plan_tier: 'starter' }).eq('id', workspaceId);
+      await supabase.from('workspaces').update({ plan_tier: 'spark' }).eq('id', workspaceId);
       revalidatePath('/settings/billing');
       return { url: '/settings/billing?success=true' };
     }

@@ -73,7 +73,7 @@ export async function setupWorkspace(payload: {
         name: payload.workspaceName,
         slug,
         owner_id: payload.userId,
-        plan: 'free',
+        plan: 'spark',
       })
       .select('id, name')
       .single();
